@@ -23,6 +23,7 @@
   },
   "registries": {
     "@efferd": "https://efferd.com/r/{name}.json",
-    "@shadcnstore": "https://shadcnstore.com/r/{name}.json"
+    "@shadcnstore": "https://shadcnstore.com/r/{name}.json",
+    "@animate-ui": "https://animate-ui.com/r/{name}.json"
   }
 }

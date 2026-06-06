@@ -29,6 +29,10 @@ const data = {
           url: "/dashboard",
         },
         {
+          title: "Asisten Keputusan",
+          url: "/budget-analysis",
+        },
+        {
           title: "Budget Analisis",
           url: "/budget-analysis",
         },

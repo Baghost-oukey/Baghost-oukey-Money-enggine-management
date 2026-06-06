@@ -1,58 +1,75 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-export default function DynamicInput() {
-  const [fields, setFields] = useState([""]);
+export type Expense = {
+  description: string;
+  amount: number;
+};
 
-  const addField = () => {
-    setFields([...fields, ""]);
-  };
+type DynamicInputProps = {
+  expenses: Expense[];
+  setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>;
+};
 
-  const removeField = (index: number) => {
-    setFields(fields.filter((_, i) => i !== index));
+export default function DynamicInput({
+  expenses,
+  setExpenses,
+}: DynamicInputProps) {
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+
+  const addExpense = () => {
+    if (!description.trim() || !amount) return;
+
+    setExpenses((prev) => [
+      ...prev,
+      {
+        description,
+        amount: Number(amount),
+      },
+    ]);
+
+    setDescription("");
+    setAmount("");
   };
 
   return (
-    <div className="space-y-3">
-      {fields.map((field, index) => (
-        <div key={index} className="flex items-center gap-2">
+    <div className="rounded-2xl border bg-card p-5 shadow-sm">
+      <div className="space-y-4">
+        <Input
+          placeholder="Contoh: Makan Siang, Bensin, Belanja..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+            Rp
+          </span>
+
           <Input
-            placeholder={`Input ${index + 1}`}
-            value={field}
-            onChange={(e) => {
-              const updated = [...fields];
-              updated[index] = e.target.value;
-              setFields(updated);
-            }}
+            type="number"
+            placeholder="0"
+            className="pl-10"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
           />
-
-          {fields.length > 1 && (
-            <Button
-              type="button"
-              variant="destructive"
-              size="icon"
-              onClick={() => removeField(index)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
         </div>
-      ))}
 
-      <Button
-        type="button"
-        variant="outline"
-        onClick={addField}
-        className="w-full"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        Tambah Pengeluaran 
-      </Button>
+        <Button
+          type="button"
+          onClick={addExpense}
+          className="w-full"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Tambah Pengeluaran
+        </Button>
+      </div>
     </div>
   );
 }

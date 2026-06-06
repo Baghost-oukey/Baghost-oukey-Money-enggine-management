@@ -151,7 +151,7 @@ export const budgetaAnalysis = () => {
                   <DynamicInput expenses={expenses} setExpenses={setExpenses} />
                 </LabelInputContainer>
                 <button
-                  className="group/btn relative block h-10 w-full rounded-md bg-black text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset] mt-10"
+                  className="group/btn relative block h-10 w-full rounded-md bg-blue-600 text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset] mt-10"
                   type="submit"
                 >
                   Analisis Sekarang
@@ -173,9 +173,9 @@ export const budgetaAnalysis = () => {
             transition={{ duration: 0.25 }}
             className="rounded-2xl border bg-card p-4 shadow-sm mt-10"
           >
-            <h2 className="text-sm font-semibold">Ringkasan</h2>
+            <h2 className="text-sm font-semibold ml-4">Ringkasan</h2>
 
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground ml-4">
               Data yang akan dianalisis AI
             </p>
 
@@ -196,7 +196,7 @@ export const budgetaAnalysis = () => {
               duration: 0.3,
               ease: "easeOut",
             }}
-            className="rounded-2xl border bg-card p-4 shadow-sm"
+            className="rounded-2xl border bg-card p-4 shadow-sm mt-10"
           >
             <div className="mb-3">
               <h2 className="text-sm font-semibold">Ringkasan</h2>

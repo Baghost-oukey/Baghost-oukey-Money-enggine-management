@@ -1,0 +1,153 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model User {
+  id     String @id @default(cuid())
+  authId String @unique
+
+  name     String?
+  email    String? @unique
+  imageUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  goals           Goal[]
+  decisions       DecisionAnalysis[]
+  budgets         BudgetPlan[]
+  sessions        ChatSession[]
+  exportHistories ExportHistory[]
+}
+
+model Goal {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  title        String
+  targetAmount Decimal
+
+  targetDate DateTime?
+
+  description String?
+
+  isCompleted Boolean @default(false)
+
+  currentAmount Decimal @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DecisionAnalysis {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  monthlyBudget Decimal
+
+  targetName  String
+  targetValue Decimal
+
+  targetDate DateTime?
+
+  decisionName String?
+
+  decisionCost Decimal?
+
+  decisionReason String?
+
+  status String?
+
+  score Int?
+
+  riskLevel String?
+
+  recommendation String?
+
+  createdAt DateTime @default(now())
+
+  expenses DecisionExpense[]
+}
+
+model DecisionExpense {
+  id String @id @default(cuid())
+
+  decisionId String
+
+  decision DecisionAnalysis @relation(fields: [decisionId], references: [id])
+
+  name String
+
+  amount Decimal
+
+  createdAt DateTime @default(now())
+}
+
+model BudgetPlan {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  monthlyBudget Decimal
+
+  recommendation Json?
+
+  aiSummary String?
+
+  createdAt DateTime @default(now())
+}
+
+model ChatSession {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  title String?
+
+  createdAt DateTime @default(now())
+
+  messages ChatMessage[]
+}
+
+model ChatMessage {
+  id String @id @default(cuid())
+
+  sessionId String
+
+  session ChatSession @relation(fields: [sessionId], references: [id])
+
+  role String
+
+  content String @db.Text
+
+  createdAt DateTime @default(now())
+}
+
+model ExportHistory {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  type String
+
+  fileUrl String?
+
+  createdAt DateTime @default(now())
+}

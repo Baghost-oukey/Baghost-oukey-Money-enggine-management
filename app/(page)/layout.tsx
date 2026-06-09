@@ -1,9 +1,11 @@
+"use client"
 import type { Metadata } from "next";
 import { Poppins, Geist } from "next/font/google";
 import "../globals.css";
 import { cn } from "@/lib/utils";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { SessionProvider } from "next-auth/react";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -30,10 +32,12 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full flex flex-col">
-        <SidebarProvider>
-          <AppSidebar />
-          <main>{children}</main>
-        </SidebarProvider>
+        <SessionProvider>
+          <SidebarProvider>
+            <AppSidebar />
+            <main>{children}</main>
+          </SidebarProvider>
+        </SessionProvider>
       </body>
     </html>
   );

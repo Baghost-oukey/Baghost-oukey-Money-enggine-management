@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 
 export async function createDecision(data: {
+  userId: string;
+
   monthlyBudget: number;
 
   targetName: string;
@@ -19,7 +21,7 @@ export async function createDecision(data: {
   const decision =
     await prisma.decisionAnalysis.create({
       data: {
-        userId: "DEMO_USER_ID",
+        userId: data.userId,
 
         monthlyBudget: data.monthlyBudget,
 

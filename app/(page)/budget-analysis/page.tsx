@@ -2,13 +2,14 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import React from "react";
+import React, { use } from "react";
 import DynamicInput from "@/components/inputState";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createDecision } from "@/actions/decission/createDecission";
+import { useSession } from "next-auth/react"; // <-- Tambahkan ini untuk mengambil data user login
 
 const BottomGradient = () => {
   return (
@@ -39,12 +40,37 @@ type Expense = {
 };
 
 export const budgetaAnalysis = () => {
+  const { data: session } = useSession();
 
-  // Button Analisis
+  const [budget, setBudget] = useState("");
+  const [target, setTarget] = useState("");
+  const [targetValue, setTargetValue] = useState("");
+  const [targetDate, setTargetDate] = useState("");
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  const isEmpty =
+    !budget && !target && !targetValue && !targetDate && expenses.length === 0;
+
+  const removeExpense = (index: number) => {
+    setExpenses(expenses.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!session?.user?.id) {
+      alert("Kamu harus login terlebih dahulu!");
+      return;
+    }
+
+    if (!budget || !target) {
+      alert("Isi data dulu!");
+      return;
+    }
+
     try {
       const result = await createDecision({
+        userId: session.user.id,
         monthlyBudget: Number(budget),
         targetName: target,
         targetValue: Number(targetValue),
@@ -52,23 +78,13 @@ export const budgetaAnalysis = () => {
         expenses,
       });
 
-      console.log(result)
+      console.log("SUKSES:", result);
+      alert("Data berhasil disimpan!");
     } catch (err) {
-      console.log(err);
+      console.error(err);
+      alert("Gagal menyimpan data");
     }
   };
-
-  const [budget, setBudget] = useState("");
-  const [target, setTarget] = useState("");
-  const [targetValue, setTargetValue] = useState("");
-  const [targetDate, setTargetDate] = useState("");
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const isEmpty =
-    !budget && !target && !targetValue && !targetDate && expenses.length === 0;
-  const removeExpense = (index: number) => {
-    setExpenses(expenses.filter((_, i) => i !== index));
-  };
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <div>
@@ -319,9 +335,7 @@ export const budgetaAnalysis = () => {
                         }}
                         className="flex items-center justify-between py-2"
                       >
-                        <span className="truncate text-sm">
-                          {expense.name}
-                        </span>
+                        <span className="truncate text-sm">{expense.name}</span>
 
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium">

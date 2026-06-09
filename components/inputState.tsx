@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export type Expense = {
-  description: string;
+  name: string;
   amount: number;
 };
 
@@ -20,21 +20,21 @@ export default function DynamicInput({
   expenses,
   setExpenses,
 }: DynamicInputProps) {
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
 
   const addExpense = () => {
-    if (!description.trim() || !amount) return;
+    if (!name.trim() || !amount) return;
 
     setExpenses((prev) => [
       ...prev,
       {
-        description,
+        name,
         amount: Number(amount),
       },
     ]);
 
-    setDescription("");
+    setName("");
     setAmount("");
   };
 
@@ -43,8 +43,8 @@ export default function DynamicInput({
       <div className="space-y-4">
         <Input
           placeholder="Contoh: Makan Siang, Bensin, Belanja..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
         />
 
         <div className="relative">

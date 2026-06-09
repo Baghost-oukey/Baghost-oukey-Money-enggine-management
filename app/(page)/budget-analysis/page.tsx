@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createDecision } from "@/actions/decission/createDecission";
 
 const BottomGradient = () => {
   return (
@@ -33,13 +34,28 @@ const LabelInputContainer = ({
 };
 
 type Expense = {
-  description: string;
+  name: string;
   amount: number;
 };
 
 export const budgetaAnalysis = () => {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+
+  // Button Analisis
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    try {
+      const result = await createDecision({
+        monthlyBudget: Number(budget),
+        targetName: target,
+        targetValue: Number(targetValue),
+        targetDate: targetDate ? new Date(targetDate) : undefined,
+        expenses,
+      });
+
+      console.log(result)
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   const [budget, setBudget] = useState("");
@@ -138,17 +154,20 @@ export const budgetaAnalysis = () => {
                     onChange={(e) => setTargetDate(e.target.value)}
                   />
                 </LabelInputContainer>
-                {/* <LabelInputContainer className="mb-4">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  placeholder="projectmayhem@fc.com"
-                  type="email"
-                />
-              </LabelInputContainer> */}
                 <LabelInputContainer className="mt-5">
                   <Label>Daftar Pengeluaran</Label>
                   <DynamicInput expenses={expenses} setExpenses={setExpenses} />
+                  <div className="mt-4 space-y-2">
+                    {expenses.map((expense, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between border rounded-lg p-3"
+                      >
+                        <span>{expense.name}</span>
+                        <span>Rp.{expense.amount.toLocaleString("id-ID")}</span>
+                      </div>
+                    ))}
+                  </div>
                 </LabelInputContainer>
                 <button
                   className="group/btn relative block h-10 w-full rounded-md bg-blue-600 text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset] mt-10"
@@ -278,7 +297,7 @@ export const budgetaAnalysis = () => {
                   <AnimatePresence>
                     {expenses.map((expense, index) => (
                       <motion.div
-                        key={`${expense.description}-${index}`}
+                        key={`${expense.name}-${index}`}
                         layout
                         initial={{
                           opacity: 0,
@@ -301,7 +320,7 @@ export const budgetaAnalysis = () => {
                         className="flex items-center justify-between py-2"
                       >
                         <span className="truncate text-sm">
-                          {expense.description}
+                          {expense.name}
                         </span>
 
                         <div className="flex items-center gap-2">

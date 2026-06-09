@@ -11,6 +11,7 @@ async function main() {
       authId: "demo-auth",
       name: "Demo User",
       email: "demo@test.com",
+      password: "1234567890"
     },
   });
 

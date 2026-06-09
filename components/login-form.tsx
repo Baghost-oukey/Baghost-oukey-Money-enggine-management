@@ -1,3 +1,4 @@
+"use client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,16 +11,36 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
+import { useState } from "react";
+import { auth } from "@/actions/auth/auth";
+import { useRouter } from "next/navigation";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const HandleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const result = await auth(email, password);
+
+    if (!result.success) {
+      alert(result.message);
+      return;
+    }
+
+    router.push("/dashboard");
+  };
+
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8">
+          <form className="p-6 md:p-8" onSubmit={HandleLogin}>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Selamat Datang</h1>
@@ -33,6 +54,8 @@ export function LoginForm({
                   id="email"
                   type="email"
                   placeholder="Masukkan Alamat Email Anda"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </Field>
@@ -46,7 +69,14 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" placeholder="Masukkan Kata Sandi Anda" required />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Masukkan Kata Sandi Anda"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </Field>
               <Field>
                 <Button type="submit">Login</Button>
@@ -84,7 +114,10 @@ export function LoginForm({
                 </Button>
               </Field>
               <FieldDescription className="text-center">
-                Tidak Punya akun? <span className="text-blue-600 font-bold"><a href="#">Klik Disini</a></span>
+                Tidak Punya akun?{" "}
+                <span className="text-blue-600 font-bold">
+                  <a href="#">Klik Disini</a>
+                </span>
               </FieldDescription>
             </FieldGroup>
           </form>

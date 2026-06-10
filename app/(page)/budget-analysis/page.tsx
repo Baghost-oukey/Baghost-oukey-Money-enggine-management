@@ -1,367 +1,116 @@
 "use client";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import React, { use } from "react";
-import DynamicInput from "@/components/inputState";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+
+import React from "react";
+import { useBudgetAnalysis } from "./hooks/useBudgetAnalysis";
+import { BudgetForm } from "./components/BudgetForm";
+import { BudgetSummaryPreview } from "./components/BudgetSummaryPreview";
+import { AnalysisDashboard } from "./components/AnalysisDashboard";
 import { motion, AnimatePresence } from "framer-motion";
-import { createDecision } from "@/actions/decission/createDecission";
-import { useSession } from "next-auth/react"; // <-- Tambahkan ini untuk mengambil data user login
+import { Target } from "lucide-react";
 
-const BottomGradient = () => {
+export function BudgetaAnalysis() {
+  const {
+    budget,
+    setBudget,
+    target,
+    setTarget,
+    targetValue,
+    setTargetValue,
+    targetDate,
+    setTargetDate,
+    expenses,
+    setExpenses,
+    isLoading,
+    analysisResult,
+    totalExpenses,
+    remainingBudget,
+    percentSpent,
+    isEmpty,
+    removeExpense,
+    handleReset,
+    handleSubmit,
+    status,
+  } = useBudgetAnalysis();
+
   return (
-    <>
-      <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-      <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
-    </>
-  );
-};
-
-const LabelInputContainer = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => {
-  return (
-    <div className={cn("flex w-full flex-col space-y-2", className)}>
-      {children}
-    </div>
-  );
-};
-
-type Expense = {
-  name: string;
-  amount: number;
-};
-
-export const budgetaAnalysis = () => {
-  const { data: session } = useSession();
-
-  const [budget, setBudget] = useState("");
-  const [target, setTarget] = useState("");
-  const [targetValue, setTargetValue] = useState("");
-  const [targetDate, setTargetDate] = useState("");
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-
-  const isEmpty =
-    !budget && !target && !targetValue && !targetDate && expenses.length === 0;
-
-  const removeExpense = (index: number) => {
-    setExpenses(expenses.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (!session?.user?.id) {
-      alert("Kamu harus login terlebih dahulu!");
-      return;
-    }
-
-    if (!budget || !target) {
-      alert("Isi data dulu!");
-      return;
-    }
-
-    try {
-      const result = await createDecision({
-        userId: session.user.id,
-        monthlyBudget: Number(budget),
-        targetName: target,
-        targetValue: Number(targetValue),
-        targetDate: targetDate ? new Date(targetDate) : undefined,
-        expenses,
-      });
-
-      console.log("SUKSES:", result);
-      alert("Data berhasil disimpan!");
-    } catch (err) {
-      console.error(err);
-      alert("Gagal menyimpan data");
-    }
-  };
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div>
-        <div className="mt-10 mx-10">
-          <h1 className="text-4xl font-bold">Keputusan Keuangan</h1>
-          <span className="text-sm text-muted-foreground font-light">
-            Analisis keuangan Anda dengan bantuan AI dan dapatkan rekomendasi
-            personal
-          </span>
-        </div>
-
-        {/* Container Input */}
-        <div>
-          <div className="shadow-input mx-7 w-full max-w-2xl rounded-none bg-white mt-10 md:rounded-2xl md:p-3 dark:bg-black">
-            <h2 className="text-xl font-semibold text-neutral-800 dark:text-neutral-200">
-              Masukkan Keuangan Anda untuk Analisis
-            </h2>
-            <p className="mt-2 max-w-sm text-sm text-neutral-600 dark:text-neutral-300 font-light">
-              Silakan masukkan informasi keuangan Anda di bawah ini untuk
-              memulai analisis.
-            </p>
-
-            <form className="mt-8" onSubmit={handleSubmit}>
-              <div className="rounded-3xl border bg-card p-6 shadow-sm space-y-6 w-full">
-                <LabelInputContainer>
-                  <Label htmlFor="targetGoals">Budget Bulanan Anda</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      Rp.
-                    </span>
-
-                    <Input
-                      id="budgetBulanan"
-                      type="number"
-                      placeholder="0"
-                      className="pl-10"
-                      value={budget}
-                      onChange={(e) => setBudget(e.target.value)}
-                    />
-                  </div>
-                </LabelInputContainer>
-
-                <LabelInputContainer className="mt-5">
-                  <Label htmlFor="targetGoals">
-                    Apa Yang Ingin Anda Capai ?
-                  </Label>
-                  <Input
-                    id="targetGoals"
-                    placeholder="Apa yang ingin Anda capai dengan keuangan Anda?"
-                    type="text"
-                    className="h-20"
-                    value={target}
-                    onChange={(e) => setTarget(e.target.value)}
-                  />
-                </LabelInputContainer>
-
-                <LabelInputContainer className="mt-5">
-                  <Label htmlFor="firstname">Berapa Nilai Target Anda ?</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      Rp.
-                    </span>
-                    <Input
-                      id="targetValue"
-                      placeholder="0"
-                      type="number"
-                      className="pl-10"
-                      value={targetValue}
-                      onChange={(e) => setTargetValue(e.target.value)}
-                    />
-                  </div>
-                </LabelInputContainer>
-
-                <LabelInputContainer className="mt-5">
-                  <Label htmlFor="firstname">
-                    Kapan Anda Ingin Mencapai Target Ini ?
-                  </Label>
-                  <Input
-                    id="dateAwal"
-                    placeholder="Target Awal Mulai"
-                    value={targetDate}
-                    type="date"
-                    onChange={(e) => setTargetDate(e.target.value)}
-                  />
-                </LabelInputContainer>
-                <LabelInputContainer className="mt-5">
-                  <Label>Daftar Pengeluaran</Label>
-                  <DynamicInput expenses={expenses} setExpenses={setExpenses} />
-                  <div className="mt-4 space-y-2">
-                    {expenses.map((expense, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between border rounded-lg p-3"
-                      >
-                        <span>{expense.name}</span>
-                        <span>Rp.{expense.amount.toLocaleString("id-ID")}</span>
-                      </div>
-                    ))}
-                  </div>
-                </LabelInputContainer>
-                <button
-                  className="group/btn relative block h-10 w-full rounded-md bg-blue-600 text-white shadow-[0px_1px_0px_0px_#ffffff40_inset,0px_-1px_0px_0px_#ffffff40_inset] dark:bg-zinc-800 dark:from-zinc-900 dark:to-zinc-900 dark:shadow-[0px_1px_0px_0px_#27272a_inset,0px_-1px_0px_0px_#27272a_inset] mt-10"
-                  type="submit"
-                >
-                  Analisis Sekarang
-                  <BottomGradient />
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+    <div className="max-w-6xl mx-auto p-4 md:p-8">
+      {/* Header Section */}
+      <div className="mb-5 text-center lg:text-left">
+        <h1 className="text-4xl font-extrabold tracking-tight ">
+          Analisis Keputusan Keuangan
+        </h1>
+        <p className="mt-2 text-base text-muted-foreground max-w-xl font-light">
+          Rancang rencana anggaran bulanan Anda, tentukan target finansial, dan biarkan sistem memproses evaluasi kelayakan secara instan.
+        </p>
       </div>
 
-      <AnimatePresence mode="wait">
-        {isEmpty ? (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
-            className="rounded-2xl border bg-card p-4 shadow-sm mt-10"
-          >
-            <h2 className="text-sm font-semibold ml-4">Ringkasan</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Side: Form Input */}
+        <div className="lg:col-span-7">
+          <BudgetForm
+            budget={budget}
+            setBudget={setBudget}
+            target={target}
+            setTarget={setTarget}
+            targetValue={targetValue}
+            setTargetValue={setTargetValue}
+            targetDate={targetDate}
+            setTargetDate={setTargetDate}
+            expenses={expenses}
+            setExpenses={setExpenses}
+            isLoading={isLoading}
+            onRemoveExpense={removeExpense}
+            onSubmit={handleSubmit}
+            status={status}
+          />
+        </div>
 
-            <p className="text-xs text-muted-foreground ml-4">
-              Data yang akan dianalisis AI
-            </p>
-
-            <div className="py-10 text-center">
-              <p className="text-sm text-muted-foreground">
-                Isi formulir untuk melihat ringkasan
-              </p>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="summary"
-            layout
-            initial={{ opacity: 0, x: 15 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -15 }}
-            transition={{
-              duration: 0.3,
-              ease: "easeOut",
-            }}
-            className="rounded-2xl border bg-card p-4 shadow-sm mt-10"
-          >
-            <div className="mb-3">
-              <h2 className="text-sm font-semibold">Ringkasan</h2>
-
-              <p className="text-xs text-muted-foreground">
-                Data yang akan dianalisis AI
-              </p>
-            </div>
-
-            <motion.div layout className="space-y-2 text-sm">
-              {budget && (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-muted-foreground">Budget</span>
-
-                  <span className="font-medium">
-                    Rp {Number(budget).toLocaleString("id-ID")}
-                  </span>
-                </motion.div>
-              )}
-
-              {target && (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-muted-foreground">Target</span>
-
-                  <span className="font-medium">{target}</span>
-                </motion.div>
-              )}
-
-              {targetValue && (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-muted-foreground">Nominal</span>
-
-                  <span className="font-medium">
-                    Rp {Number(targetValue).toLocaleString("id-ID")}
-                  </span>
-                </motion.div>
-              )}
-
-              {targetDate && (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-muted-foreground">Deadline</span>
-
-                  <span className="font-medium">
-                    {new Date(targetDate).toLocaleDateString("id-ID")}
-                  </span>
-                </motion.div>
-              )}
-
-              {expenses.length > 0 && (
-                <motion.div layout className="mt-4 rounded-xl border p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold">Pengeluaran</h3>
-
-                    <span className="text-xs text-muted-foreground">
-                      {expenses.length} item
-                    </span>
-                  </div>
-
-                  <AnimatePresence>
-                    {expenses.map((expense, index) => (
-                      <motion.div
-                        key={`${expense.name}-${index}`}
-                        layout
-                        initial={{
-                          opacity: 0,
-                          x: -20,
-                          scale: 0.95,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          x: 0,
-                          scale: 1,
-                        }}
-                        exit={{
-                          opacity: 0,
-                          x: 20,
-                          scale: 0.95,
-                        }}
-                        transition={{
-                          duration: 0.2,
-                        }}
-                        className="flex items-center justify-between py-2"
-                      >
-                        <span className="truncate text-sm">{expense.name}</span>
-
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
-                            Rp {expense.amount.toLocaleString("id-ID")}
-                          </span>
-
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => removeExpense(index)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Right Side: Analysis Dashboard or Real-time Preview */}
+        <div className="lg:col-span-5 h-full">
+          <AnimatePresence mode="wait">
+            {analysisResult ? (
+              <AnalysisDashboard
+                analysisResult={analysisResult}
+                remainingBudget={remainingBudget}
+                targetValue={targetValue}
+                target={target}
+                targetDate={targetDate}
+                onReset={handleReset}
+              />
+            ) : isEmpty ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25 }}
+                className="rounded-2xl border bg-card/30 backdrop-blur-sm p-8 shadow-sm text-center border-dashed border-muted/80 h-full flex flex-col justify-center items-center min-h-[350px]"
+              >
+                <div className="h-16 w-16 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 mb-4 animate-bounce">
+                  <Target size={28} />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Menunggu Data Finansial</h3>
+                <p className="text-sm text-muted-foreground mt-2 max-w-xs font-light leading-relaxed">
+                  Isi formulir anggaran dan pengeluaran di sebelah kiri untuk melihat ringkasan visual dan melakukan analisis AI.
+                </p>
+              </motion.div>
+            ) : (
+              <BudgetSummaryPreview
+                budget={budget}
+                target={target}
+                targetValue={targetValue}
+                targetDate={targetDate}
+                expenses={expenses.map((e) => ({
+                  description: e.name,
+                  amount: e.amount,
+                }))}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
-};
+}
 
-export default budgetaAnalysis;
+export default BudgetaAnalysis;

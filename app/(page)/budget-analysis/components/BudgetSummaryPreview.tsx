@@ -35,7 +35,7 @@ export function BudgetSummaryPreview({
       initial={{ opacity: 0, x: 15 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
-      className="rounded-2xl border bg-card/50 backdrop-blur-md p-6 shadow-xl space-y-6 border-muted/60"
+      className="rounded-2xl border bg-card/50 backdrop-blur-md p-5 shadow-md space-y-4 border-muted/60"
     >
       {/* Header */}
       <div className="border-b border-muted/50 pb-4">
@@ -126,7 +126,6 @@ export function BudgetSummaryPreview({
       {/* AI Evaluate */}
       <div className="bg-gradient-to-br from-blue-500/[0.02] to-indigo-500/[0.02] border border-blue-500/10 dark:border-blue-400/10 rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-          <Sparkles size={14} className="animate-pulse" />
           AI Akan Mengevaluasi
         </div>
 

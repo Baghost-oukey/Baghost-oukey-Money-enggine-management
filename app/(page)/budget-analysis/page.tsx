@@ -33,7 +33,7 @@ export function BudgetaAnalysis() {
   } = useBudgetAnalysis();
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-8">
+    <div className="max-w-8xl mx-auto p-4 md:p-8 space-y-8">
       {/* Header Section */}
       <div className="mb-5 text-center lg:text-left">
         <h1 className="text-4xl font-extrabold tracking-tight ">
@@ -46,7 +46,7 @@ export function BudgetaAnalysis() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Side: Form Input */}
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-6">
           <BudgetForm
             budget={budget}
             setBudget={setBudget}
@@ -65,19 +65,10 @@ export function BudgetaAnalysis() {
           />
         </div>
 
-        {/* Right Side: Analysis Dashboard or Real-time Preview */}
-        <div className="lg:col-span-5 h-full">
+        {/* Right Side: Real-time Preview */}
+        <div className="lg:col-span-6 h-full">
           <AnimatePresence mode="wait">
-            {analysisResult ? (
-              <AnalysisDashboard
-                analysisResult={analysisResult}
-                remainingBudget={remainingBudget}
-                targetValue={targetValue}
-                target={target}
-                targetDate={targetDate}
-                onReset={handleReset}
-              />
-            ) : isEmpty ? (
+            {isEmpty ? (
               <motion.div
                 key="empty"
                 initial={{ opacity: 0, y: 10 }}
@@ -96,6 +87,7 @@ export function BudgetaAnalysis() {
               </motion.div>
             ) : (
               <BudgetSummaryPreview
+                key="preview"
                 budget={budget}
                 target={target}
                 targetValue={targetValue}
@@ -109,6 +101,29 @@ export function BudgetaAnalysis() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Bottom Row: AI Analysis Result */}
+      <AnimatePresence>
+        {analysisResult && (
+          <motion.div
+            key="analysis"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <AnalysisDashboard
+              analysisResult={analysisResult}
+              remainingBudget={remainingBudget}
+              targetValue={targetValue}
+              target={target}
+              targetDate={targetDate}
+              onReset={handleReset}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

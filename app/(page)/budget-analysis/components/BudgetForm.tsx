@@ -106,7 +106,6 @@ export function BudgetForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <LabelInputContainer>
             <Label htmlFor="targetValue" className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp size={16} className="text-cyan-500" />
               Nominal Target Pencapaian
             </Label>
             <div className="relative group">

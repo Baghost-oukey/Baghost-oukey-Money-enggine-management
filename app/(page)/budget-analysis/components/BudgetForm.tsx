@@ -57,26 +57,26 @@ export function BudgetForm({
   status,
 }: BudgetFormProps) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border bg-card/25 backdrop-blur-md p-5 sm:p-6 shadow-lg border-muted/20 transition-all duration-300">
+    <div className="relative overflow-hidden rounded-2xl border bg-card/25 backdrop-blur-md p-5 sm:p-6 shadow-sm transition-all duration-300">
       <h2 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2 tracking-tight">
-        Formulir Data Finansial
+        Formulir Data <span className="text-violet-600">Finansial</span>
       </h2>
 
       <form onSubmit={onSubmit} className="space-y-4">
         {/* Budget Input */}
         <LabelInputContainer>
-          <Label htmlFor="budgetBulanan" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Budget Bulanan Anda
+          <Label htmlFor="budgetBulanan" className="text-xs font-semibold uppercase tracking-wider">
+           <span className="text-violet-600 font-bold">Uang</span> Bulanan Anda
           </Label>
           <div className="relative group">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground group-focus-within:text-violet-600 transition-colors">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-light group-focus-within:text-violet-600 transition-colors">
               Rp
             </span>
             <Input
               id="budgetBulanan"
               type="number"
               placeholder="Contoh: 5000000"
-              className="pl-10 h-10 bg-muted/20 focus-visible:ring-violet-500 transition-all border-muted/50 rounded-xl text-sm"
+              className="pl-10 h-10 transition-all rounded-xl text-xs"
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
               required
@@ -86,14 +86,14 @@ export function BudgetForm({
 
         {/* Target Name */}
         <LabelInputContainer>
-          <Label htmlFor="targetGoals" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Apa Yang Ingin Anda Capai?
+          <Label htmlFor="targetGoals" className="text-xs font-semibold uppercase tracking-wider">
+            Apa <span className="text-violet-600 font-bold">Tujuan</span> mu?
           </Label>
           <Input
             id="targetGoals"
             placeholder="Contoh: Membeli Laptop Baru, Dana Darurat, Investasi..."
             type="text"
-            className="h-10 bg-muted/20 focus-visible:ring-violet-500 transition-all border-muted/50 rounded-xl text-sm"
+            className="h-10 transition-all rounded-xl text-xs"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             required
@@ -103,8 +103,8 @@ export function BudgetForm({
         {/* Target Value & Date Group */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <LabelInputContainer>
-            <Label htmlFor="targetValue" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Nominal Target Pencapaian
+            <Label htmlFor="targetValue" className="text-xs font-semibold uppercase tracking-wider">
+              Nominal <span className="text-violet-600 font-bold">Target</span> Pencapaian
             </Label>
             <div className="relative group">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground group-focus-within:text-violet-600 transition-colors">
@@ -114,7 +114,7 @@ export function BudgetForm({
                 id="targetValue"
                 type="number"
                 placeholder="Contoh: 15000000"
-                className="pl-10 h-10 bg-muted/20 focus-visible:ring-violet-500 transition-all border-muted/50 rounded-xl text-sm"
+                className="pl-10 h-10 rounded-xl text-sm"
                 value={targetValue}
                 onChange={(e) => setTargetValue(e.target.value)}
               />
@@ -122,14 +122,13 @@ export function BudgetForm({
           </LabelInputContainer>
 
           <LabelInputContainer>
-            <Label htmlFor="dateAwal" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar size={14} className="text-rose-500" />
-              Batas Waktu (Deadline)
+            <Label htmlFor="dateAwal" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+              Kapan Rencana Anda <span className="text-violet-600 font-bold">Membeli ?</span>
             </Label>
             <Input
               id="dateAwal"
               type="date"
-              className="h-10 bg-muted/20 focus-visible:ring-violet-500 transition-all border-muted/50 rounded-xl text-sm"
+              className="h-10 transition-all rounded-xl text-sm"
               value={targetDate}
               onChange={(e) => setTargetDate(e.target.value)}
             />
@@ -138,7 +137,7 @@ export function BudgetForm({
 
         {/* Expenses Manager Section */}
         <LabelInputContainer>
-          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Daftar Pengeluaran Bulanan</Label>
+          <Label className="text-xs font-semibold uppercase tracking-wider mb-4">Daftar Pengeluaran Bulanan</Label>
           <DynamicInput expenses={expenses} setExpenses={setExpenses} />
           <ExpenseChips expenses={expenses} onRemove={onRemoveExpense} />
         </LabelInputContainer>

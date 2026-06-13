@@ -131,8 +131,11 @@ export function AnalysisDashboard({
     healthScoreExplanation: string;
     budgetEvolution: string[];
     emergencyMode: { isActive: boolean; strategy: string };
-    sacrificeTransparency: Array<{ item: string; reasons: string[] }>;
+    sacrificeTransparency: Array<{ item: string; nominalToCut?: number; reasons: string[] }>;
     aiRecommendationText: string;
+    realMarketPrice?: string;
+    priceComparisonNote?: string;
+    alternativeSuggestions?: string[];
   };
 
   try {
@@ -149,6 +152,9 @@ export function AnalysisDashboard({
         ? "Keputusan ini mengurangi peluang pencapaian target tabungan secara signifikan karena kondisi anggaran Anda saat ini defisit."
         : "Keputusan ini cukup stabil namun membutuhkan alokasi yang lebih disiplin untuk mencapai target.",
       healthScoreExplanation: analysisResult.recommendation || "Penilaian kesehatan keuangan bulanan Anda berdasarkan sisa anggaran saat ini.",
+      realMarketPrice: targetValue ? `Rp ${Number(targetValue).toLocaleString("id-ID")}` : undefined,
+      priceComparisonNote: "Menggunakan nominal target sebagai patokan harga dasar di fallback.",
+      alternativeSuggestions: [],
       budgetEvolution: [
         "Sisa anggaran bulanan bernilai positif.",
         "Butuh monitoring rutin terhadap pengeluaran harian."
@@ -183,13 +189,8 @@ export function AnalysisDashboard({
   };
 
   return (
-    <motion.div
-      key="results"
-      initial={{ opacity: 0, scale: 0.98, y: 15 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.98, y: -15 }}
-      transition={{ duration: 0.3 }}
-      className="rounded-2xl border bg-card/40 backdrop-blur-md p-5 md:p-6 shadow-2xl space-y-6 relative overflow-hidden"
+    <div
+      className="rounded-2xl border p-5 md:p-6 shadow-2xl space-y-6 relative overflow-hidden"
     >
       {/* Background soft glow effect */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -199,11 +200,10 @@ export function AnalysisDashboard({
       <div className="flex items-center justify-between border-b border-muted/50 pb-4">
         <div>
           <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="text-violet-500" size={18} />
-            Evaluasi Keputusan AI
+            Hasil Analisis Keuangan Mu
           </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Keputusan finansial objektif dan realistis untuk kamu.
+          <p className="text-xs text-light mt-0.5">
+            Keputusan yang di hasilkan oleh AI adalah keputusan yang bisa dijadikan referensi dalam mengelola keuangan mu.
           </p>
         </div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold shadow-sm bg-background/50">
@@ -228,10 +228,10 @@ export function AnalysisDashboard({
 
       {/* Main Grid Layout for Dashboard */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
+
         {/* Left Column: Score, Recommendation & Action */}
         <div className="lg:col-span-4 space-y-6">
-          
+
           {/* Score Card */}
           <div className="flex flex-col items-center p-5 rounded-2xl bg-muted/15 border border-muted/30 relative overflow-hidden">
             <div className="relative w-28 h-28 flex items-center justify-center">
@@ -263,7 +263,7 @@ export function AnalysisDashboard({
             <div className={cn("mt-3 text-[10px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wider text-center", getScoreBgColor(score))}>
               Kesehatan Budget
             </div>
-            
+
             <div className="mt-4 pt-3.5 border-t border-muted/30 w-full text-center text-xs text-muted-foreground leading-relaxed italic">
               "{aiData.healthScoreExplanation}"
             </div>
@@ -303,7 +303,7 @@ export function AnalysisDashboard({
                 <span>Deadline: {new Date(targetDate).toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" })}</span>
               </div>
             )}
-            
+
             <div className="grid grid-cols-3 gap-2">
               <AlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
                 <AlertDialogTrigger asChild>
@@ -314,8 +314,8 @@ export function AnalysisDashboard({
                     Planning
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent 
-                  noBlur 
+                <AlertDialogContent
+                  noBlur
                   size={dialogState === "form" || dialogState === "roadmap" ? "lg" : "md"}
                   className="p-5 sm:p-6 rounded-2xl border bg-card/95 shadow-2xl duration-200 transition-all outline-none w-[95vw] sm:w-full"
                 >
@@ -361,15 +361,15 @@ export function AnalysisDashboard({
                       </div>
 
                       <AlertDialogFooter className="w-full grid grid-cols-2 gap-3 pt-2">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => handleOpenChange(false)} 
+                        <Button
+                          variant="outline"
+                          onClick={() => handleOpenChange(false)}
                           className="w-full rounded-xl hover:bg-muted text-xs font-bold py-2.5 border-muted/50 cursor-pointer"
                         >
                           Nanti Saja
                         </Button>
-                        <Button 
-                          onClick={() => setDialogState("form")} 
+                        <Button
+                          onClick={() => setDialogState("form")}
                           className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold py-2.5 shadow-md transition-all duration-200 hover:scale-[1.01] cursor-pointer"
                         >
                           Buat Planing
@@ -379,9 +379,9 @@ export function AnalysisDashboard({
                   )}
 
                   {dialogState === "form" && (
-                    <FormPlaning 
-                      onSubmit={handleSubmitQuestionnaire} 
-                      onCancel={() => handleOpenChange(false)} 
+                    <FormPlaning
+                      onSubmit={handleSubmitQuestionnaire}
+                      onCancel={() => handleOpenChange(false)}
                     />
                   )}
 
@@ -434,7 +434,7 @@ export function AnalysisDashboard({
                               <div key={index} className="relative space-y-2">
                                 {/* Timeline Dot */}
                                 <div className="absolute -left-[18.5px] top-1.5 w-2.5 h-2.5 rounded-full bg-violet-600 border border-background shadow-sm" />
-                                
+
                                 <div className="flex items-center justify-between">
                                   <h6 className="text-xs font-bold text-foreground">{phase.name}</h6>
                                   <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-muted/60 border text-muted-foreground leading-none">
@@ -475,8 +475,8 @@ export function AnalysisDashboard({
                       </div>
 
                       <div className="pt-3 border-t border-muted/50">
-                        <Button 
-                          onClick={() => handleOpenChange(false)} 
+                        <Button
+                          onClick={() => handleOpenChange(false)}
                           className="w-full bg-foreground text-background hover:bg-foreground/90 rounded-xl text-xs font-bold py-2.5 cursor-pointer shadow-md"
                         >
                           Selesai
@@ -511,7 +511,7 @@ export function AnalysisDashboard({
 
         {/* Right Column: Feasibility, Evolution & Sacrifice */}
         <div className="lg:col-span-8 space-y-6">
-          
+
           {/* Kelayakan & Emergency Mode Status */}
           <div className={cn(
             "p-5 rounded-2xl border transition-all duration-300 space-y-4",
@@ -519,7 +519,7 @@ export function AnalysisDashboard({
               ? "bg-rose-500/[0.03] border-rose-500/20 dark:border-rose-400/20"
               : "bg-violet-500/[0.02] border-violet-500/10 dark:border-violet-500/10"
           )}>
-            
+
             {/* Status Header Badge */}
             <div className="flex items-center justify-between pb-3.5 border-b border-muted/30">
               <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
@@ -561,6 +561,42 @@ export function AnalysisDashboard({
               </p>
             </div>
 
+            {/* Real Market Price Facts Section */}
+            {aiData.realMarketPrice && (
+              <div className="p-3 bg-violet-600/[0.03] border border-violet-500/15 rounded-xl space-y-1">
+                <div className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Sparkles size={12} className="animate-pulse" />
+                  Riset Harga Pasar Nyata (Fakta AI)
+                </div>
+                <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <span>Estimasi Harga Asli:</span>
+                  <span className="text-violet-600 dark:text-violet-400 font-extrabold">{aiData.realMarketPrice}</span>
+                </div>
+                {aiData.priceComparisonNote && (
+                  <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                    💡 {aiData.priceComparisonNote}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Alternative Suggestions (Faktual & Realistis) */}
+            {aiData.alternativeSuggestions && aiData.alternativeSuggestions.length > 0 && (
+              <div className="p-3.5 bg-emerald-500/[0.03] border border-emerald-500/15 rounded-xl space-y-2">
+                <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <ShieldCheck size={13} className="shrink-0 text-emerald-500" />
+                  Alternatif Pilihan Lebih Realistis
+                </div>
+                <ul className="space-y-1.5 pl-4 list-disc text-xs text-muted-foreground">
+                  {aiData.alternativeSuggestions.map((item, index) => (
+                    <li key={index}>
+                      <span className="text-foreground font-semibold">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Emergency Mode Strategy (if applicable) */}
             <div className="p-3.5 rounded-xl bg-background/55 border border-muted/30 space-y-1">
               <h5 className="text-[11px] font-bold text-foreground flex items-center gap-1.5">
@@ -580,7 +616,7 @@ export function AnalysisDashboard({
 
           {/* Sub-grid for Evolution & Sacrifice (Side-by-side on desktop) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             {/* Evolution Card */}
             <div className="p-5 rounded-2xl bg-muted/15 border border-muted/20 space-y-4">
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-muted/30 pb-3">
@@ -610,7 +646,7 @@ export function AnalysisDashboard({
                 <FileText size={14} className="text-amber-500" />
                 Saran Pengorbanan Uang
               </h4>
-              
+
               {aiData.sacrificeTransparency && aiData.sacrificeTransparency.length > 0 ? (
                 <div className="space-y-4">
                   {aiData.sacrificeTransparency.slice(0, 1).map((sacrifice, index) => (
@@ -623,6 +659,13 @@ export function AnalysisDashboard({
                           Non-Esensial
                         </span>
                       </div>
+
+                      {sacrifice.nominalToCut && sacrifice.nominalToCut > 0 && (
+                        <div className="text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/5 px-2.5 py-1.5 rounded-lg border border-rose-500/10 my-1">
+                          Nominal Pemotongan: <span className="font-extrabold text-foreground">Rp {Number(sacrifice.nominalToCut).toLocaleString("id-ID")}</span>
+                        </div>
+                      )}
+
                       <ul className="space-y-1.5 pl-3 list-disc text-xs text-muted-foreground">
                         {sacrifice.reasons.map((reason, rIdx) => (
                           <li key={rIdx}>{reason}</li>
@@ -644,6 +687,6 @@ export function AnalysisDashboard({
 
       </div>
 
-    </motion.div>
+    </div>
   );
 }

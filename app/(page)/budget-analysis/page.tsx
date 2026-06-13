@@ -6,7 +6,6 @@ import { BudgetForm } from "./components/BudgetForm";
 import { BudgetSummaryPreview } from "./components/BudgetSummaryPreview";
 import { AnalysisDashboard } from "./components/AnalysisDashboard";
 import { motion, AnimatePresence } from "framer-motion";
-import { Target } from "lucide-react";
 
 export function BudgetaAnalysis() {
   const {
@@ -37,9 +36,9 @@ export function BudgetaAnalysis() {
       {/* Header Section */}
       <div className="mb-5 text-center lg:text-left">
         <h1 className="text-4xl font-extrabold tracking-tight ">
-          Rencana Keuangan
+          Rencana <span className="text-violet-600">Keuangan</span>
         </h1>
-        <p className="mt-2 text-base text-muted-foreground max-w-xl font-light">
+        <p className="mt-2 font-black  max-w-xl font-light">
           Rancang rencana anggaran bulanan Anda, tentukan target finansial, dan biarkan sistem memproses evaluasi kelayakan secara instan.
         </p>
       </div>
@@ -67,38 +66,16 @@ export function BudgetaAnalysis() {
 
         {/* Right Side: Real-time Preview */}
         <div className="lg:col-span-6 h-full">
-          <AnimatePresence mode="wait">
-            {isEmpty ? (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.25 }}
-                className="rounded-2xl border bg-card/30 backdrop-blur-sm p-8 shadow-sm text-center border-dashed border-muted/80 h-full flex flex-col justify-center items-center min-h-[350px]"
-              >
-                <div className="h-16 w-16 bg-violet-500/10 rounded-full flex items-center justify-center text-violet-600 mb-4 animate-bounce">
-                  <Target size={28} />
-                </div>
-                <h3 className="text-lg font-bold text-foreground">Menunggu Data Finansial</h3>
-                <p className="text-sm text-muted-foreground mt-2 max-w-xs font-light leading-relaxed">
-                  Isi formulir anggaran dan pengeluaran di sebelah kiri untuk melihat ringkasan visual dan melakukan analisis AI.
-                </p>
-              </motion.div>
-            ) : (
-              <BudgetSummaryPreview
-                key="preview"
-                budget={budget}
-                target={target}
-                targetValue={targetValue}
-                targetDate={targetDate}
-                expenses={expenses.map((e) => ({
-                  description: e.name,
-                  amount: e.amount,
-                }))}
-              />
-            )}
-          </AnimatePresence>
+          <BudgetSummaryPreview
+            budget={budget}
+            target={target}
+            targetValue={targetValue}
+            targetDate={targetDate}
+            expenses={expenses.map((e) => ({
+              description: e.name,
+              amount: e.amount,
+            }))}
+          />
         </div>
       </div>
 

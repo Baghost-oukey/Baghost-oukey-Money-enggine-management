@@ -25,8 +25,8 @@ interface BudgetFormProps {
 
 const BottomGradient = () => (
   <>
-    <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
-    <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
+    <span className="absolute inset-x-0 -bottom-px block h-px w-full bg-gradient-to-r from-transparent via-violet-500 to-transparent opacity-0 transition duration-500 group-hover/btn:opacity-100" />
+    <span className="absolute inset-x-10 -bottom-px mx-auto block h-px w-1/2 bg-gradient-to-r from-transparent via-violet-400 to-transparent opacity-0 blur-sm transition duration-500 group-hover/btn:opacity-100" />
   </>
 );
 
@@ -37,7 +37,7 @@ const LabelInputContainer = ({
   children: React.ReactNode;
   className?: string;
 }) => (
-  <div className={cn("flex w-full flex-col space-y-2", className)}>{children}</div>
+  <div className={cn("flex w-full flex-col space-y-1.5", className)}>{children}</div>
 );
 
 export function BudgetForm({
@@ -57,28 +57,26 @@ export function BudgetForm({
   status,
 }: BudgetFormProps) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border bg-card/40 backdrop-blur-md md:p-6 shadow-xl transition-all duration-300">
-
-
-      <h2 className="text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
+    <div className="relative overflow-hidden rounded-2xl border bg-card/25 backdrop-blur-md p-5 sm:p-6 shadow-lg border-muted/20 transition-all duration-300">
+      <h2 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2 tracking-tight">
         Formulir Data Finansial
       </h2>
 
-      <form onSubmit={onSubmit} className="space-y-5">
+      <form onSubmit={onSubmit} className="space-y-4">
         {/* Budget Input */}
         <LabelInputContainer>
-          <Label htmlFor="budgetBulanan" className="text-sm font-medium flex items-center gap-2">
+          <Label htmlFor="budgetBulanan" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Budget Bulanan Anda
           </Label>
           <div className="relative group">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground group-focus-within:text-blue-500 transition-colors">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground group-focus-within:text-violet-600 transition-colors">
               Rp
             </span>
             <Input
               id="budgetBulanan"
               type="number"
               placeholder="Contoh: 5000000"
-              className="pl-12 bg-muted/30 focus-visible:ring-blue-500 transition-all border-muted/50 rounded-xl"
+              className="pl-10 h-10 bg-muted/20 focus-visible:ring-violet-500 transition-all border-muted/50 rounded-xl text-sm"
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
               required
@@ -88,14 +86,14 @@ export function BudgetForm({
 
         {/* Target Name */}
         <LabelInputContainer>
-          <Label htmlFor="targetGoals" className="text-sm font-medium flex items-center gap-2">
+          <Label htmlFor="targetGoals" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Apa Yang Ingin Anda Capai?
           </Label>
           <Input
             id="targetGoals"
-            placeholder="Contoh: Membeli Laptop Baru, Dana Darurat, Investasi Saham..."
+            placeholder="Contoh: Membeli Laptop Baru, Dana Darurat, Investasi..."
             type="text"
-            className="bg-muted/30 focus-visible:ring-blue-500 transition-all border-muted/50 rounded-xl"
+            className="h-10 bg-muted/20 focus-visible:ring-violet-500 transition-all border-muted/50 rounded-xl text-sm"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             required
@@ -103,20 +101,20 @@ export function BudgetForm({
         </LabelInputContainer>
 
         {/* Target Value & Date Group */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <LabelInputContainer>
-            <Label htmlFor="targetValue" className="text-sm font-medium flex items-center gap-2">
+            <Label htmlFor="targetValue" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Nominal Target Pencapaian
             </Label>
             <div className="relative group">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground group-focus-within:text-cyan-500 transition-colors">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground group-focus-within:text-violet-600 transition-colors">
                 Rp
               </span>
               <Input
                 id="targetValue"
                 type="number"
                 placeholder="Contoh: 15000000"
-                className="pl-12 bg-muted/30 focus-visible:ring-blue-500 transition-all border-muted/50 rounded-xl"
+                className="pl-10 h-10 bg-muted/20 focus-visible:ring-violet-500 transition-all border-muted/50 rounded-xl text-sm"
                 value={targetValue}
                 onChange={(e) => setTargetValue(e.target.value)}
               />
@@ -124,14 +122,14 @@ export function BudgetForm({
           </LabelInputContainer>
 
           <LabelInputContainer>
-            <Label htmlFor="dateAwal" className="text-sm font-medium flex items-center gap-2">
-              <Calendar size={16} className="text-rose-500" />
+            <Label htmlFor="dateAwal" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar size={14} className="text-rose-500" />
               Batas Waktu (Deadline)
             </Label>
             <Input
               id="dateAwal"
               type="date"
-              className="bg-muted/30 focus-visible:ring-blue-500 transition-all border-muted/50 rounded-xl"
+              className="h-10 bg-muted/20 focus-visible:ring-violet-500 transition-all border-muted/50 rounded-xl text-sm"
               value={targetDate}
               onChange={(e) => setTargetDate(e.target.value)}
             />
@@ -140,7 +138,7 @@ export function BudgetForm({
 
         {/* Expenses Manager Section */}
         <LabelInputContainer>
-          <Label className="text-sm font-medium mb-1">Daftar Pengeluaran Bulanan</Label>
+          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Daftar Pengeluaran Bulanan</Label>
           <DynamicInput expenses={expenses} setExpenses={setExpenses} />
           <ExpenseChips expenses={expenses} onRemove={onRemoveExpense} />
         </LabelInputContainer>
@@ -148,8 +146,8 @@ export function BudgetForm({
         {/* Submit Button */}
         <button
           className={cn(
-            "group/btn relative block h-11 w-full rounded-xl bg-blue-600 text-white font-medium shadow-md transition-all duration-200",
-            "hover:bg-blue-700 active:scale-[0.98]",
+            "group/btn relative block h-10.5 w-full rounded-xl bg-violet-600 text-white text-sm font-bold shadow-md transition-all duration-200 cursor-pointer",
+            "hover:bg-violet-700 active:scale-[0.98]",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             (status === "loading" || isLoading) && "opacity-50 cursor-not-allowed"
           )}
@@ -159,7 +157,7 @@ export function BudgetForm({
           <span className="flex items-center justify-center gap-2">
             {isLoading ? (
               <>
-                <RefreshCw size={16} className="animate-spin" />
+                <RefreshCw size={15} className="animate-spin" />
                 Memproses Analisis...
               </>
             ) : (

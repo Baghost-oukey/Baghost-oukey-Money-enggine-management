@@ -37,7 +37,7 @@ export function BudgetaAnalysis() {
       {/* Header Section */}
       <div className="mb-5 text-center lg:text-left">
         <h1 className="text-4xl font-extrabold tracking-tight ">
-          Analisis Keputusan Keuangan
+          Rencana Keuangan
         </h1>
         <p className="mt-2 text-base text-muted-foreground max-w-xl font-light">
           Rancang rencana anggaran bulanan Anda, tentukan target finansial, dan biarkan sistem memproses evaluasi kelayakan secara instan.
@@ -77,7 +77,7 @@ export function BudgetaAnalysis() {
                 transition={{ duration: 0.25 }}
                 className="rounded-2xl border bg-card/30 backdrop-blur-sm p-8 shadow-sm text-center border-dashed border-muted/80 h-full flex flex-col justify-center items-center min-h-[350px]"
               >
-                <div className="h-16 w-16 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 mb-4 animate-bounce">
+                <div className="h-16 w-16 bg-violet-500/10 rounded-full flex items-center justify-center text-violet-600 mb-4 animate-bounce">
                   <Target size={28} />
                 </div>
                 <h3 className="text-lg font-bold text-foreground">Menunggu Data Finansial</h3>
@@ -120,6 +120,8 @@ export function BudgetaAnalysis() {
               target={target}
               targetDate={targetDate}
               onReset={handleReset}
+              monthlyBudget={Number(budget || 0)}
+              totalExpenses={totalExpenses}
             />
           </motion.div>
         )}

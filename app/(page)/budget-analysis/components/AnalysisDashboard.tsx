@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   Sparkles,
   Target,
@@ -17,6 +18,20 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { FormPlaning } from "./FormPlaning";
+import { Loader2 } from "lucide-react";
+
 
 interface AnalysisDashboardProps {
   analysisResult: any;
@@ -25,6 +40,8 @@ interface AnalysisDashboardProps {
   target: string;
   targetDate: string;
   onReset: () => void;
+  monthlyBudget?: number;
+  totalExpenses?: number;
 }
 
 export function AnalysisDashboard({
@@ -34,7 +51,78 @@ export function AnalysisDashboard({
   target,
   targetDate,
   onReset,
+  monthlyBudget,
+  totalExpenses,
 }: AnalysisDashboardProps) {
+  // Dialog planning states
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [dialogState, setDialogState] = React.useState<"intro" | "form" | "loading" | "roadmap">("intro");
+  const [roadmap, setRoadmap] = React.useState<any>(null);
+  const [msgIdx, setMsgIdx] = React.useState(0);
+
+  const loadingMessages = [
+    "Menganalisis profil tempat tinggal...",
+    "Memetakan target berdasarkan urgensi...",
+    "Menghitung kapasitas dana darurat...",
+    "Menyusun peta rencana keuangan...",
+    "Menyempurnakan roadmap finansial kamu..."
+  ];
+
+  React.useEffect(() => {
+    if (dialogState !== "loading") return;
+    const interval = setInterval(() => {
+      setMsgIdx((prev) => (prev + 1) % loadingMessages.length);
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [dialogState]);
+
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setTimeout(() => {
+        setDialogState("intro");
+        setRoadmap(null);
+      }, 200);
+    }
+  };
+
+  const handleSubmitQuestionnaire = async (answers: any) => {
+    setDialogState("loading");
+    try {
+      const response = await fetch("/api/planning", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          budgetData: {
+            monthlyBudget: monthlyBudget || remainingBudget + (totalExpenses || 0),
+            totalExpenses: totalExpenses || 0,
+            remainingBudget: remainingBudget,
+            targetName: target,
+            targetValue: targetValue,
+            targetDate: targetDate,
+            expenses: []
+          },
+          answers,
+        }),
+      });
+
+      const resData = await response.json();
+      if (resData.success) {
+        setRoadmap(resData.data);
+        setDialogState("roadmap");
+      } else {
+        setDialogState("intro");
+        alert("Gagal memproses roadmap keuangan: " + (resData.message || "Unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      setDialogState("intro");
+      alert("Terjadi kesalahan saat menghubungi server.");
+    }
+  };
+
   // Parse recommendation JSON from database representation
   let aiData: {
     score: number;
@@ -104,14 +192,14 @@ export function AnalysisDashboard({
       className="rounded-2xl border bg-card/40 backdrop-blur-md p-5 md:p-6 shadow-2xl space-y-6 relative overflow-hidden"
     >
       {/* Background soft glow effect */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-0 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-muted/50 pb-4">
         <div>
           <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="text-blue-500" size={18} />
+            <Sparkles className="text-violet-500" size={18} />
             Evaluasi Keputusan AI
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -197,8 +285,8 @@ export function AnalysisDashboard({
           </div>
 
           {/* AI General Summary Recommendation */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border border-blue-500/10 dark:border-indigo-400/10 space-y-2">
-            <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-500/5 to-violet-500/5 border border-violet-500/10 dark:border-violet-500/10 space-y-2">
+            <h4 className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles size={14} />
               Keputusan Akhir AI
             </h4>
@@ -207,22 +295,216 @@ export function AnalysisDashboard({
             </p>
           </div>
 
-          {/* Action and Deadline */}
-          <div className="p-4 rounded-2xl bg-muted/10 border border-muted/20 space-y-3.5">
+          {/* Action and Buttons */}
+          <div className="p-4 rounded-2xl bg-muted/10 border border-muted/20 space-y-2">
             {targetDate && (
-              <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 justify-center">
+              <div className="text-[10px] text-muted-foreground flex items-center gap-1.5 justify-center mb-1.5">
                 <Calendar size={13} className="text-rose-500" />
                 <span>Deadline: {new Date(targetDate).toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric" })}</span>
               </div>
             )}
-            <Button
-              variant="outline"
-              className="w-full flex items-center justify-center gap-2 hover:bg-muted border-muted/50 rounded-xl text-xs font-semibold px-4 h-9.5 shadow-sm"
-              onClick={onReset}
-            >
-              <RefreshCw size={13} />
-              Mulai Analisis Baru
-            </Button>
+            
+            <div className="grid grid-cols-3 gap-2">
+              <AlertDialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    className="w-full flex items-center justify-center gap-1 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-bold px-1 h-9 shadow-sm cursor-pointer transition-all duration-200 hover:scale-[1.02]"
+                    title="Buat Rencana (Planning)"
+                  >
+                    Planning
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent 
+                  noBlur 
+                  size={dialogState === "form" || dialogState === "roadmap" ? "lg" : "md"}
+                  className="p-5 sm:p-6 rounded-2xl border bg-card/95 shadow-2xl duration-200 transition-all outline-none w-[95vw] sm:w-full"
+                >
+                  {dialogState === "intro" && (
+                    <div className="flex flex-col items-center text-center space-y-4">
+                      {/* Floating Glow/Icon */}
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full animate-pulse" />
+                        <div className="relative w-14 h-14 rounded-full bg-violet-500/10 dark:bg-violet-400/10 flex items-center justify-center text-violet-500 dark:text-violet-400 border border-violet-500/20 shadow-inner">
+                          <Sparkles size={26} className="animate-bounce" style={{ animationDuration: '3s' }} />
+                        </div>
+                      </div>
+
+                      <AlertDialogHeader className="space-y-1.5">
+                        <AlertDialogTitle className="text-xl font-extrabold tracking-tight text-foreground">
+                          Buat Rencana Personal
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm font-semibold text-violet-600 dark:text-violet-400">
+                          "Saya bisa membuat roadmap yang lebih personal."
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+
+                      {/* Attractive Highlight Box */}
+                      <div className="w-full bg-muted/30 p-4 rounded-xl border border-muted/20 text-left space-y-2.5">
+                        <p className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wider">
+                          <Target size={14} className="text-violet-500" />
+                          Apa Keuntungan Roadmap Personal?
+                        </p>
+                        <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground">
+                          <div className="flex items-start gap-2">
+                            <CheckCircle2 size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                            <span><strong>Disesuaikan dengan Profil:</strong> Menyesuaikan taktik untuk Mahasiswa, Karyawan, UMKM, atau Keluarga Kecil.</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <CheckCircle2 size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                            <span><strong>Langkah Aksi Nyata:</strong> Panduan langkah demi langkah memangkas pengeluaran tanpa mengurangi kualitas hidup.</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <CheckCircle2 size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                            <span><strong>Prediksi & Mitigasi:</strong> Menghindari risiko defisit dengan strategi alokasi dana darurat yang adaptif.</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <AlertDialogFooter className="w-full grid grid-cols-2 gap-3 pt-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => handleOpenChange(false)} 
+                          className="w-full rounded-xl hover:bg-muted text-xs font-bold py-2.5 border-muted/50 cursor-pointer"
+                        >
+                          Nanti Saja
+                        </Button>
+                        <Button 
+                          onClick={() => setDialogState("form")} 
+                          className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold py-2.5 shadow-md transition-all duration-200 hover:scale-[1.01] cursor-pointer"
+                        >
+                          Buat Planing
+                        </Button>
+                      </AlertDialogFooter>
+                    </div>
+                  )}
+
+                  {dialogState === "form" && (
+                    <FormPlaning 
+                      onSubmit={handleSubmitQuestionnaire} 
+                      onCancel={() => handleOpenChange(false)} 
+                    />
+                  )}
+
+                  {dialogState === "loading" && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
+                      <div className="relative flex items-center justify-center">
+                        <div className="absolute w-20 h-20 border-4 border-violet-500/10 border-t-violet-500 rounded-full animate-spin" />
+                        <div className="relative w-12 h-12 rounded-full bg-violet-500/10 dark:bg-violet-400/10 flex items-center justify-center text-violet-500 dark:text-violet-400">
+                          <Sparkles size={22} className="animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="space-y-2 max-w-xs">
+                        <h4 className="text-sm font-bold text-foreground transition-all duration-300">
+                          {loadingMessages[msgIdx]}
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Harap tunggu, kecerdasan buatan sedang merancang keputusan dan strategi keuangan terbaikmu.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {dialogState === "roadmap" && roadmap && (
+                    <div className="space-y-5">
+                      <div className="flex items-center gap-3 border-b border-muted/50 pb-3">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 shadow-inner shrink-0">
+                          <ShieldCheck size={20} />
+                        </div>
+                        <div>
+                          <h4 className="text-base font-extrabold text-foreground">Roadmap Finansial Kamu</h4>
+                          <p className="text-[10px] text-muted-foreground leading-none mt-0.5">Peta jalan keuangan yang dirancang khusus oleh AI.</p>
+                        </div>
+                      </div>
+
+                      {/* Scrollable roadmap content */}
+                      <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-5 scrollbar-thin scrollbar-thumb-muted-foreground/10 text-left">
+                        {/* Summary */}
+                        <div className="p-4 rounded-xl bg-violet-500/[0.02] border-l-4 border-violet-500/80 text-xs text-muted-foreground leading-relaxed italic">
+                          "{roadmap.summary}"
+                        </div>
+
+                        {/* Phases */}
+                        <div className="space-y-4">
+                          <h5 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                            <Activity size={14} className="text-violet-500" />
+                            Fase Rencana Aksi
+                          </h5>
+                          <div className="relative pl-3 border-l-2 border-muted/80 ml-2.5 space-y-6">
+                            {roadmap.phases.map((phase: any, index: number) => (
+                              <div key={index} className="relative space-y-2">
+                                {/* Timeline Dot */}
+                                <div className="absolute -left-[18.5px] top-1.5 w-2.5 h-2.5 rounded-full bg-violet-600 border border-background shadow-sm" />
+                                
+                                <div className="flex items-center justify-between">
+                                  <h6 className="text-xs font-bold text-foreground">{phase.name}</h6>
+                                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-muted/60 border text-muted-foreground leading-none">
+                                    {phase.duration}
+                                  </span>
+                                </div>
+                                <ul className="space-y-1.5 pl-3 list-disc text-[11px] text-muted-foreground leading-relaxed">
+                                  {phase.steps.map((stepStr: string, sIdx: number) => (
+                                    <li key={sIdx}>{stepStr}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Tips */}
+                        {roadmap.tips && roadmap.tips.length > 0 && (
+                          <div className="space-y-2.5 bg-muted/15 border border-muted/30 p-4 rounded-xl">
+                            <h5 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                              <FileText size={14} className="text-amber-500" />
+                              Tips Finansial Tambahan
+                            </h5>
+                            <ul className="space-y-1.5 pl-3 list-disc text-[11px] text-muted-foreground leading-relaxed">
+                              {roadmap.tips.map((tip: string, tIdx: number) => (
+                                <li key={tIdx}>{tip}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Conclusion */}
+                        {roadmap.conclusion && (
+                          <div className="text-center text-[11px] text-muted-foreground font-medium italic pt-2">
+                            "{roadmap.conclusion}"
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t border-muted/50">
+                        <Button 
+                          onClick={() => handleOpenChange(false)} 
+                          className="w-full bg-foreground text-background hover:bg-foreground/90 rounded-xl text-xs font-bold py-2.5 cursor-pointer shadow-md"
+                        >
+                          Selesai
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <Link href="/goal-analysis" className="w-full">
+                <Button
+                  className="w-full flex items-center justify-center gap-1 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-bold px-1 h-9 shadow-sm cursor-pointer transition-all duration-200 hover:scale-[1.02]"
+                  title="Masukkan ke Target Goals"
+                >
+                  Set Goals
+                </Button>
+              </Link>
+
+              <Button
+                variant="outline"
+                className="w-full flex items-center justify-center gap-1 hover:bg-muted border-muted/50 rounded-xl text-[10px] font-bold px-1 h-9 shadow-sm"
+                onClick={onReset}
+                title="Mulai Analisis Baru"
+              >
+                Reset
+              </Button>
+            </div>
           </div>
 
         </div>
@@ -235,14 +517,14 @@ export function AnalysisDashboard({
             "p-5 rounded-2xl border transition-all duration-300 space-y-4",
             aiData.emergencyMode.isActive
               ? "bg-rose-500/[0.03] border-rose-500/20 dark:border-rose-400/20"
-              : "bg-blue-500/[0.02] border-blue-500/10 dark:border-blue-400/10"
+              : "bg-violet-500/[0.02] border-violet-500/10 dark:border-violet-500/10"
           )}>
             
             {/* Status Header Badge */}
             <div className="flex items-center justify-between pb-3.5 border-b border-muted/30">
               <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <Target size={15} className="text-blue-500" />
-                Rencana Target: <strong className="text-blue-600 dark:text-blue-400">{target}</strong>
+                <Target size={15} className="text-violet-500" />
+                Rencana Target: <strong className="text-violet-600 dark:text-violet-400">{target}</strong>
               </span>
               <div className={cn(
                 "text-[9px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wider flex items-center gap-1",
@@ -302,7 +584,7 @@ export function AnalysisDashboard({
             {/* Evolution Card */}
             <div className="p-5 rounded-2xl bg-muted/15 border border-muted/20 space-y-4">
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-muted/30 pb-3">
-                <TrendingUp size={14} className="text-indigo-500" />
+                <TrendingUp size={14} className="text-violet-500" />
                 Perkembangan Anggaran
               </h4>
               <div className="space-y-3">
@@ -313,7 +595,7 @@ export function AnalysisDashboard({
                       {isDown ? (
                         <TrendingDown size={14} className="text-emerald-500 shrink-0 mt-0.5" />
                       ) : (
-                        <TrendingUp size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                        <TrendingUp size={14} className="text-violet-500 shrink-0 mt-0.5" />
                       )}
                       <span>{evo}</span>
                     </div>

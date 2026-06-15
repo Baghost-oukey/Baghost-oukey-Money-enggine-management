@@ -34,7 +34,7 @@ const data = {
         },
         {
           title: "Budget Analisis",
-          url: "/budget-analysis",
+          url: "/budgeting-system",
         },
         {
           title: "Goal Budget Analisis",

@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoadingScreen } from "./LoadingScreen";
 
 interface BudgetInputFormProps {
   salary: string;
@@ -10,6 +11,8 @@ interface BudgetInputFormProps {
   setNotes: (val: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   status: string;
+  isLoading: boolean;
+  loadingMessage: string;
 }
 
 export function BudgetInputForm({
@@ -19,11 +22,21 @@ export function BudgetInputForm({
   setNotes,
   onSubmit,
   status,
+  isLoading,
+  loadingMessage,
 }: BudgetInputFormProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center w-full max-w-7xl mx-auto py-6">
 
-      <div className="lg:col-span-7 space-y-6 text-left px-10 pt-10 pb-12 border border-muted-foreground/20 rounded-3xl bg-card/10">
+      <div className="lg:col-span-7 space-y-6 text-left px-10 pt-10 pb-12 border border-muted-foreground/20 rounded-3xl bg-card/10 relative overflow-hidden">
+        
+        {/* Loading Overlay inside the Form Container only (no background blur) */}
+        {isLoading && (
+          <div className="absolute inset-0 z-50 bg-background/70 flex items-center justify-center rounded-3xl">
+            <LoadingScreen message={loadingMessage} />
+          </div>
+        )}
+
         <div className="space-y-4">
           <h2 className="text-4xl lg:text-5xl font-medium">
             <span className="text-violet-600">AI Analisis Budgeting</span> membantu menentukan pengeluaran bulanan
@@ -77,7 +90,7 @@ export function BudgetInputForm({
             ) : (
               <Button
                 type="submit"
-                className="bg-violet-600 hover:bg-violet-700 text-white px-8 rounded-xl h-11 text-xs font-bold cursor-pointer transition-all duration-200 hover:scale-[1.01] shadow-md flex items-center justify-center gap-1.5"
+                className="bg-violet-600 hover:bg-violet-700 text-white px-10 rounded-xl h-11 text-xs font-bold cursor-pointer transition-all duration-200 hover:scale-[1.01] shadow-md flex items-center justify-center "
               >
                 Hasilkan
               </Button>

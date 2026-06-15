@@ -97,6 +97,7 @@ export function useBudgetPlan() {
     loadingMessages,
     msgIdx,
     analysisResult,
+    setAnalysisResult,
     handleQuickNote,
     handleReset,
     handleSubmit,

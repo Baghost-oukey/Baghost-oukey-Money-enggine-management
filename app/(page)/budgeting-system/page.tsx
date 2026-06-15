@@ -1,43 +1,33 @@
-export function budgetingSistem() {
-    return (
-        <div>
-            <div>
-                <div className="">
-                    <div className="px-24 mt-40">
-                        <h3 className="text-4xl font-medium"><span className="text-violet-600">AI Analisis Budgeting</span> untuk membantu menentukan pengeluaran bulanan</h3>
-                        <p>membantu kamu dalam melakukan menentukan pengeluaran bulanan dengan menggunakan AI</p>
-                        <div>
-                            <label htmlFor="">
-                                <h2 className="font-medium">Input Gaji Kamu</h2>
-                                <input type="number" className="border border-slate-300 rounded-3xl"/>
-                            </label>
-                        </div>
-                        <div>
-                            <label htmlFor="">
-                                <h2 className="font-medium">Keterangan tambahan</h2>
-                                <input type="text" className="border border-slate-300 rounded-3xl"/>
-                            </label>
-                        </div>
-                            <button className="bg-violet-500 text-white px-15 mx-5 py-2 rounded-3xl mt-5">Hasilkan</button>
-                    </div>
-                    {/* <div>
-                        <Image
-                            src="/images/grafik-budgeting.png"
-                            alt="Grafik Budgeting"
-                            width={100}
-                            height={100}
-                        />
-                    </div> */}
+"use client";
 
+import React from "react";
+import { useBudgetPlan } from "./hooks/useBudgetPlan";
+import { BudgetInputForm } from "./components/BudgetInputForm";
 
-                    <div>
+export function BudgetingSistem() {
+  const {
+    salary,
+    setSalary,
+    notes,
+    setNotes,
+    handleSubmit,
+    status,
+  } = useBudgetPlan();
 
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    )
+  return (
+    <div className="max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col justify-center">
+      <div className="w-full">
+        <BudgetInputForm
+          salary={salary}
+          setSalary={setSalary}
+          notes={notes}
+          setNotes={setNotes}
+          onSubmit={handleSubmit}
+          status={status}
+        />
+      </div>
+    </div>
+  );
 }
 
-export default budgetingSistem;
+export default BudgetingSistem;

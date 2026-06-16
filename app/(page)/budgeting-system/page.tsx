@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useBudgetPlan } from "./hooks/useBudgetPlan";
 import { BudgetInputForm } from "./components/BudgetInputForm";
-import { LoadingScreen } from "./components/LoadingScreen";
-import ResultBudgetAnalisis from "./components/ResultBudgetAnalisis";
+import { BudgetDashboard } from "./components/BudgetDashboard";
 
 export function BudgetingSistem() {
   const {
@@ -16,53 +15,45 @@ export function BudgetingSistem() {
     loadingMessages,
     msgIdx,
     analysisResult,
-    setAnalysisResult,
     handleSubmit,
+    handleUpdateBudget,
+    handleReset,
+    isSaving,
     status,
   } = useBudgetPlan();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Synchronize modal state with analysisResult
-  React.useEffect(() => {
-    if (analysisResult) {
-      setIsModalOpen(true);
-    } else {
-      setIsModalOpen(false);
-    }
-  }, [analysisResult]);
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setAnalysisResult(null); // Clear result to close modal state
-  };
-
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col justify-center relative">
-      <div className="w-full relative">
-        <BudgetInputForm
-          salary={salary}
-          setSalary={setSalary}
-          notes={notes}
-          setNotes={setNotes}
-          onSubmit={handleSubmit}
-          status={status}
-          isLoading={isLoading}
-          loadingMessage={loadingMessages[msgIdx]}
-        />
+    <div className="max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col justify-start relative overflow-hidden mt-20">
+      {/* Background Decorative Glows */}
+      <div className="absolute top-10 right-10 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 left-10 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
-        <ResultBudgetAnalisis
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          monthlyBudget={analysisResult ? analysisResult.monthlyBudget : 0}
-          recommendation={
-            analysisResult
-              ? typeof analysisResult.recommendation === "string"
+      <div className="w-full relative z-10 flex-1">
+        {analysisResult ? (
+          <BudgetDashboard
+            planId={analysisResult.id}
+            initialSalary={Number(analysisResult.monthlyBudget)}
+            initialRecommendation={
+              typeof analysisResult.recommendation === "string"
                 ? JSON.parse(analysisResult.recommendation)
                 : analysisResult.recommendation
-              : null
-          }
-        />
+            }
+            onSave={handleUpdateBudget}
+            onReset={handleReset}
+            isSaving={isSaving}
+          />
+        ) : (
+          <BudgetInputForm
+            salary={salary}
+            setSalary={setSalary}
+            notes={notes}
+            setNotes={setNotes}
+            onSubmit={handleSubmit}
+            status={status}
+            isLoading={isLoading}
+            loadingMessage={loadingMessages[msgIdx]}
+          />
+        )}
       </div>
     </div>
   );

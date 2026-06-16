@@ -10,11 +10,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+interface BudgetItem {
+  name: string;
+  amount: number;
+}
+
 interface AllocationDetails {
   percentage: number;
   amount: number;
   description: string;
-  items: string[];
+  items: BudgetItem[];
 }
 
 interface RecommendationData {
@@ -139,9 +144,12 @@ export default function ResultBudgetAnalisis({
               </p>
               <ul className="space-y-1.5 pt-2 border-t border-muted/40">
                 {needs.items.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
-                    <CheckCircle2 size={12} className="text-violet-600 shrink-0 mt-0.5" />
-                    <span>{item}</span>
+                  <li key={idx} className="flex items-center justify-between text-[11px] text-muted-foreground py-0.5">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 size={12} className="text-violet-600 shrink-0" />
+                      {item.name}
+                    </span>
+                    <span className="font-bold text-foreground">Rp {item.amount.toLocaleString("id-ID")}</span>
                   </li>
                 ))}
               </ul>
@@ -161,9 +169,12 @@ export default function ResultBudgetAnalisis({
               </p>
               <ul className="space-y-1.5 pt-2 border-t border-muted/40">
                 {wants.items.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
-                    <CheckCircle2 size={12} className="text-amber-500 shrink-0 mt-0.5" />
-                    <span>{item}</span>
+                  <li key={idx} className="flex items-center justify-between text-[11px] text-muted-foreground py-0.5">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 size={12} className="text-amber-500 shrink-0" />
+                      {item.name}
+                    </span>
+                    <span className="font-bold text-foreground">Rp {item.amount.toLocaleString("id-ID")}</span>
                   </li>
                 ))}
               </ul>
@@ -183,9 +194,12 @@ export default function ResultBudgetAnalisis({
               </p>
               <ul className="space-y-1.5 pt-2 border-t border-muted/40">
                 {savings.items.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
-                    <CheckCircle2 size={12} className="text-emerald-500 shrink-0 mt-0.5" />
-                    <span>{item}</span>
+                  <li key={idx} className="flex items-center justify-between text-[11px] text-muted-foreground py-0.5">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                      {item.name}
+                    </span>
+                    <span className="font-bold text-foreground">Rp {item.amount.toLocaleString("id-ID")}</span>
                   </li>
                 ))}
               </ul>

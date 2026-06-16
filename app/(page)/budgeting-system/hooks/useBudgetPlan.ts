@@ -9,6 +9,7 @@ export function useBudgetPlan() {
   const [isLoading, setIsLoading] = useState(false);
   const [msgIdx, setMsgIdx] = useState(0);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const loadingMessages = [
     "Menganalisis penghasilan bulanan...",
@@ -51,8 +52,9 @@ export function useBudgetPlan() {
       return;
     }
 
-    const salaryNum = Number(salary);
-    if (!salary || isNaN(salaryNum) || salaryNum <= 0) {
+    const cleanSalary = salary.replace(/[^\d]/g, "");
+    const salaryNum = Number(cleanSalary);
+    if (!cleanSalary || isNaN(salaryNum) || salaryNum <= 0) {
       alert("Mohon masukkan nominal gaji bulanan yang valid!");
       return;
     }
@@ -88,6 +90,38 @@ export function useBudgetPlan() {
     }
   };
 
+  const handleUpdateBudget = async (recommendation: any, salaryNum: number) => {
+    if (!analysisResult?.id) return;
+    setIsSaving(true);
+    try {
+      const response = await fetch("/api/budgeting", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: analysisResult.id,
+          monthlyBudget: salaryNum,
+          recommendation,
+          aiSummary: recommendation.aiSummary,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setAnalysisResult(result.data);
+        alert("Perubahan anggaran berhasil disimpan ke database!");
+      } else {
+        alert("Gagal menyimpan perubahan anggaran: " + result.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan saat menyimpan perubahan anggaran.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return {
     salary,
     setSalary,
@@ -101,6 +135,8 @@ export function useBudgetPlan() {
     handleQuickNote,
     handleReset,
     handleSubmit,
+    handleUpdateBudget,
+    isSaving,
     status,
   };
 }

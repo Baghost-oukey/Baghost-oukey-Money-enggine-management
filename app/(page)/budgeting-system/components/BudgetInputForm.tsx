@@ -59,11 +59,15 @@ export function BudgetInputForm({
                 Rp
               </p>
               <Input
-                type="number"
-                placeholder="Contoh: 6000000"
+                type="text"
+                placeholder="Contoh: 6.000.000"
                 className="pl-12 h-12 rounded-xl text-base"
                 value={salary}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSalary(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const clean = e.target.value.replace(/[^\d]/g, "");
+                  const formatted = clean ? new Intl.NumberFormat("id-ID").format(Number(clean)) : "";
+                  setSalary(formatted);
+                }}
               />
             </div>
           </div>

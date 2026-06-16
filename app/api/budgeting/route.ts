@@ -1,6 +1,99 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+interface BudgetItem {
+  name: string;
+  amount: number;
+}
+
+interface CategoryAllocation {
+  percentage: number;
+  amount: number;
+  description: string;
+  items: BudgetItem[];
+}
+
+interface StandardBudgetResult {
+  needs: CategoryAllocation;
+  wants: CategoryAllocation;
+  savings: CategoryAllocation;
+  aiSummary: string;
+  frameworkUsed: string;
+}
+
+function getStandardBaseline(salary: number, notes: string): StandardBudgetResult {
+  const needsPercent = 50;
+  const wantsPercent = 30;
+  const savingsPercent = 20;
+
+  const needsAmount = Math.round((salary * needsPercent) / 100);
+  const wantsAmount = Math.round((salary * wantsPercent) / 100);
+  const savingsAmount = Math.round((salary * savingsPercent) / 100);
+
+  // Default items template using standard 50/30/20 ratios
+  const needsItems: BudgetItem[] = [
+    { name: "Makan & Minum Harian", amount: Math.round(needsAmount * 0.45) },
+    { name: "Sewa Kamar Kos / Utilitas", amount: Math.round(needsAmount * 0.35) },
+    { name: "Transportasi & Bensin", amount: Math.round(needsAmount * 0.12) },
+    { name: "Cadangan Pengeluaran Mendadak", amount: Math.round(needsAmount * 0.08) }
+  ];
+  const calculatedNeedsSum = needsItems.reduce((s, i) => s + i.amount, 0);
+  if (calculatedNeedsSum !== needsAmount && needsItems.length > 0) {
+    needsItems[0].amount += (needsAmount - calculatedNeedsSum);
+  }
+
+  const wantsItems: BudgetItem[] = [
+    { name: "Uang Jajan & Kopi", amount: Math.round(wantsAmount * 0.6) },
+    { name: "Hiburan & Hobi", amount: Math.round(wantsAmount * 0.4) }
+  ];
+  const calculatedWantsSum = wantsItems.reduce((s, i) => s + i.amount, 0);
+  if (calculatedWantsSum !== wantsAmount && wantsItems.length > 0) {
+    wantsItems[0].amount += (wantsAmount - calculatedWantsSum);
+  }
+
+  const savingsItems: BudgetItem[] = [
+    { name: "Tabungan Dana Darurat", amount: Math.round(savingsAmount * 0.5) },
+    { name: "Investasi / Reksa Dana", amount: Math.round(savingsAmount * 0.5) }
+  ];
+  const calculatedSavingsSum = savingsItems.reduce((s, i) => s + i.amount, 0);
+  if (calculatedSavingsSum !== savingsAmount && savingsItems.length > 0) {
+    savingsItems[0].amount += (savingsAmount - calculatedSavingsSum);
+  }
+
+  const noteLower = notes.toLowerCase();
+  let aiSummary = "";
+  if (noteLower.includes("mahasiswa") || noteLower.includes("kos")) {
+    aiSummary = `Rencana anggaran disesuaikan untuk mahasiswa/anak kos dengan menyisihkan nominal makan dan biaya kos. Kami juga merekomendasikan dana cadangan untuk keperluan mendadak.`;
+  } else if (noteLower.includes("keluarga") || noteLower.includes("anak")) {
+    aiSummary = `Rencana anggaran difokuskan pada pengeluaran rumah tangga bulanan dan tabungan dana darurat keluarga untuk masa depan.`;
+  } else {
+    aiSummary = `Rencana anggaran bulanan standar disusun seimbang menggunakan kerangka 50/30/20 untuk mendukung kemandirian finansial Anda.`;
+  }
+
+  return {
+    needs: {
+      percentage: needsPercent,
+      amount: needsAmount,
+      description: "Pos pengeluaran wajib untuk kelangsungan hidup harian (Makan, Kos, Transportasi, dan Tagihan).",
+      items: needsItems
+    },
+    wants: {
+      percentage: wantsPercent,
+      amount: wantsAmount,
+      description: "Pos hiburan, jajan sore, kopi, belanja pakaian, atau rekreasi harian.",
+      items: wantsItems
+    },
+    savings: {
+      percentage: savingsPercent,
+      amount: savingsAmount,
+      description: "Pos uang masa depan, tabungan dana darurat, cicilan utang, atau investasi jangka panjang.",
+      items: savingsItems
+    },
+    aiSummary,
+    frameworkUsed: "Metode Alokasi Anggaran 50/30/20"
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -24,52 +117,73 @@ export async function POST(request: Request) {
     const additionalNotes = notes || "";
     const apiKey = process.env.API_KEY;
 
-    let aiResult: {
-      needs: { percentage: number; amount: number; description: string; items: string[] };
-      wants: { percentage: number; amount: number; description: string; items: string[] };
-      savings: { percentage: number; amount: number; description: string; items: string[] };
-      aiSummary: string;
-      frameworkUsed: string;
-    };
+    // Calculate deterministic standard baseline
+    const baseline = getStandardBaseline(salaryNum, additionalNotes);
+
+    let aiResult: typeof baseline;
 
     if (!apiKey) {
       console.warn("API_KEY environment variable is not defined, running local fallback.");
-      aiResult = generateLocalBudgetFallback(salaryNum, additionalNotes);
+      aiResult = baseline;
     } else {
       const systemPrompt = `
-Anda adalah konsultan keuangan pribadi cerdas dan ahli alokasi keuangan keluarga/pribadi. Panggil pengguna dengan sebutan "kamu".
-Tugas Anda adalah membagi gaji bulanan Rp ${salaryNum.toLocaleString("id-ID")} ke dalam pos-pos pengeluaran yang ideal (menggunakan kerangka kerja seperti 50/30/20 atau 70/20/10, atau alokasi kustom yang Anda sesuaikan secara cerdas) berdasarkan catatan tambahan pengguna berikut:
+Anda adalah konsultan keuangan pribadi cerdas dan pakar perencanaan anggaran (budgeting planner) real di Indonesia. Panggil pengguna dengan sebutan "kamu" secara sopan atau gunakan panggilan yang netral dan bersahabat.
+
+Tugas utama Anda adalah menganalisis gaji bulanan Rp ${salaryNum.toLocaleString("id-ID")} dan catatan tambahan dari pengguna berikut:
 "${additionalNotes}"
 
-Analisis preferensi dan kondisi hidup mereka dari catatan tersebut (misal jika anak kos, beri alokasi sewa kamar di pos Kebutuhan; jika punya cicilan besar, prioritaskan pos Tabungan/Utang; jika fokus menabung nikah, sarankan alokasi savings agresif).
+Sebagai referensi, sistem kami telah melakukan perhitungan baseline deterministik alokasi 50/30/20 sebagai berikut:
+${JSON.stringify(baseline, null, 2)}
 
-Hasil pembagian Anda wajib berupa JSON murni dengan format skema berikut:
+Silakan gunakan data baseline di atas sebagai landasan dasar Anda. Tugas Anda adalah melakukan review terhadap data di atas, menyempurnakan struktur kalimatnya agar terdengar natural, ramah, bersahabat, dan mudah dipahami oleh semua kalangan usia (dari usia 18 sampai 60 tahun ke atas).
+
+Aturan Khusus:
+1. Pastikan Anda mengidentifikasi profil dengan benar (misal Mahasiswa/Anak Kos vs Keluarga vs Pekerja Single).
+2. Di Indonesia, pengeluaran mendadak sangat sering terjadi. Untuk mahasiswa, pastikan ada item "Cadangan Pengeluaran Mendadak (Tugas/Fotokopi)" atau sejenisnya. Untuk keluarga, pastikan ada "Dana Darurat Kesehatan Keluarga" atau sejenisnya.
+3. Seluruh nama item di "items" harus menggunakan Bahasa Indonesia yang sangat sederhana dan bebas dari jargon asing (contoh: gunakan 'Uang Jajan' bukan 'Wants budget', gunakan 'Sewa Kos' bukan 'Renting').
+4. Nilai total persentase needs + wants + savings wajib tepat 100.
+5. Anda boleh menyesuaikan sedikit nominal item di dalam baseline di atas agar terdengar lebih kontekstual, tetapi pastikan total jumlah amount di dalam items untuk masing-masing kategori persis sama dengan amount dari kategori bersangkutan.
+6. Analisis Anda pada "aiSummary" dan penjelasan deskripsi untuk "needs.description", "wants.description", dan "savings.description" harus dibuat sangat spesifik terhadap kondisi nyata pengguna yang ditulis di catatan tambahan. Jangan gunakan template kalimat yang umum. Hubungkan secara langsung dengan nominal gajinya yang kecil/besar, statusnya (misal jika ia mahasiswa dengan kos seharga 250rb, berikan perhitungan konkret sisa uang makan per hari dari total anggaran makan yang Anda buat, sebutkan warung makan murah/indomie/warteg secara ramah, serta rekomendasi aksi konkret lainnya agar anggaran kos 250rb tersebut tetap aman).
+
+Hasil pembagian wajib dikembalikan berupa JSON murni dengan skema berikut:
 {
   "needs": {
-    "percentage": number, // Persentase alokasi Kebutuhan (misal: 50)
-    "amount": number, // Nominal Rupiah (misal: 2500000)
-    "description": "Penjelasan singkat pembagian pos Kebutuhan untuk profil mereka (maks 2 kalimat)...",
-    "items": ["Contoh item 1", "Contoh item 2", "Contoh item 3"] // Minimal 3 contoh item pengeluaran spesifik profil mereka
+    "percentage": number,
+    "amount": number,
+    "description": "Penjelasan singkat pos Kebutuhan menggunakan Bahasa Indonesia yang sangat sederhana, dibuat spesifik menghubungkan nominal kebutuhan pokok dengan catatan tambahan pengguna...",
+    "items": [
+      { "name": "Makan & Minum Harian", "amount": number },
+      { "name": "Sewa Kamar Kos", "amount": number },
+      { "name": "Bensin & Transportasi", "amount": number },
+      { "name": "Cadangan Pengeluaran Mendadak (Tugas/Fotokopi)", "amount": number }
+    ]
   },
   "wants": {
-    "percentage": number, // Persentase alokasi Keinginan (misal: 30)
-    "amount": number, // Nominal Rupiah
-    "description": "Penjelasan singkat alokasi pos Keinginan (maks 2 kalimat)...",
-    "items": ["Contoh keinginan 1", "Contoh keinginan 2"]
+    "percentage": number,
+    "amount": number,
+    "description": "Penjelasan alokasi pos Keinginan yang spesifik dikaitkan dengan jajan/kopi/hiburan bulanan pengguna...",
+    "items": [
+      { "name": "Uang Jajan & Kopi", "amount": number }
+    ]
   },
   "savings": {
-    "percentage": number, // Persentase alokasi Tabungan/Investasi/Utang (misal: 20)
-    "amount": number, // Nominal Rupiah
-    "description": "Penjelasan singkat alokasi pos Tabungan/Investasi (maks 2 kalimat)...",
-    "items": ["Contoh tabungan 1", "Contoh tabungan 2"]
+    "percentage": number,
+    "amount": number,
+    "description": "Penjelasan alokasi Tabungan/Investasi yang spesifik dikaitkan dengan target finansial masa depan atau dana darurat pengguna...",
+    "items": [
+      { "name": "Tabungan Dana Darurat", "amount": number },
+      { "name": "Tabungan Masa Depan", "amount": number }
+    ]
   },
-  "aiSummary": "Rangkuman taktis dan motivasi keuangan dari Anda mengenai keseluruhan anggaran ini (maks 3 kalimat)...",
-  "frameworkUsed": "Aturan 50/30/20 Modifikasi" // Nama kerangka kerja yang Anda terapkan
+  "aiSummary": "Analisis taktis, spesifik, dan saran hidup hemat konkret yang disesuaikan secara mendalam dengan catatan tambahan pengguna (contohnya menyebutkan secara presisi nominal sisa uang jajan, menyarankan warung makan murah/indomie/warteg, taktik hemat bensin/kos, secara sangat ramah, sederhana dan memotivasi. Maksimal 4 kalimat)...",
+  "frameworkUsed": "Nama metode alokasi berbasis Metode 50/30/20 & Profil"
 }
 
-Total persentase "needs.percentage" + "wants.percentage" + "savings.percentage" harus persis 100.
-Nominal "amount" masing-masing pos harus sesuai perhitungan matematika persentase dikali gaji.
-Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunakan Bahasa Indonesia yang alami, ramah, dan solutif.
+Aturan Validitas Matematika:
+1. Total persentase "needs.percentage" + "wants.percentage" + "savings.percentage" harus persis 100.
+2. Nominal "amount" total masing-masing kategori harus persis sama dengan persentase dikali gaji (amount = (percentage * salary) / 100).
+3. Jumlah total seluruh "amount" dari item di dalam list "items" untuk masing-masing kategori harus persis sama dengan total "amount" dari kategori bersangkutan.
+4. Respon Anda harus berupa JSON valid tanpa markdown codeblock.
 `;
 
       try {
@@ -112,17 +226,20 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
         aiResult = JSON.parse(cleanedText);
       } catch (err) {
         console.error("Gemini API error during budgeting, falling back locally:", err);
-        aiResult = generateLocalBudgetFallback(salaryNum, additionalNotes);
+        aiResult = baseline;
       }
     }
+
+    // Sanitize the AI result to enforce schema consistency
+    const sanitizedResult = sanitizeAiResult(aiResult);
 
     // Save budgeting analysis results to Database using Prisma client
     const budgetPlan = await prisma.budgetPlan.create({
       data: {
         userId,
         monthlyBudget: salaryNum,
-        recommendation: aiResult as any,
-        aiSummary: aiResult.aiSummary,
+        recommendation: sanitizedResult as any,
+        aiSummary: sanitizedResult.aiSummary,
       },
     });
 
@@ -147,62 +264,75 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
   }
 }
 
-function generateLocalBudgetFallback(salary: number, notes: string) {
-  const noteLower = notes.toLowerCase();
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, monthlyBudget, recommendation, aiSummary } = body;
 
-  let needsPercent = 50;
-  let wantsPercent = 30;
-  let savingsPercent = 20;
-  let frameworkUsed = "Aturan Klasik 50/30/20";
-  let needsDesc = "Dialokasikan untuk pos primer penunjang hidup sehari-hari.";
-  let wantsDesc = "Anggaran gaya hidup, rekreasi, dan jajan ringan agar hidup tetap seimbang.";
-  let savingsDesc = "Tabungan masa depan, dana darurat, dan investasi produktif.";
-  
-  const needsItems = ["Belanja Bahan Makanan", "Biaya Listrik & Air", "Transportasi Harian"];
-  const wantsItems = ["Makan di Luar / Jajan", "Hiburan & Streaming"];
-  const savingsItems = ["Tabungan Dana Darurat", "Investasi Reksadana"];
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "Budget Plan ID is required." },
+        { status: 400 }
+      );
+    }
 
-  if (noteLower.includes("kos") || noteLower.includes("sewa")) {
-    needsItems.push("Sewa Kamar Kos / Utilitas");
-    needsDesc = "Termasuk anggaran sewa kos bulanan dan operasional primer harian kamu.";
+    const updatedPlan = await prisma.budgetPlan.update({
+      where: { id },
+      data: {
+        monthlyBudget: monthlyBudget ? Number(monthlyBudget) : undefined,
+        recommendation: recommendation ? recommendation : undefined,
+        aiSummary: aiSummary ? aiSummary : undefined,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Anggaran berhasil diperbarui.",
+      data: updatedPlan,
+    });
+  } catch (error) {
+    console.error("Error updating budget plan:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Terjadi kesalahan saat memperbarui anggaran.",
+        error: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
   }
-  if (noteLower.includes("menikah") || noteLower.includes("nikah") || noteLower.includes("kawin")) {
-    needsPercent = 45;
-    wantsPercent = 20;
-    savingsPercent = 35;
-    frameworkUsed = "Aturan 45/20/35 (Fokus Menikah)";
-    savingsItems.unshift("Tabungan Persiapan Pernikahan");
-    savingsDesc = "Alokasi savings diperbesar secara agresif untuk mempercepat dana pernikahan kamu.";
-  } else if (noteLower.includes("cicilan") || noteLower.includes("hutang") || noteLower.includes("utang") || noteLower.includes("kredit")) {
-    needsPercent = 60;
-    wantsPercent = 15;
-    savingsPercent = 25;
-    frameworkUsed = "Aturan 60/15/25 (Prioritas Hutang & Cicilan)";
-    needsItems.push("Pembayaran Cicilan Wajib");
-    needsDesc = "Alokasi kebutuhan ditingkatkan untuk memastikan seluruh cicilan wajib terbayar tepat waktu.";
-    wantsDesc = "Anggaran keinginan ditekan seminimal mungkin agar cash flow bulanan tetap sehat.";
-  }
+}
+
+function sanitizeAiResult(rawResult: any): any {
+  const sanitizeCategory = (cat: any) => {
+    if (!cat) return { percentage: 0, amount: 0, description: "", items: [] };
+    const items = Array.isArray(cat.items)
+      ? cat.items.map((item: any) => {
+          if (typeof item === "string") {
+            return { name: item, amount: 0 };
+          }
+          if (item && typeof item === "object") {
+            return {
+              name: String(item.name || item.item || item.description || item.title || "Item Pengeluaran"),
+              amount: Number(item.amount || item.value || item.cost || 0),
+            };
+          }
+          return { name: "Item Pengeluaran", amount: 0 };
+        })
+      : [];
+    return {
+      percentage: Number(cat.percentage || 0),
+      amount: Number(cat.amount || 0),
+      description: String(cat.description || ""),
+      items,
+    };
+  };
 
   return {
-    needs: {
-      percentage: needsPercent,
-      amount: Math.round((salary * needsPercent) / 100),
-      description: needsDesc,
-      items: needsItems,
-    },
-    wants: {
-      percentage: wantsPercent,
-      amount: Math.round((salary * wantsPercent) / 100),
-      description: wantsDesc,
-      items: wantsItems,
-    },
-    savings: {
-      percentage: savingsPercent,
-      amount: Math.round((salary * savingsPercent) / 100),
-      description: savingsDesc,
-      items: savingsItems,
-    },
-    aiSummary: `Rencana keuangan ini dirancang menggunakan ${frameworkUsed} berdasarkan sisa dana kamu. Disiplin menyisihkan Rp ${(Math.round((salary * savingsPercent) / 100)).toLocaleString("id-ID")} di awal bulan akan menjadi fondasi kokoh untuk masa depan keuanganmu.`,
-    frameworkUsed,
+    needs: sanitizeCategory(rawResult.needs),
+    wants: sanitizeCategory(rawResult.wants),
+    savings: sanitizeCategory(rawResult.savings),
+    aiSummary: String(rawResult.aiSummary || ""),
+    frameworkUsed: String(rawResult.frameworkUsed || "AI Planner"),
   };
 }

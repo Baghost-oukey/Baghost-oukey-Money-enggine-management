@@ -6,6 +6,7 @@ interface BudgetDistributionProgressBarProps {
   needsPercentage: number;
   wantsPercentage: number;
   savingsPercentage: number;
+  debtsPercentage?: number;
   totalPercentage: number;
   isPercentageValid: boolean;
 }
@@ -15,6 +16,7 @@ export function BudgetDistributionProgressBar({
   needsPercentage,
   wantsPercentage,
   savingsPercentage,
+  debtsPercentage = 0,
   totalPercentage,
   isPercentageValid,
 }: BudgetDistributionProgressBarProps) {
@@ -44,11 +46,17 @@ export function BudgetDistributionProgressBar({
           <div className="h-full bg-violet-600 transition-all duration-300" style={{ width: `${(needsPercentage / (totalPercentage || 1)) * 100}%` }} />
           <div className="h-full bg-amber-500 transition-all duration-300" style={{ width: `${(wantsPercentage / (totalPercentage || 1)) * 100}%` }} />
           <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${(savingsPercentage / (totalPercentage || 1)) * 100}%` }} />
+          {debtsPercentage > 0 && (
+            <div className="h-full bg-rose-500 transition-all duration-300" style={{ width: `${(debtsPercentage / (totalPercentage || 1)) * 100}%` }} />
+          )}
         </div>
         <div className="flex flex-wrap items-center justify-between text-xs text-muted-foreground font-semibold gap-2">
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-violet-600 rounded-full"/> Kebutuhan Pokok ({needsPercentage}%)</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-amber-500 rounded-full"/> Keinginan & Hiburan ({wantsPercentage}%)</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-emerald-500 rounded-full"/> Tabungan & Investasi ({savingsPercentage}%)</span>
+          {debtsPercentage > 0 && (
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-rose-500 rounded-full"/> Cicilan & Utang ({debtsPercentage}%)</span>
+          )}
         </div>
       </div>
     </div>

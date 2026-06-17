@@ -26,6 +26,7 @@ interface RecommendationData {
   needs: AllocationDetails;
   wants: AllocationDetails;
   savings: AllocationDetails;
+  debts?: AllocationDetails;
   aiSummary: string;
   frameworkUsed: string;
 }
@@ -45,7 +46,7 @@ export default function ResultBudgetAnalisis({
 }: ResultBudgetAnalisisProps) {
   if (!recommendation) return null;
 
-  const { needs, wants, savings, aiSummary, frameworkUsed } = recommendation;
+  const { needs, wants, savings, debts, aiSummary, frameworkUsed } = recommendation;
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -94,7 +95,7 @@ export default function ResultBudgetAnalisis({
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px] font-bold text-foreground">
               <span>Alokasi Kategori:</span>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="flex items-center gap-1 text-violet-600 dark:text-violet-400">
                   <span className="w-2 h-2 rounded-full bg-violet-600 shrink-0" />
                   Needs ({needs.percentage}%)
@@ -107,6 +108,12 @@ export default function ResultBudgetAnalisis({
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
                   Savings ({savings.percentage}%)
                 </span>
+                {debts && debts.percentage > 0 && (
+                  <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
+                    Cicilan & Utang ({debts.percentage}%)
+                  </span>
+                )}
               </div>
             </div>
             
@@ -114,6 +121,9 @@ export default function ResultBudgetAnalisis({
               <div className="h-full bg-violet-600" style={{ width: `${needs.percentage}%` }} />
               <div className="h-full bg-amber-500" style={{ width: `${wants.percentage}%` }} />
               <div className="h-full bg-emerald-500" style={{ width: `${savings.percentage}%` }} />
+              {debts && debts.percentage > 0 && (
+                <div className="h-full bg-rose-500" style={{ width: `${debts.percentage}%` }} />
+              )}
             </div>
           </div>
 
@@ -128,7 +138,7 @@ export default function ResultBudgetAnalisis({
           </div>
 
           {/* Pos cards layout */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 ${debts && debts.percentage > 0 ? "md:grid-cols-4" : "md:grid-cols-3"} gap-4`}>
             
             {/* Needs card */}
             <div className="p-4 rounded-xl border bg-background/50 border-l-4 border-l-violet-600 border-muted/30 space-y-3">
@@ -204,6 +214,33 @@ export default function ResultBudgetAnalisis({
                 ))}
               </ul>
             </div>
+
+            {/* Debts card */}
+            {debts && debts.percentage > 0 && (
+              <div className="p-4 rounded-xl border bg-background/50 border-l-4 border-l-rose-500 border-muted/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Cicilan & Utang</span>
+                  <span className="text-sm font-black text-rose-600 dark:text-rose-400">{debts.percentage}%</span>
+                </div>
+                <div className="text-base font-extrabold text-foreground">
+                  Rp {debts.amount.toLocaleString("id-ID")}
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {debts.description}
+                </p>
+                <ul className="space-y-1.5 pt-2 border-t border-muted/40">
+                  {debts.items.map((item, idx) => (
+                    <li key={idx} className="flex items-center justify-between text-[11px] text-muted-foreground py-0.5">
+                      <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={12} className="text-rose-500 shrink-0" />
+                        {item.name}
+                      </span>
+                      <span className="font-bold text-foreground">Rp {item.amount.toLocaleString("id-ID")}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
           </div>
 

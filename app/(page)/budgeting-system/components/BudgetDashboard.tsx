@@ -1,47 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, Save, RefreshCw, CreditCard, Plus, HelpCircle, ArrowUpRight, TrendingUp } from "lucide-react";
+import { Save, RefreshCw, HelpCircle } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { BudgetSummaryCards } from "./BudgetSummaryCards";
 import { BudgetCategoryTable } from "./BudgetCategoryTable";
 import { LoadingScreen } from "./LoadingScreen";
+import { AiAnalysisHighlight } from "./AiAnalysisHighlight";
+import { BudgetTabSwitcher } from "./BudgetTabSwitcher";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-interface BudgetItem {
-  name: string;
-  amount: number;
-}
-
-interface CategoryAllocation {
-  key?: string;
-  name: string;
-  type: "needs" | "wants" | "savings" | "debts";
-  percentage: number;
-  amount: number;
-  description: string;
-  items: BudgetItem[];
-}
-
-interface RecommendationData {
-  needs?: CategoryAllocation;
-  wants?: CategoryAllocation;
-  savings?: CategoryAllocation;
-  debts?: CategoryAllocation;
-  categories?: CategoryAllocation[];
-  sources?: string[];
-  aiSummary: string;
-  frameworkUsed: string;
-  suggestRejection?: boolean;
-}
+  getChangedItems,
+  CategoryAllocation,
+  RecommendationData,
+  BudgetItem,
+} from "../utils/critiqueHelper";
 
 interface BudgetDashboardProps {
   planId: string;
@@ -91,8 +62,10 @@ export function BudgetDashboard({
 
   // Revert / Apply helper state
   const [lastValidRecommendation, setLastValidRecommendation] = useState<RecommendationData>(initialRecommendation);
-  const [showWarningModal, setShowWarningModal] = useState<boolean>(false);
+  const [showCritiquePanel, setShowCritiquePanel] = useState<boolean>(false);
+  const [isCritiqueExpanded, setIsCritiqueExpanded] = useState<boolean>(true);
   const [pendingCategory, setPendingCategory] = useState<string | null>(null);
+  const [selectedChangeIndex, setSelectedChangeIndex] = useState<number>(0);
 
   const applyRecommendation = (reco: RecommendationData) => {
     setFrameworkUsed(reco.frameworkUsed || "AI Budget Negotiator");
@@ -157,8 +130,6 @@ export function BudgetDashboard({
     setLastValidRecommendation(initialRecommendation);
     applyRecommendation(initialRecommendation);
   }, [initialRecommendation, initialSalary]);
-
-  const categoriesItemsKey = JSON.stringify(categories.map(c => ({ type: c.type, name: c.name, items: c.items })));
 
   useEffect(() => {
     if (salary <= 0 || categories.length === 0) return;
@@ -239,7 +210,7 @@ export function BudgetDashboard({
     if (hasChanged) {
       setCategories(updatedCategories);
     }
-  }, [salary, categoriesItemsKey]);
+  }, [salary, initialRecommendation]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   // Aggregate target calculations
   const getPercentageByType = (type: "needs" | "wants" | "savings" | "debts") => {
@@ -318,7 +289,7 @@ export function BudgetDashboard({
   // Revert state back to pre-negotiation valid state
   const handleUseExisting = () => {
     applyRecommendation(lastValidRecommendation);
-    setShowWarningModal(false);
+    setShowCritiquePanel(false);
     setPendingCategory(null);
   };
 
@@ -327,7 +298,7 @@ export function BudgetDashboard({
     if (pendingCategory) {
       handleNegotiate(pendingCategory, true);
     }
-    setShowWarningModal(false);
+    setShowCritiquePanel(false);
     setPendingCategory(null);
   };
 
@@ -343,6 +314,9 @@ export function BudgetDashboard({
     setNegotiatingCategory(categoryName);
 
     try {
+      const targetCat = categories.find(c => c.name === categoryName);
+      const categoryType = targetCat ? targetCat.type : null;
+
       const response = await fetch("/api/budgeting", {
         method: "POST",
         headers: {
@@ -351,6 +325,8 @@ export function BudgetDashboard({
         body: JSON.stringify({
           userId,
           salary,
+          categoryName,
+          categoryType,
           notes: `Negosiasi optimasi anggaran dilakukan oleh pengguna pada pos ${categoryName}.`,
           action: "negotiate",
           recommendation: {
@@ -372,7 +348,9 @@ export function BudgetDashboard({
 
         if (reco.suggestRejection) {
           setPendingCategory(categoryName);
-          setShowWarningModal(true);
+          setSelectedChangeIndex(0);
+          setShowCritiquePanel(true);
+          setIsCritiqueExpanded(true);
           setAiSummary(reco.aiSummary || "Pengeluaran yang baru kamu perbarui melebihi batasan wajar.");
         } else {
           applyRecommendation(reco);
@@ -439,42 +417,15 @@ export function BudgetDashboard({
     onSave(payload, salary);
   };
 
-  const tabThemes = {
-    needs: {
-      label: "Wajib",
-      icon: <TrendingUp size={14} />,
-      activeClass: "bg-card/40 border-t-2 border-t-violet-500 border-x-muted-foreground/15 border-b-transparent text-violet-600 dark:text-violet-400 shadow-[0_-4px_12px_rgba(124,58,237,0.04)]",
-      hoverClass: "hover:text-violet-600/80 dark:hover:text-violet-400/80 hover:bg-violet-500/5",
-    },
-    wants: {
-      label: "Gaya Hidup",
-      icon: <ArrowUpRight size={14} />,
-      activeClass: "bg-card/40 border-t-2 border-t-amber-500 border-x-muted-foreground/15 border-b-transparent text-amber-600 dark:text-amber-400 shadow-[0_-4px_12px_rgba(245,158,11,0.04)]",
-      hoverClass: "hover:text-amber-600/80 dark:hover:text-amber-400/80 hover:bg-amber-500/5",
-    },
-    savings: {
-      label: "Tabungan",
-      icon: <Sparkles size={14} className="animate-pulse" />,
-      activeClass: "bg-card/40 border-t-2 border-t-emerald-500 border-x-muted-foreground/15 border-b-transparent text-emerald-600 dark:text-emerald-400 shadow-[0_-4px_12px_rgba(16,185,129,0.04)]",
-      hoverClass: "hover:text-emerald-600/80 dark:hover:text-emerald-400/80 hover:bg-emerald-500/5",
-    },
-    debts: {
-      label: "Hutang",
-      icon: <CreditCard size={14} />,
-      activeClass: "bg-card/40 border-t-2 border-t-rose-500 border-x-muted-foreground/15 border-b-transparent text-rose-600 dark:text-rose-400 shadow-[0_-4px_12px_rgba(244,63,94,0.04)]",
-      hoverClass: "hover:text-rose-600/80 dark:hover:text-rose-400/80 hover:bg-rose-500/5",
-    },
-  };
-
   return (
     <div className="w-full space-y-6">
       <div className="space-y-2.5">
-        <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 dark:from-violet-400 dark:via-indigo-400 dark:to-blue-400 bg-clip-text text-transparent">
-          Hasil Analisis Anggaran
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Hasil Analisis <span className="text-zinc-800 dark:text-zinc-200 font-bold">Anggaran</span> 
         </h1>
         <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card/30 backdrop-blur-md border border-muted-foreground/10 text-xs text-muted-foreground leading-relaxed max-w-4xl shadow-sm">
-          <HelpCircle size={16} className="text-violet-500 dark:text-violet-400 shrink-0 mt-0.5" />
-          <span className="font-semibold">Rencana anggaran disusun secara kritis oleh asisten AI berdasarkan kondisi keuanganmu. Silakan sesuaikan pos pengeluaran di bawah menggunakan tombol nego jika ada perbedaan dengan kebiasaan nyata harianmu.</span>
+          <HelpCircle size={16} className="text-zinc-500 dark:text-zinc-400 shrink-0 mt-0.5" />
+          <p className="font-light text-black">Rencana anggaran disusun secara kritis oleh asisten AI berdasarkan kondisi keuanganmu. Silakan sesuaikan pos pengeluaran di bawah menggunakan tombol "Optimalkan" jika ada perbedaan dengan kebiasaan nyata harianmu.</p>
         </div>
       </div>
 
@@ -496,66 +447,22 @@ export function BudgetDashboard({
         setDebtsPercentage={() => {}}
       />
 
-      {/* AI Analysis Highlight Panel (Full Width with highlighted border) */}
-      <div className="p-6 rounded-3xl border border-violet-500/20 dark:border-violet-500/30 bg-card/45 backdrop-blur-xl shadow-[0_8px_30px_rgba(124,58,237,0.04)] dark:shadow-[0_8px_30px_rgba(124,58,237,0.08)] space-y-4 relative z-10">
-        <div className="flex items-center gap-2.5 border-b pb-3 border-violet-500/15">
-          <div className="p-2 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0 shadow-sm">
-            <Sparkles size={15} className={isNegotiating ? "animate-spin" : "animate-pulse"} />
-          </div>
-          <h4 className="text-xs font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest">
-            Hasil Analisis Asisten AI
-          </h4>
-        </div>
+      {/* AI Analysis Highlight Panel */}
+      <AiAnalysisHighlight
+        aiSummary={aiSummary}
+        modelUsed={lastValidRecommendation.modelUsed}
+        isNegotiating={isNegotiating}
+        sources={sources}
+      />
 
-        <div className="text-[13px] md:text-[14px] leading-relaxed text-foreground/90 italic whitespace-pre-line px-1 max-h-[140px] overflow-y-auto custom-scrollbar font-medium">
-          "{aiSummary}"
-        </div>
-
-        {((sources && sources.length > 0) || true) && (
-          <div className="pt-3.5 border-t border-violet-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            {sources && sources.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest mr-1">
-                  Referensi:
-                </span>
-                {sources.map((src, i) => (
-                  <span key={i} className="text-[9px] font-extrabold px-3 py-1 rounded-full bg-violet-500/5 hover:bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/10 transition-all duration-300 hover:scale-105 cursor-default flex items-center gap-1.5 shadow-sm">
-                    📚 <span>{src}</span>
-                  </span>
-                ))}
-              </div>
-            )}
-            <p className="text-[10px] text-muted-foreground/80 leading-tight max-w-md sm:text-right self-end sm:self-center font-medium">
-              *Gunakan tombol <strong>"Nego dengan AI"</strong> pada tabel pos di bawah untuk menyeimbangkan pos secara otomatis.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Tab Switcher Panel (Modern Folder-Tab Style) */}
-      <div className="flex gap-1 items-end border-b border-muted-foreground/15 w-full mt-3 mb-4.5 z-10 relative">
-        {(["needs", "wants", "savings", "debts"] as const).map((tabKey) => {
-          const isActive = activeTab === tabKey;
-          const config = tabThemes[tabKey];
-          return (
-            <button
-              key={tabKey}
-              onClick={() => setActiveTab(tabKey)}
-              className={`py-2 px-4 sm:px-6 rounded-t-2xl text-xs sm:text-sm font-black transition-all duration-300 cursor-pointer flex items-center gap-2 border-t border-x -mb-[1px] ${
-                isActive
-                  ? config.activeClass
-                  : `bg-muted/10 border-transparent text-muted-foreground hover:text-foreground ${config.hoverClass}`
-              }`}
-            >
-              {config.icon}
-              {config.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Tab Switcher Panel */}
+      <BudgetTabSwitcher
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
 
       {/* Bottom Section: Filtered category tables */}
-      <div className="space-y-6 z-10 relative transition-all duration-300">
+      <div className="space-y-6 z-10 relative transition-all duration-200">
         {categories.filter(c => c.type === activeTab).length === 0 && (
           <div className="text-center py-12 px-4 bg-card/20 rounded-3xl border border-muted-foreground/10 text-muted-foreground backdrop-blur-md">
             <p className="text-xs sm:text-sm font-semibold">Tidak ada pos anggaran dalam kategori ini.</p>
@@ -596,6 +503,15 @@ export function BudgetDashboard({
                 onUpdateItem={(_, itemIdx, field, value) => updateItem(catIdx, itemIdx, field, value)}
                 onAddItem={() => addItem(catIdx)}
                 onDeleteItem={(_, itemIdx) => deleteItem(catIdx, itemIdx)}
+                showCritiquePanel={showCritiquePanel && pendingCategory === category.name}
+                isCritiqueExpanded={isCritiqueExpanded}
+                onToggleCritique={() => setIsCritiqueExpanded(!isCritiqueExpanded)}
+                changedItems={getChangedItems(categories, lastValidRecommendation)}
+                selectedChangeIndex={selectedChangeIndex}
+                onChangeSelectedChangeIndex={setSelectedChangeIndex}
+                onUseExisting={handleUseExisting}
+                onForceContinue={handleForceContinue}
+                aiSummary={aiSummary}
               />
             );
           })}
@@ -607,47 +523,18 @@ export function BudgetDashboard({
           variant="outline"
           disabled={isNegotiating}
           onClick={onReset}
-          className="px-6 h-11 text-xs font-extrabold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-muted-foreground/20 bg-background/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="px-6 h-11 text-xs font-extrabold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-muted-foreground/20 bg-background/30 transition-all duration-200"
         >
           <RefreshCw size={13} /> Reset / Mulai Ulang
         </Button>
         <Button
           onClick={handleSavePlan}
           disabled={isSaving || isNegotiating || !isPercentageValid}
-          className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-violet-600/40 disabled:to-indigo-600/40 text-white px-8 h-11 text-xs font-extrabold rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98] shadow-violet-500/10 hover:shadow-violet-500/20 transition-all duration-200"
+          className="bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-900/40 text-white px-8 h-11 text-xs font-extrabold rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-sm transition-all duration-200"
         >
           <Save size={14} /> {isSaving ? "Menyimpan..." : "Simpan Anggaran"}
         </Button>
       </div>
-
-      {/* Alert Dialog for budget negotiation warning */}
-      <AlertDialog open={showWarningModal} onOpenChange={setShowWarningModal}>
-        <AlertDialogContent className="max-w-md bg-background/95 backdrop-blur-md border border-muted-foreground/15 rounded-3xl p-6 shadow-2xl">
-          <AlertDialogHeader className="text-center sm:text-left">
-            <AlertDialogTitle className="text-lg font-black text-rose-600 dark:text-rose-400 flex items-center justify-center sm:justify-start gap-2.5">
-              <span className="p-2 bg-rose-500/10 rounded-2xl">⚠️</span>
-              Peringatan Anggaran AI
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs font-semibold text-muted-foreground leading-relaxed mt-3">
-              Maaf, berdasarkan pengeluaran yang baru kamu perbarui kami sarankan untuk tidak menyetujui perubahan Anda.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-col sm:flex-row gap-3 mt-6">
-            <AlertDialogCancel
-              onClick={handleUseExisting}
-              className="w-full sm:w-auto h-10 px-5 rounded-2xl border border-muted-foreground/20 text-xs font-extrabold hover:bg-muted cursor-pointer transition-all"
-            >
-              Pakai yang Sudah Ada
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleForceContinue}
-              className="w-full sm:w-auto h-10 px-5 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-extrabold cursor-pointer transition-all shadow-md"
-            >
-              Tetap Lanjutkan
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Loading Overlay during AI negotiation */}
       {isNegotiating && (

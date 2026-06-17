@@ -28,6 +28,8 @@ interface StandardBudgetResult {
   suggestRejection?: boolean;
 }
 
+let useFallbackModel = false;
+
 // Helper to extract debt and installment amounts from Indonesian notes
 function extractDebtsFromNotes(notes: string): BudgetItem[] {
   const items: BudgetItem[] = [];
@@ -305,12 +307,17 @@ function getStandardBaseline(salary: number, notes: string): StandardBudgetResul
   };
 }
 
-function balanceRecommendationLocally(recommendation: any, salary: number, force: boolean = false): any {
+function balanceRecommendationLocally(
+  recommendation: any,
+  salary: number,
+  force: boolean = false,
+  categoryName: string | null = null
+): any {
   if (!recommendation) {
     return getStandardBaseline(salary, "");
   }
 
-  const sanitized = sanitizeAiResult(recommendation, salary);
+  const sanitized = sanitizeAiResult(recommendation, salary, force, categoryName);
 
   let suggestRejection = false;
   if (!force) {
@@ -329,15 +336,19 @@ function balanceRecommendationLocally(recommendation: any, salary: number, force
     suggestRejection,
     aiSummary: suggestRejection
       ? "Maaf, berdasarkan pengeluaran yang baru kamu perbarui kami sarankan untuk tidak menyetujui perubahan Anda."
-      : "Anggaran telah disesuaikan secara otomatis agar tetap pas dengan rasio dasar 50:30:20 setelah cicilan.",
+      : "Anggaran telah disesuaikan secara otomatis agar tetap pas dengan prioritas tingkat kebutuhan setelah cicilan.",
   };
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, salary, notes, action, recommendation, force } = body;
+    const { userId, salary, notes, action, recommendation, force, resetModel, categoryName } = body;
     const forceBool = !!force;
+
+    if (resetModel) {
+      useFallbackModel = false;
+    }
 
     if (!userId) {
       return NextResponse.json(
@@ -361,14 +372,32 @@ export async function POST(request: Request) {
     const baseline = getStandardBaseline(salaryNum, additionalNotes);
 
     let aiResult: typeof baseline;
+    let modelUsed = "local-fallback";
 
     if (!apiKey) {
       console.warn("API_KEY environment variable is not defined, running local fallback.");
-      aiResult = action === "negotiate" ? balanceRecommendationLocally(recommendation, salaryNum, forceBool) : baseline;
+      aiResult = action === "negotiate" ? balanceRecommendationLocally(recommendation, salaryNum, forceBool, categoryName) : baseline;
     } else {
       let systemPrompt = "";
 
       if (action === "negotiate") {
+        const forceInstructions = forceBool
+          ? `
+[PENTING - ATURAN FORCE CONTINUE / OVERRIDE]:
+Karena ini adalah pemaksaan override/lanjutkan (Force Continue = YA) oleh pengguna, Anda WAJIB mempertahankan perubahan nominal yang mereka ajukan pada kategori "${categoryName || "yang disesuaikan"}". Jangan ubah nominal kategori yang dipaksakan ini!
+Untuk menyeimbangkan total anggaran agar tetap tepat 100% dari gaji bulanan (Rp ${salaryNum.toLocaleString("id-ID")}), Anda harus menyesuaikan/memangkas kategori lainnya secara otomatis. Pemangkasan kategori lain wajib didasarkan pada tingkat urgensi kebutuhan (prioritas pemotongan dari yang paling tidak penting ke yang paling penting):
+1. Kategori bertipe 'wants' (Gaya Hidup) wajib dipotong/dikurangi terlebih dahulu.
+2. Jika seluruh kategori 'wants' sudah dipotong hingga nol dan totalnya masih belum seimbang, barulah kurangi kategori bertipe 'savings' (Tabungan).
+3. Jika kategori 'savings' juga sudah dipotong habis, barulah kurangi kategori bertipe 'needs' (Pokok) secara sangat hati-hati.
+4. Kategori bertipe 'debts' (Cicilan/Utang) bersifat wajib dan sama sekali tidak boleh dipotong.
+Atur "suggestRejection": false karena pengguna memaksa melanjutkan perubahan ini. Jelaskan penyesuaian penyeimbang yang Anda lakukan di "aiSummary" secara ramah, santai, jujur, dan tetap kritis.
+`
+          : `
+[ATURAN NEGOSIASI STANDAR]:
+Jika penyesuaian anggaran yang diajukan oleh pengguna tidak realistis atau membahayakan kesehatan finansial mereka (misalnya total wants melebihi jatah target wants, atau wants berisi rokok/jajan mahal padahal SPP anak mepet), Anda wajib mengatur "suggestRejection": true. Jelaskan alasan penolakan dan kritik Anda di "aiSummary" secara sangat natural, jujur, kritis, dan penuh kepedulian.
+Jika penyesuaian pengguna masih dalam batas wajar/sehat, atur "suggestRejection": false.
+`;
+
         systemPrompt = `
 Anda adalah konsultan keuangan pribadi cerdas, kritis, realistis, dan pakar perencanaan anggaran (budgeting planner) bulanan real di Indonesia. Panggil pengguna dengan sebutan "kamu" secara sopan, bersahabat, namun tetap tegas dan kritis demi kesehatan finansial mereka.
 
@@ -376,6 +405,7 @@ Tugas Anda saat ini adalah melakukan **Negosiasi Anggaran** (Budget Negotiation)
 Gaji bulanan pengguna adalah Rp ${salaryNum.toLocaleString("id-ID")}.
 Catatan tambahan asli pengguna: "${additionalNotes}"
 Apakah ini pemaksaan override/lanjutkan (Force Continue)? ${forceBool ? "YA" : "TIDAK"}
+Kategori yang sedang dinegosiasikan: "${categoryName || "Tidak spesifik"}"
 
 Pengguna telah melakukan penyesuaian nominal pada draf rencana anggaran mereka. Berikut adalah draf anggaran terbaru yang telah diubah oleh pengguna:
 ${JSON.stringify(recommendation, null, 2)}
@@ -391,17 +421,13 @@ Sebagai asisten AI, Anda wajib bertindak kritis:
    - Jangan batasi kategori anggaran hanya menjadi 4 kategori template saja. Buatlah list kategori anggaran yang dinamis, spesifik, dan detail (minimal ada 7 hingga 10+ kategori di dalam array "categories").
    - Kategori-kategori tersebut harus memiliki tipe ("type") salah satu dari: "needs", "wants", "savings", atau "debts".
    - Contoh nama kategori dinamis: "Makanan & Dapur", "Transportasi & Bensin", "Pendidikan Anak", "Utilitas & Tagihan", "Konsumsi Rokok", "Dana Darurat", "Investasi Masa Depan", "Cicilan Bank", dll.
-4. **Aturan Rasio Paten (50:30:20 dari sisa gaji bersih setelah cicilan)**:
-   - Hitung total nominal debts dari seluruh kategori bertipe "debts". Misalkan total debts = D.
-   - Sisa gaji bersih = Gaji - D.
-   - Total seluruh kategori bertipe "needs" wajib tepat = 0.5 * (Gaji - D).
-   - Total seluruh kategori bertipe "wants" wajib tepat = 0.3 * (Gaji - D).
-   - Total seluruh kategori bertipe "savings" wajib tepat = 0.2 * (Gaji - D).
-   - Total seluruh kategori bertipe "debts" wajib tepat = D.
-   - Jumlah total persentase seluruh kategori harus tepat 100.
-5. **Aturan Keputusan 'suggestRejection'**:
-   - Jika ini BUKAN pemaksaan override/lanjutkan (Force Continue = TIDAK), dan penyesuaian tersebut tidak realistis (misalnya total wants melebihi jatah target wants, atau wants berisi rokok mahal padahal SPP anak mepet), Anda wajib mengatur "suggestRejection": true. Tuliskan alasan penolakan di "aiSummary" secara sangat natural, jujur, kritis, dan penuh kepedulian.
-   - Jika ini adalah pemaksaan override/lanjutkan (Force Continue = YA) ATAU penyesuaian pengguna masih dalam batas wajar/sehat, Anda wajib mengatur "suggestRejection": false.
+4. **Aturan Penyeimbangan Anggaran**:
+   ${forceBool 
+     ? `Karena Force Continue = YA, Anda harus mengikuti aturan penyeimbangan dengan prioritas pemangkasan kategori lain (wants -> savings -> needs) agar total jumlah seluruh kategori sama dengan gaji bulanan (Rp ${salaryNum}).`
+     : `Rasio Paten (50:30:20 dari sisa gaji bersih setelah cicilan) wajib dipenuhi. Total debts = D. Sisa gaji bersih = Gaji - D. Total needs = 0.5 * (Gaji - D). Total wants = 0.3 * (Gaji - D). Total savings = 0.2 * (Gaji - D). Jumlah total persentase seluruh kategori harus tepat 100.`
+   }
+5. **Keputusan & Tindakan**:
+   ${forceInstructions}
 6. **Sumber & Referensi**:
    - Tentukan sumber data/referensi nyata yang melandasi standar gaya hidup praktis tersebut (misalnya BPS 2024, OJK, cost of living index, dll.) dan sertakan dalam array "sources".
 7. **Bahasa & Kepadatan (Sangat Penting!)**:
@@ -493,52 +519,81 @@ Hasil pembagian wajib dikembalikan berupa JSON murni dengan skema berikut:
 `;
       }
 
-      try {
-        const apiResponse = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: systemPrompt,
-                    },
-                  ],
-                },
-              ],
-              generationConfig: {
-                responseMimeType: "application/json",
-              },
-            }),
-          }
-        );
+      modelUsed = "gemini-2.5-flash";
+      const fallbackInstructions = `
+[PENTING - PERINGATAN KETAT UNTUK LITE MODEL]:
+Karena Anda berjalan dalam mode efisiensi tinggi (Gemini 3.1 Flash-Lite), harap patuhi aturan berikut dengan sangat ketat agar tidak keluar konteks:
+1. Output Anda HARUS berupa JSON valid tanpa teks penjelasan di luar blok JSON.
+2. Pastikan rasio 50:30:20 setelah dikurangi pos cicilan (debts) tepat 100% secara matematis.
+3. Kategori dalam array "categories" minimal berjumlah 7-10 pos pengeluaran secara dinamis.
+4. Tulis deskripsi dan "aiSummary" secara sangat padat (maksimal 2-3 kalimat pendek, 30-50 kata) dalam bahasa Indonesia santai/gaul sehari-hari yang bersahabat dan kritis.
+5. Dilarang keras keluar dari konteks budgeting pribadi.
+`;
 
-        if (!apiResponse.ok) {
-          throw new Error(`Gemini API returned status ${apiResponse.status}`);
+      const callModel = async (modelName: string, promptText: string) => {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: promptText,
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              responseMimeType: "application/json",
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Gemini API returned status ${response.status} for ${modelName}`);
         }
 
-        const apiData = await apiResponse.json();
-        const responseText = apiData.candidates?.[0]?.content?.parts?.[0]?.text;
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+          throw new Error(`Empty response from Gemini API for ${modelName}`);
+        }
+        return text;
+      };
 
-        if (!responseText) {
-          throw new Error("Empty response from Gemini API");
+      try {
+        let responseText = "";
+        if (useFallbackModel) {
+          modelUsed = "gemini-3.1-flash-lite";
+          responseText = await callModel("gemini-3.1-flash-lite", systemPrompt + "\n" + fallbackInstructions);
+        } else {
+          try {
+            modelUsed = "gemini-2.5-flash";
+            responseText = await callModel("gemini-2.5-flash", systemPrompt);
+          } catch (firstTryErr) {
+            console.warn("Primary model gemini-2.5-flash failed, falling back to gemini-3.1-flash-lite:", firstTryErr);
+            useFallbackModel = true;
+            modelUsed = "gemini-3.1-flash-lite";
+            responseText = await callModel("gemini-3.1-flash-lite", systemPrompt + "\n" + fallbackInstructions);
+          }
         }
 
         const cleanedText = responseText.replace(/^\s*```json\s*|```\s*$/g, "").trim();
         aiResult = JSON.parse(cleanedText);
       } catch (err) {
         console.error("Gemini API error during budgeting, falling back locally:", err);
-        aiResult = action === "negotiate" ? balanceRecommendationLocally(recommendation, salaryNum, forceBool) : baseline;
+        modelUsed = "local-fallback";
+        aiResult = action === "negotiate" ? balanceRecommendationLocally(recommendation, salaryNum, forceBool, categoryName) : baseline;
       }
     }
 
     // Sanitize the AI result to enforce schema consistency
-    const sanitizedResult = sanitizeAiResult(aiResult, salaryNum);
+    const sanitizedResult = sanitizeAiResult(aiResult, salaryNum, forceBool, categoryName);
+    sanitizedResult.modelUsed = modelUsed;
 
     if (sanitizedResult.suggestRejection) {
       return NextResponse.json(
@@ -623,7 +678,121 @@ export async function PUT(request: Request) {
   }
 }
 
-function sanitizeAiResult(rawResult: any, salaryNum: number): any {
+function rebalanceCategoriesWithPriority(
+  categories: CategoryAllocation[],
+  salaryNum: number,
+  forcedCategoryName: string | null
+): CategoryAllocation[] {
+  const totalSum = categories.reduce((sum, c) => sum + c.amount, 0);
+  const diff = totalSum - salaryNum;
+
+  if (diff === 0) return categories;
+
+  const isExcluded = (c: CategoryAllocation) => {
+    return (
+      (forcedCategoryName && c.name.toLowerCase().trim() === forcedCategoryName.toLowerCase().trim()) ||
+      c.type === "debts"
+    );
+  };
+
+  if (diff > 0) {
+    let remainingToCut = diff;
+
+    // Wants
+    const wantsCats = categories.filter(c => c.type === "wants" && !isExcluded(c));
+    for (const c of wantsCats) {
+      if (remainingToCut <= 0) break;
+      const cut = Math.min(c.amount, remainingToCut);
+      c.amount -= cut;
+      remainingToCut -= cut;
+    }
+
+    // Savings
+    if (remainingToCut > 0) {
+      const savingsCats = categories.filter(c => c.type === "savings" && !isExcluded(c));
+      for (const c of savingsCats) {
+        if (remainingToCut <= 0) break;
+        const cut = Math.min(c.amount, remainingToCut);
+        c.amount -= cut;
+        remainingToCut -= cut;
+      }
+    }
+
+    // Needs
+    if (remainingToCut > 0) {
+      const needsCats = categories.filter(c => c.type === "needs" && !isExcluded(c));
+      for (const c of needsCats) {
+        if (remainingToCut <= 0) break;
+        const cut = Math.min(c.amount, remainingToCut);
+        c.amount -= cut;
+        remainingToCut -= cut;
+      }
+    }
+  } else {
+    let surplusToDistribute = Math.abs(diff);
+
+    // Savings
+    const savingsCats = categories.filter(c => c.type === "savings" && !isExcluded(c));
+    if (savingsCats.length > 0) {
+      const share = Math.round(surplusToDistribute / savingsCats.length);
+      savingsCats.forEach((c, idx) => {
+        const added = idx === savingsCats.length - 1 ? surplusToDistribute : share;
+        c.amount += added;
+        surplusToDistribute -= added;
+      });
+    }
+
+    // Needs
+    if (surplusToDistribute > 0) {
+      const needsCats = categories.filter(c => c.type === "needs" && !isExcluded(c));
+      if (needsCats.length > 0) {
+        const share = Math.round(surplusToDistribute / needsCats.length);
+        needsCats.forEach((c, idx) => {
+          const added = idx === needsCats.length - 1 ? surplusToDistribute : share;
+          c.amount += added;
+          surplusToDistribute -= added;
+        });
+      }
+    }
+
+    // Wants
+    if (surplusToDistribute > 0) {
+      const wantsCats = categories.filter(c => c.type === "wants" && !isExcluded(c));
+      if (wantsCats.length > 0) {
+        const share = Math.round(surplusToDistribute / wantsCats.length);
+        wantsCats.forEach((c, idx) => {
+          const added = idx === wantsCats.length - 1 ? surplusToDistribute : share;
+          c.amount += added;
+          surplusToDistribute -= added;
+        });
+      }
+    }
+  }
+
+  // Recalculate percentages and items inside each category
+  categories.forEach(c => {
+    c.percentage = salaryNum > 0 ? (c.amount / salaryNum) * 100 : 0;
+    if (c.items && c.items.length > 0) {
+      const currentItemsSum = c.items.reduce((sum, item) => sum + item.amount, 0) || 1;
+      let allocatedItems = 0;
+      c.items.forEach((item, idx) => {
+        const weight = item.amount / currentItemsSum;
+        const newAmt = idx === c.items.length - 1 ? (c.amount - allocatedItems) : Math.round(c.amount * weight);
+        item.amount = Math.max(0, newAmt);
+        allocatedItems += item.amount;
+      });
+    }
+  });
+
+  return categories;
+}
+
+function sanitizeAiResult(
+  rawResult: any,
+  salaryNum: number,
+  forceBool: boolean = false,
+  forcedCategoryName: string | null = null
+): any {
   let categories: any[] = [];
   let sources: string[] = Array.isArray(rawResult?.sources) ? rawResult.sources : [];
 
@@ -728,39 +897,43 @@ function sanitizeAiResult(rawResult: any, salaryNum: number): any {
 
   const netSalary = Math.max(0, salaryNum - totalDebtsAmount);
 
-  // Targets based on 50:30:20 net ratio
-  const needsTargetTotal = Math.round(netSalary * 0.5);
-  const wantsTargetTotal = Math.round(netSalary * 0.3);
-  const savingsTargetTotal = netSalary - needsTargetTotal - wantsTargetTotal;
+  if (forceBool && forcedCategoryName) {
+    categories = rebalanceCategoriesWithPriority(categories, salaryNum, forcedCategoryName);
+  } else {
+    // Targets based on 50:30:20 net ratio
+    const needsTargetTotal = Math.round(netSalary * 0.5);
+    const wantsTargetTotal = Math.round(netSalary * 0.3);
+    const savingsTargetTotal = netSalary - needsTargetTotal - wantsTargetTotal;
 
-  // Function to distribute target total among categories of a type
-  const distributeToCategories = (type: "needs" | "wants" | "savings", targetTotal: number) => {
-    const catsOfType = categories.filter(c => c.type === type);
-    if (catsOfType.length === 0) return;
+    // Function to distribute target total among categories of a type
+    const distributeToCategories = (type: "needs" | "wants" | "savings", targetTotal: number) => {
+      const catsOfType = categories.filter(c => c.type === type);
+      if (catsOfType.length === 0) return;
 
-    const currentSum = catsOfType.reduce((sum, c) => sum + c.amount, 0) || 1;
-    let allocated = 0;
-    
-    catsOfType.forEach((c, idx) => {
-      const weight = c.amount / currentSum;
-      const amt = idx === catsOfType.length - 1 ? (targetTotal - allocated) : Math.round(targetTotal * weight);
-      c.amount = Math.max(0, amt);
-      c.percentage = salaryNum > 0 ? (c.amount / salaryNum) * 100 : 0;
-      allocated += c.amount;
+      const currentSum = catsOfType.reduce((sum, c) => sum + c.amount, 0) || 1;
+      let allocated = 0;
+      
+      catsOfType.forEach((c, idx) => {
+        const weight = c.amount / currentSum;
+        const amt = idx === catsOfType.length - 1 ? (targetTotal - allocated) : Math.round(targetTotal * weight);
+        c.amount = Math.max(0, amt);
+        c.percentage = salaryNum > 0 ? (c.amount / salaryNum) * 100 : 0;
+        allocated += c.amount;
 
-      // Adjust items within this category to match category amount
-      if (c.items.length > 0) {
-        const itemsSum = c.items.reduce((sum: number, item: any) => sum + item.amount, 0);
-        if (itemsSum !== c.amount) {
-          c.items[c.items.length - 1].amount = Math.max(0, c.items[c.items.length - 1].amount + (c.amount - itemsSum));
+        // Adjust items within this category to match category amount
+        if (c.items.length > 0) {
+          const itemsSum = c.items.reduce((sum: number, item: any) => sum + item.amount, 0);
+          if (itemsSum !== c.amount) {
+            c.items[c.items.length - 1].amount = Math.max(0, c.items[c.items.length - 1].amount + (c.amount - itemsSum));
+          }
         }
-      }
-    });
-  };
+      });
+    };
 
-  distributeToCategories("needs", needsTargetTotal);
-  distributeToCategories("wants", wantsTargetTotal);
-  distributeToCategories("savings", savingsTargetTotal);
+    distributeToCategories("needs", needsTargetTotal);
+    distributeToCategories("wants", wantsTargetTotal);
+    distributeToCategories("savings", savingsTargetTotal);
+  }
 
   // For backward compatibility, also build needs/wants/savings/debts objects
   const buildGroupedCategory = (type: "needs" | "wants" | "savings" | "debts", defaultDesc: string) => {
@@ -801,5 +974,6 @@ function sanitizeAiResult(rawResult: any, salaryNum: number): any {
     suggestRejection: !!rawResult?.suggestRejection,
     aiSummary: String(rawResult?.aiSummary || ""),
     frameworkUsed: String(rawResult?.frameworkUsed || "Rasio 50:30:20 setelah Cicilan"),
+    modelUsed: String(rawResult?.modelUsed || ""),
   };
 }

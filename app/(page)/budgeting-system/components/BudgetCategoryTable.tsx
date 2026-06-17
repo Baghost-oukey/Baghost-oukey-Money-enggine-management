@@ -27,6 +27,27 @@ interface BudgetCategoryTableProps {
   ) => void;
   onAddItem: (category: "needs" | "wants" | "savings" | "debts") => void;
   onDeleteItem: (category: "needs" | "wants" | "savings" | "debts", index: number) => void;
+
+  // Critique props
+  showCritiquePanel?: boolean;
+  isCritiqueExpanded?: boolean;
+  onToggleCritique?: () => void;
+  changedItems?: {
+    name: string;
+    categoryName: string;
+    oldAmount: number;
+    newAmount: number;
+    difference: number;
+    isCritical: boolean;
+    description: string;
+    critique: string;
+    shortCritique: string;
+  }[];
+  selectedChangeIndex?: number;
+  onChangeSelectedChangeIndex?: (idx: number) => void;
+  onUseExisting?: () => void;
+  onForceContinue?: () => void;
+  aiSummary?: string;
 }
 
 export function BudgetCategoryTable({
@@ -43,47 +64,56 @@ export function BudgetCategoryTable({
   onUpdateItem,
   onAddItem,
   onDeleteItem,
+  showCritiquePanel = false,
+  isCritiqueExpanded = true,
+  onToggleCritique,
+  changedItems = [],
+  selectedChangeIndex = 0,
+  onChangeSelectedChangeIndex,
+  onUseExisting,
+  onForceContinue,
+  aiSummary,
 }: BudgetCategoryTableProps) {
   // Theme styling configurations
   const cardBorderStyles = {
-    violet: "border-violet-500/20 hover:border-violet-500/40 hover:shadow-[0_12px_40px_rgba(124,58,237,0.04)] dark:hover:shadow-[0_12px_40px_rgba(124,58,237,0.08)]",
-    amber: "border-amber-500/20 hover:border-amber-500/40 hover:shadow-[0_12px_40px_rgba(245,158,11,0.04)] dark:hover:shadow-[0_12px_40px_rgba(245,158,11,0.08)]",
-    emerald: "border-emerald-500/20 hover:border-emerald-500/40 hover:shadow-[0_12px_40px_rgba(16,185,129,0.04)] dark:hover:shadow-[0_12px_40px_rgba(16,185,129,0.08)]",
-    rose: "border-rose-500/20 hover:border-rose-500/40 hover:shadow-[0_12px_40px_rgba(244,63,94,0.04)] dark:hover:shadow-[0_12px_40px_rgba(244,63,94,0.08)]",
+    violet: "border-muted-foreground/15 dark:border-muted-foreground/10 hover:border-zinc-400 dark:hover:border-zinc-600",
+    amber: "border-muted-foreground/15 dark:border-muted-foreground/10 hover:border-zinc-400 dark:hover:border-zinc-600",
+    emerald: "border-muted-foreground/15 dark:border-muted-foreground/10 hover:border-zinc-400 dark:hover:border-zinc-600",
+    rose: "border-rose-500/20 hover:border-rose-500/40",
   }[themeColor];
 
   const badgeStyles = {
-    violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/10",
-    amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/10",
-    emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10",
+    violet: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700",
+    amber: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700",
+    emerald: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700",
     rose: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/10",
   }[themeColor];
 
   const textStyles = {
-    violet: "text-violet-600 dark:text-violet-400",
-    amber: "text-amber-600 dark:text-amber-400",
-    emerald: "text-emerald-600 dark:text-emerald-400",
+    violet: "text-zinc-800 dark:text-zinc-200",
+    amber: "text-zinc-800 dark:text-zinc-200",
+    emerald: "text-zinc-800 dark:text-zinc-200",
     rose: "text-rose-600 dark:text-rose-400",
   }[themeColor];
 
   const focusStyles = {
-    violet: "focus-visible:border-violet-500/80",
-    amber: "focus-visible:border-amber-500/80",
-    emerald: "focus-visible:border-emerald-500/80",
+    violet: "focus-visible:border-zinc-500/80",
+    amber: "focus-visible:border-zinc-500/80",
+    emerald: "focus-visible:border-zinc-500/80",
     rose: "focus-visible:border-rose-500/80",
   }[themeColor];
 
   const buttonStyles = {
-    violet: "hover:border-violet-600 hover:text-violet-600 hover:bg-violet-500/5",
-    amber: "hover:border-amber-500 hover:text-amber-500 hover:bg-amber-500/5",
-    emerald: "hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-500/5",
+    violet: "hover:border-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-500/5",
+    amber: "hover:border-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-500/5",
+    emerald: "hover:border-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-500/5",
     rose: "hover:border-rose-500 hover:text-rose-500 hover:bg-rose-500/5",
   }[themeColor];
 
   const negoButtonStyles = {
-    violet: "bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-violet-500/10 hover:shadow-violet-500/20",
-    amber: "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-amber-500/10 hover:shadow-amber-500/20",
-    emerald: "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-emerald-500/10 hover:shadow-emerald-500/20",
+    violet: "bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 shadow-sm",
+    amber: "bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 shadow-sm",
+    emerald: "bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 shadow-sm",
     rose: "bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white shadow-rose-500/10 hover:shadow-rose-500/20",
   }[themeColor];
 
@@ -93,16 +123,16 @@ export function BudgetCategoryTable({
     <div className={`p-4 sm:p-5 rounded-3xl border bg-card/45 backdrop-blur-md space-y-4 shadow-sm transition-all duration-300 ${cardBorderStyles}`}>
       <div className="flex flex-wrap items-center justify-between border-b pb-3 border-muted-foreground/10 gap-3">
         <div className="flex items-center gap-2">
-          <span className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${badgeStyles}`}>
+          <small className={`text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${badgeStyles}`}>
             {badgeText}
-          </span>
+          </small>
           <h4 className="text-sm sm:text-base font-black text-foreground">{title} ({Math.round(percentage)}%)</h4>
         </div>
         <div className="text-right">
-          <span className="text-[10px] text-muted-foreground font-semibold block leading-none mb-0.5">Jatah Anggaran</span>
-          <div className={`text-base font-black tracking-tight ${textStyles} leading-none`}>
+          <small className="text-[10px] text-muted-foreground font-semibold block leading-none mb-0.5">Jatah Anggaran</small>
+          <p className={`text-base font-black tracking-tight ${textStyles} leading-none`}>
             Rp {targetAmount.toLocaleString("id-ID")}
-          </div>
+          </p>
         </div>
       </div>
 
@@ -143,32 +173,44 @@ export function BudgetCategoryTable({
         ))}
 
         {items.length === 0 && (
-          <div className="py-6 text-center text-xs text-muted-foreground/60 italic">
+          <p className="py-6 text-center text-xs text-muted-foreground/60 italic">
             Belum ada daftar pengeluaran.
-          </div>
+          </p>
         )}
       </div>
 
       <div className="pt-3.5 border-t border-muted-foreground/10">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-            <span className="text-muted-foreground">
+            <p className="text-muted-foreground">
               Total Pos: <strong className="text-foreground font-bold">Rp {itemsSum.toLocaleString("id-ID")}</strong>
-            </span>
+            </p>
             
-            <div className="px-2.5 py-0.5 rounded-full bg-background/50 border border-muted-foreground/10 text-[10px] font-bold">
-              {itemsSum < targetAmount ? (
-                <span className={`flex items-center gap-1 ${textStyles}`}>
+            <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all duration-200 ${
+              showCritiquePanel 
+                ? "bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/15 cursor-pointer" 
+                : "bg-background/50 border border-muted-foreground/10"
+            }`}>
+              {showCritiquePanel ? (
+                <button
+                  onClick={onToggleCritique}
+                  className="flex items-center gap-1 font-extrabold cursor-pointer outline-none focus:outline-none w-full text-left"
+                >
+                  <AlertTriangle size={11} className="animate-pulse shrink-0 text-rose-500" />
+                  <span>Evaluasi AI: Butuh Konfirmasi {isCritiqueExpanded ? "▲" : "▼"}</span>
+                </button>
+              ) : itemsSum < targetAmount ? (
+                <small className={`flex items-center gap-1 font-bold ${textStyles}`}>
                   <Coins size={11} /> Sisa: Rp {(targetAmount - itemsSum).toLocaleString("id-ID")}
-                </span>
+                </small>
               ) : itemsSum === targetAmount ? (
-                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <small className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold">
                   <CheckCircle2 size={11} /> Anggaran Pas
-                </span>
+                </small>
               ) : (
-                <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                <small className="text-rose-600 dark:text-rose-400 flex items-center gap-1 font-bold">
                   <AlertTriangle size={11} /> Lebih: Rp {(itemsSum - targetAmount).toLocaleString("id-ID")}
-                </span>
+                </small>
               )}
             </div>
           </div>
@@ -178,22 +220,111 @@ export function BudgetCategoryTable({
               <Button
                 disabled={isNegotiating}
                 onClick={() => onNegotiate(categoryKey)}
-                className={`w-auto text-[11px] font-extrabold h-8.5 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98] ${negoButtonStyles}`}
+                className={`w-auto text-[11px] font-extrabold h-8.5 px-4 rounded-xl flex items-center justify-center gap-1 cursor-pointer transition-all duration-200 ${negoButtonStyles}`}
               >
-                <Sparkles size={11} className={isNegotiating ? "animate-spin" : "animate-pulse"} />
-                {isNegotiating ? "Nego..." : "Nego dengan AI"}
+                <Sparkles size={11} className={isNegotiating ? "animate-spin" : ""} />
+                {isNegotiating ? "Mengoptimalkan..." : "Optimalkan"}
               </Button>
             )}
             <Button
               variant="outline"
               onClick={() => onAddItem(categoryKey)}
-              className={`w-auto text-[11px] font-extrabold h-8.5 px-4 rounded-xl border-dashed border-muted-foreground/20 bg-background/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1 cursor-pointer ${buttonStyles}`}
+              className={`w-auto text-[11px] font-extrabold h-8.5 px-4 rounded-xl border-dashed border-muted-foreground/20 bg-background/20 flex items-center justify-center gap-1 cursor-pointer transition-all duration-200 ${buttonStyles}`}
             >
               <Plus size={12} /> Tambah Item
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Collapsible AI Critique Panel inside the Category Container Card */}
+      {showCritiquePanel && isCritiqueExpanded && (
+        <div className="mt-4 pt-4 border-t border-rose-500/10 space-y-4 animate-fadeIn duration-200 text-left">
+          <p className="text-[11px] font-semibold text-muted-foreground leading-relaxed">
+            Ada beberapa penyesuaian anggaran yang perlu kamu pertimbangkan kembali demi kesehatan finansialmu.
+          </p>
+
+          {/* Selection Box Dropdown & Details Card */}
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-extrabold uppercase text-muted-foreground tracking-wider block">Pilih Analisis & Alasan Kritis</label>
+              <select
+                value={selectedChangeIndex}
+                onChange={(e) => onChangeSelectedChangeIndex?.(Number(e.target.value))}
+                className="w-full text-xs font-bold bg-background text-foreground border border-muted-foreground/15 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-zinc-400 cursor-pointer shadow-sm transition-all"
+              >
+                {changedItems.map((change, idx) => (
+                  <option key={idx} value={idx}>
+                    {change.isCritical ? "⚠️ Kritik: " : "💡 Saran: "} {change.shortCritique}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {(() => {
+              if (changedItems.length === 0) {
+                return (
+                  <p className="p-3.5 rounded-2xl bg-muted/30 border border-muted-foreground/10 text-[11px] text-muted-foreground leading-relaxed">
+                    "{aiSummary}"
+                  </p>
+                );
+              }
+
+              const selectedChange = changedItems[selectedChangeIndex >= changedItems.length ? 0 : selectedChangeIndex];
+              if (!selectedChange) return null;
+
+              return (
+                <div className="p-3.5 rounded-2xl bg-card border border-muted-foreground/10 space-y-3 shadow-inner">
+                  <div className="flex justify-between items-center border-b pb-2 border-muted-foreground/5 gap-2">
+                    <h5 className="text-[11px] font-black text-foreground truncate">{selectedChange.name}</h5>
+                    <small className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full shrink-0 border ${
+                      selectedChange.difference > 0 
+                        ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/10' 
+                        : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/10'
+                    }`}>
+                      Rp {selectedChange.oldAmount.toLocaleString("id-ID")} ➔ Rp {selectedChange.newAmount.toLocaleString("id-ID")}
+                    </small>
+                  </div>
+                  
+                  <div className="space-y-2.5 text-xs">
+                    <div>
+                      <h6 className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider block">Deskripsi Pos</h6>
+                      <p className="text-foreground font-semibold leading-relaxed mt-0.5">{selectedChange.description}</p>
+                    </div>
+                    <div>
+                      <h6 className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider block">Alasan Kritis & Pertimbangan</h6>
+                      <p className={`p-3 rounded-xl border mt-1 font-bold leading-relaxed shadow-sm ${
+                        selectedChange.isCritical 
+                          ? 'bg-rose-500/5 border-rose-500/15 text-rose-600 dark:text-rose-400' 
+                          : 'bg-zinc-500/5 border-zinc-500/15 text-zinc-700 dark:text-zinc-300'
+                      }`}>
+                        {selectedChange.critique}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2 pt-1 justify-end">
+            <Button
+              variant="outline"
+              onClick={onUseExisting}
+              className="h-8.5 text-[11px] px-4 rounded-xl border border-muted-foreground/20 font-bold hover:bg-muted cursor-pointer transition-all"
+            >
+              Tetap
+            </Button>
+            <Button
+              onClick={onForceContinue}
+              className="h-8.5 text-[11px] px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold cursor-pointer transition-all shadow-md"
+            >
+              Lanjutkan
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

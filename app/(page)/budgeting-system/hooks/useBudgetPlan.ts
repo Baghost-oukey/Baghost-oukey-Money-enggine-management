@@ -72,6 +72,7 @@ export function useBudgetPlan() {
           userId: session.user.id,
           salary: salaryNum,
           notes,
+          resetModel: true,
         }),
       });
 

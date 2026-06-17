@@ -439,12 +439,45 @@ export function BudgetDashboard({
     onSave(payload, salary);
   };
 
+  const tabThemes = {
+    needs: {
+      label: "Wajib",
+      icon: <TrendingUp size={14} />,
+      activeClass: "bg-card/40 border-t-2 border-t-violet-500 border-x-muted-foreground/15 border-b-transparent text-violet-600 dark:text-violet-400 shadow-[0_-4px_12px_rgba(124,58,237,0.04)]",
+      hoverClass: "hover:text-violet-600/80 dark:hover:text-violet-400/80 hover:bg-violet-500/5",
+    },
+    wants: {
+      label: "Gaya Hidup",
+      icon: <ArrowUpRight size={14} />,
+      activeClass: "bg-card/40 border-t-2 border-t-amber-500 border-x-muted-foreground/15 border-b-transparent text-amber-600 dark:text-amber-400 shadow-[0_-4px_12px_rgba(245,158,11,0.04)]",
+      hoverClass: "hover:text-amber-600/80 dark:hover:text-amber-400/80 hover:bg-amber-500/5",
+    },
+    savings: {
+      label: "Tabungan",
+      icon: <Sparkles size={14} className="animate-pulse" />,
+      activeClass: "bg-card/40 border-t-2 border-t-emerald-500 border-x-muted-foreground/15 border-b-transparent text-emerald-600 dark:text-emerald-400 shadow-[0_-4px_12px_rgba(16,185,129,0.04)]",
+      hoverClass: "hover:text-emerald-600/80 dark:hover:text-emerald-400/80 hover:bg-emerald-500/5",
+    },
+    debts: {
+      label: "Hutang",
+      icon: <CreditCard size={14} />,
+      activeClass: "bg-card/40 border-t-2 border-t-rose-500 border-x-muted-foreground/15 border-b-transparent text-rose-600 dark:text-rose-400 shadow-[0_-4px_12px_rgba(244,63,94,0.04)]",
+      hoverClass: "hover:text-rose-600/80 dark:hover:text-rose-400/80 hover:bg-rose-500/5",
+    },
+  };
+
   return (
     <div className="w-full space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Hasil Analisis Berdasarkan kondisi keuangan mu</h1>
-        <p className="text-xs text-muted-foreground">*hasil yang kami hasilkan tidak 100% opsi terbaik dan kamu bisa sesuaikan sesuai kebutuhan kebiasaan mu dan kami akan melakukan optimasi pada pengeluaran yang dapat anda gunakan</p>
+      <div className="space-y-2.5">
+        <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 dark:from-violet-400 dark:via-indigo-400 dark:to-blue-400 bg-clip-text text-transparent">
+          Hasil Analisis Anggaran
+        </h1>
+        <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-card/30 backdrop-blur-md border border-muted-foreground/10 text-xs text-muted-foreground leading-relaxed max-w-4xl shadow-sm">
+          <HelpCircle size={16} className="text-violet-500 dark:text-violet-400 shrink-0 mt-0.5" />
+          <span className="font-semibold">Rencana anggaran disusun secara kritis oleh asisten AI berdasarkan kondisi keuanganmu. Silakan sesuaikan pos pengeluaran di bawah menggunakan tombol nego jika ada perbedaan dengan kebiasaan nyata harianmu.</span>
+        </div>
       </div>
+
       {/* 4 Summary Cards Grid */}
       <BudgetSummaryCards
         salary={salary}
@@ -464,35 +497,35 @@ export function BudgetDashboard({
       />
 
       {/* AI Analysis Highlight Panel (Full Width with highlighted border) */}
-      <div className="p-6 rounded-3xl border-2 border-violet-500/30 bg-violet-500/[0.03] dark:bg-violet-500/[0.06] shadow-xl shadow-violet-500/5 space-y-4 relative z-10">
-        <div className="flex items-center gap-2.5 border-b pb-3 border-violet-500/20">
-          <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
-            <Sparkles size={16} className={isNegotiating ? "animate-spin" : "animate-pulse"} />
+      <div className="p-6 rounded-3xl border border-violet-500/20 dark:border-violet-500/30 bg-card/45 backdrop-blur-xl shadow-[0_8px_30px_rgba(124,58,237,0.04)] dark:shadow-[0_8px_30px_rgba(124,58,237,0.08)] space-y-4 relative z-10">
+        <div className="flex items-center gap-2.5 border-b pb-3 border-violet-500/15">
+          <div className="p-2 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0 shadow-sm">
+            <Sparkles size={15} className={isNegotiating ? "animate-spin" : "animate-pulse"} />
           </div>
-          <h4 className="text-sm font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
+          <h4 className="text-xs font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest">
             Hasil Analisis Asisten AI
           </h4>
         </div>
 
-        <div className="text-[13px] md:text-[14px] leading-relaxed text-foreground italic whitespace-pre-line px-1 max-h-[140px] overflow-y-auto">
+        <div className="text-[13px] md:text-[14px] leading-relaxed text-foreground/90 italic whitespace-pre-line px-1 max-h-[140px] overflow-y-auto custom-scrollbar font-medium">
           "{aiSummary}"
         </div>
 
         {((sources && sources.length > 0) || true) && (
-          <div className="pt-3 border-t border-violet-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="pt-3.5 border-t border-violet-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             {sources && sources.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mr-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest mr-1">
                   Referensi:
                 </span>
                 {sources.map((src, i) => (
-                  <span key={i} className="text-[9px] font-medium px-2.5 py-1 rounded bg-muted text-muted-foreground border border-muted-foreground/10 flex items-center gap-1">
+                  <span key={i} className="text-[9px] font-extrabold px-3 py-1 rounded-full bg-violet-500/5 hover:bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/10 transition-all duration-300 hover:scale-105 cursor-default flex items-center gap-1.5 shadow-sm">
                     📚 <span>{src}</span>
                   </span>
                 ))}
               </div>
             )}
-            <p className="text-[10px] text-muted-foreground leading-tight max-w-md sm:text-right self-end sm:self-center">
+            <p className="text-[10px] text-muted-foreground/80 leading-tight max-w-md sm:text-right self-end sm:self-center font-medium">
               *Gunakan tombol <strong>"Nego dengan AI"</strong> pada tabel pos di bawah untuk menyeimbangkan pos secara otomatis.
             </p>
           </div>
@@ -500,54 +533,32 @@ export function BudgetDashboard({
       </div>
 
       {/* Tab Switcher Panel (Modern Folder-Tab Style) */}
-      <div className="flex gap-1 items-end border-b border-muted-foreground/15 w-full mt-8 mb-6 z-10 relative">
-        <button
-          onClick={() => setActiveTab("needs")}
-          className={`py-2 px-4 sm:px-6 rounded-t-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer flex items-center gap-2 border-t border-x -mb-[1px] ${
-            activeTab === "needs"
-              ? "bg-background border-muted-foreground/15 text-violet-600 dark:text-violet-400 font-extrabold shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
-              : "bg-muted/10 hover:bg-muted/20 border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <TrendingUp size={14} /> Wajib
-        </button>
-        <button
-          onClick={() => setActiveTab("wants")}
-          className={`py-2 px-4 sm:px-6 rounded-t-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer flex items-center gap-2 border-t border-x -mb-[1px] ${
-            activeTab === "wants"
-              ? "bg-background border-muted-foreground/15 text-violet-600 dark:text-violet-400 font-extrabold shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
-              : "bg-muted/10 hover:bg-muted/20 border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <ArrowUpRight size={14} /> Gaya Hidup
-        </button>
-        <button
-          onClick={() => setActiveTab("savings")}
-          className={`py-2 px-4 sm:px-6 rounded-t-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer flex items-center gap-2 border-t border-x -mb-[1px] ${
-            activeTab === "savings"
-              ? "bg-background border-muted-foreground/15 text-violet-600 dark:text-violet-400 font-extrabold shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
-              : "bg-muted/10 hover:bg-muted/20 border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Sparkles size={14} className="animate-pulse" /> Tabungan
-        </button>
-        <button
-          onClick={() => setActiveTab("debts")}
-          className={`py-2 px-4 sm:px-6 rounded-t-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer flex items-center gap-2 border-t border-x -mb-[1px] ${
-            activeTab === "debts"
-              ? "bg-background border-muted-foreground/15 text-violet-600 dark:text-violet-400 font-extrabold shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
-              : "bg-muted/10 hover:bg-muted/20 border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <CreditCard size={14} /> Hutang
-        </button>
+      <div className="flex gap-1 items-end border-b border-muted-foreground/15 w-full mt-3 mb-4.5 z-10 relative">
+        {(["needs", "wants", "savings", "debts"] as const).map((tabKey) => {
+          const isActive = activeTab === tabKey;
+          const config = tabThemes[tabKey];
+          return (
+            <button
+              key={tabKey}
+              onClick={() => setActiveTab(tabKey)}
+              className={`py-2 px-4 sm:px-6 rounded-t-2xl text-xs sm:text-sm font-black transition-all duration-300 cursor-pointer flex items-center gap-2 border-t border-x -mb-[1px] ${
+                isActive
+                  ? config.activeClass
+                  : `bg-muted/10 border-transparent text-muted-foreground hover:text-foreground ${config.hoverClass}`
+              }`}
+            >
+              {config.icon}
+              {config.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Bottom Section: Filtered category tables */}
-      <div className="space-y-6 z-10 relative">
+      <div className="space-y-6 z-10 relative transition-all duration-300">
         {categories.filter(c => c.type === activeTab).length === 0 && (
-          <div className="text-center py-12 px-4 bg-muted/5 rounded-3xl border border-muted-foreground/10 text-muted-foreground">
-            <p className="text-xs sm:text-sm">Tidak ada pos anggaran dalam kategori ini.</p>
+          <div className="text-center py-12 px-4 bg-card/20 rounded-3xl border border-muted-foreground/10 text-muted-foreground backdrop-blur-md">
+            <p className="text-xs sm:text-sm font-semibold">Tidak ada pos anggaran dalam kategori ini.</p>
           </div>
         )}
 
@@ -591,46 +602,46 @@ export function BudgetDashboard({
       </div>
 
       {/* Action Buttons Panel */}
-      <div className="flex justify-end gap-4 pt-4 relative z-10">
+      <div className="flex justify-end gap-3.5 pt-4 relative z-10">
         <Button
           variant="outline"
           disabled={isNegotiating}
           onClick={onReset}
-          className="px-6 h-12 text-xs font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer border-muted/60 hover:bg-muted"
+          className="px-6 h-11 text-xs font-extrabold rounded-2xl flex items-center justify-center gap-2 cursor-pointer border-muted-foreground/20 bg-background/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
-          <RefreshCw size={14} /> Reset / Mulai Ulang
+          <RefreshCw size={13} /> Reset / Mulai Ulang
         </Button>
         <Button
           onClick={handleSavePlan}
           disabled={isSaving || isNegotiating || !isPercentageValid}
-          className="bg-violet-600 hover:bg-violet-700 disabled:bg-violet-600/40 text-white px-8 h-12 text-sm font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md hover:scale-[1.01] transition-all duration-200"
+          className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-violet-600/40 disabled:to-indigo-600/40 text-white px-8 h-11 text-xs font-extrabold rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98] shadow-violet-500/10 hover:shadow-violet-500/20 transition-all duration-200"
         >
-          <Save size={15} /> {isSaving ? "Menyimpan..." : "Simpan Anggaran"}
+          <Save size={14} /> {isSaving ? "Menyimpan..." : "Simpan Anggaran"}
         </Button>
       </div>
 
       {/* Alert Dialog for budget negotiation warning */}
       <AlertDialog open={showWarningModal} onOpenChange={setShowWarningModal}>
-        <AlertDialogContent className="max-w-md bg-background border border-muted-foreground/15 rounded-3xl p-6 shadow-2xl">
+        <AlertDialogContent className="max-w-md bg-background/95 backdrop-blur-md border border-muted-foreground/15 rounded-3xl p-6 shadow-2xl">
           <AlertDialogHeader className="text-center sm:text-left">
-            <AlertDialogTitle className="text-lg font-black text-rose-600 dark:text-rose-400 flex items-center justify-center sm:justify-start gap-2">
-              <span className="p-2 bg-rose-500/10 rounded-xl">⚠️</span>
+            <AlertDialogTitle className="text-lg font-black text-rose-600 dark:text-rose-400 flex items-center justify-center sm:justify-start gap-2.5">
+              <span className="p-2 bg-rose-500/10 rounded-2xl">⚠️</span>
               Peringatan Anggaran AI
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed mt-3">
+            <AlertDialogDescription className="text-xs font-semibold text-muted-foreground leading-relaxed mt-3">
               Maaf, berdasarkan pengeluaran yang baru kamu perbarui kami sarankan untuk tidak menyetujui perubahan Anda.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col sm:flex-row gap-3 mt-6">
             <AlertDialogCancel
               onClick={handleUseExisting}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl border border-muted-foreground/20 text-xs font-bold hover:bg-muted cursor-pointer transition-all"
+              className="w-full sm:w-auto h-10 px-5 rounded-2xl border border-muted-foreground/20 text-xs font-extrabold hover:bg-muted cursor-pointer transition-all"
             >
               Pakai yang Sudah Ada
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleForceContinue}
-              className="w-full sm:w-auto h-11 px-5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold cursor-pointer transition-all shadow-md"
+              className="w-full sm:w-auto h-10 px-5 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-extrabold cursor-pointer transition-all shadow-md"
             >
               Tetap Lanjutkan
             </AlertDialogAction>

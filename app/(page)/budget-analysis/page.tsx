@@ -4,7 +4,7 @@ import React from "react";
 import { useBudgetAnalysis } from "./hooks/useBudgetAnalysis";
 import { BudgetForm } from "./components/BudgetForm";
 import { BudgetSummaryPreview } from "./components/BudgetSummaryPreview";
-import { AnalysisDashboard } from "./components/AnalysisDashboard";
+import { ResultAnalisis } from "./components/ResultAnalisis";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function BudgetaAnalysis() {
@@ -48,71 +48,81 @@ export function BudgetaAnalysis() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Side: Form Input */}
-        <div className="lg:col-span-6">
-          <BudgetForm
-            budget={budget}
-            setBudget={setBudget}
-            target={target}
-            setTarget={setTarget}
-            targetValue={targetValue}
-            setTargetValue={setTargetValue}
-            targetDate={targetDate}
-            setTargetDate={setTargetDate}
-            jenisTarget={jenisTarget}
-            setJenisTarget={setJenisTarget}
-            keteranganTambahan={keteranganTambahan}
-            setKeteranganTambahan={setKeteranganTambahan}
-            expenses={expenses}
-            setExpenses={setExpenses}
-            isLoading={isLoading}
-            onRemoveExpense={removeExpense}
-            onSubmit={handleSubmit}
-            status={status}
-          />
+        {/* Left Side: Form Input / Result */}
+        <div className={analysisResult ? "lg:col-span-12 w-full" : "lg:col-span-6 w-full"}>
+          <AnimatePresence mode="wait">
+            {analysisResult ? (
+              <motion.div
+                key="result-analysis"
+                initial={{ opacity: 0, scale: 0.99, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.99, y: -10 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full"
+              >
+                <ResultAnalisis
+                  analysisResult={analysisResult}
+                  remainingBudget={remainingBudget}
+                  targetValue={targetValue}
+                  target={target}
+                  targetDate={targetDate}
+                  onReset={handleReset}
+                  monthlyBudget={Number(budget || 0)}
+                  totalExpenses={totalExpenses}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="budget-form"
+                initial={{ opacity: 0, scale: 0.99, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.99, y: -10 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full"
+              >
+                <BudgetForm
+                  budget={budget}
+                  setBudget={setBudget}
+                  target={target}
+                  setTarget={setTarget}
+                  targetValue={targetValue}
+                  setTargetValue={setTargetValue}
+                  targetDate={targetDate}
+                  setTargetDate={setTargetDate}
+                  jenisTarget={jenisTarget}
+                  setJenisTarget={setJenisTarget}
+                  keteranganTambahan={keteranganTambahan}
+                  setKeteranganTambahan={setKeteranganTambahan}
+                  expenses={expenses}
+                  setExpenses={setExpenses}
+                  isLoading={isLoading}
+                  onRemoveExpense={removeExpense}
+                  onSubmit={handleSubmit}
+                  status={status}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Right Side: Real-time Preview */}
-        <div className="lg:col-span-6 h-full">
-          <BudgetSummaryPreview
-            budget={budget}
-            target={target}
-            targetValue={targetValue}
-            targetDate={targetDate}
-            jenisTarget={jenisTarget}
-            keteranganTambahan={keteranganTambahan}
-            expenses={expenses.map((e) => ({
-              description: e.name,
-              amount: e.amount,
-            }))}
-          />
-        </div>
-      </div>
-
-      {/* Bottom Row: AI Analysis Result */}
-      <AnimatePresence>
-        {analysisResult && (
-          <motion.div
-            key="analysis"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            transition={{ duration: 0.4 }}
-            className="w-full"
-          >
-            <AnalysisDashboard
-              analysisResult={analysisResult}
-              remainingBudget={remainingBudget}
-              targetValue={targetValue}
+        {!analysisResult && (
+          <div className="lg:col-span-6 h-full">
+            <BudgetSummaryPreview
+              budget={budget}
               target={target}
+              targetValue={targetValue}
               targetDate={targetDate}
-              onReset={handleReset}
-              monthlyBudget={Number(budget || 0)}
-              totalExpenses={totalExpenses}
+              jenisTarget={jenisTarget}
+              keteranganTambahan={keteranganTambahan}
+              expenses={expenses.map((e) => ({
+                description: e.name,
+                amount: e.amount,
+              }))}
             />
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }

@@ -82,8 +82,27 @@ function extractDebtsFromNotes(notes: string): BudgetItem[] {
   return items;
 }
 
-function getStandardBaseline(salary: number, notes: string): StandardBudgetResult {
+function getStandardBaseline(salary: number, notes: string, syncedDecisions: any[] = []): StandardBudgetResult {
   const debtItems = extractDebtsFromNotes(notes);
+
+  // Parse synced decisions and categorize as debt (if Pinjol/Paylater)
+  syncedDecisions.forEach(d => {
+    let isDebt = false;
+    try {
+      if (d.recommendation) {
+        const rec = typeof d.recommendation === "string" ? JSON.parse(d.recommendation) : d.recommendation;
+        isDebt = rec?.sumberDana === "Paylater/Kredit" || rec?.sumberDana === "Pinjaman Online";
+      }
+    } catch (_) {}
+    if (isDebt) {
+      const name = `Cicilan: ${d.targetName}`;
+      // Avoid duplicate
+      if (!debtItems.some(i => i.name === name)) {
+        debtItems.push({ name, amount: Number(d.decisionCost || 0) });
+      }
+    }
+  });
+
   const debtsAmount = debtItems.reduce((sum, item) => sum + item.amount, 0);
   const debtsPercent = salary > 0 ? (debtsAmount / salary) * 100 : 0;
 
@@ -207,13 +226,31 @@ function getStandardBaseline(salary: number, notes: string): StandardBudgetResul
     description: "Cadangan simpanan tunai cair untuk keadaan darurat.",
     items: [{ name: "Tabungan Dana Darurat", amount: 0 }]
   });
+
+  const savingsItems: BudgetItem[] = [];
+  syncedDecisions.forEach(d => {
+    let isDebt = false;
+    try {
+      if (d.recommendation) {
+        const rec = typeof d.recommendation === "string" ? JSON.parse(d.recommendation) : d.recommendation;
+        isDebt = rec?.sumberDana === "Paylater/Kredit" || rec?.sumberDana === "Pinjaman Online";
+      }
+    } catch (_) {}
+    if (!isDebt) {
+      savingsItems.push({ name: `Target: ${d.targetName}`, amount: Number(d.decisionCost || 0) });
+    }
+  });
+
   categories.push({
     name: "Tabungan Masa Depan",
     type: "savings",
     percentage: 0,
     amount: 0,
     description: "Tabungan jangka panjang, investasi reksa dana, emas, atau asuransi.",
-    items: [{ name: isFamily ? "Tabungan Pendidikan Anak" : "Investasi Reksa Dana", amount: 0 }]
+    items: [
+      { name: isFamily ? "Tabungan Pendidikan Anak" : "Investasi Reksa Dana", amount: 0 },
+      ...savingsItems
+    ]
   });
 
   // 4. Debts categories
@@ -232,7 +269,7 @@ function getStandardBaseline(salary: number, notes: string): StandardBudgetResul
   const allocateToTypeCats = (type: "needs" | "wants" | "savings", totalAmount: number) => {
     const typeCats = categories.filter(c => c.type === type);
     if (typeCats.length === 0) return;
-    
+
     let allocated = 0;
     typeCats.forEach((c, idx) => {
       let pct = 1 / typeCats.length;
@@ -247,9 +284,26 @@ function getStandardBaseline(salary: number, notes: string): StandardBudgetResul
       allocated += c.amount;
 
       if (c.items.length > 0) {
-        c.items.forEach(i => i.amount = Math.round(c.amount / c.items.length));
-        const itemsSum = c.items.reduce((s, i) => s + i.amount, 0);
-        c.items[c.items.length - 1].amount += (c.amount - itemsSum);
+        // Enforce/lock the amount of synced decisions so they don't get diluted
+        const lockedItems = c.items.filter(i => i.name.startsWith("Target:") || i.name.startsWith("Cicilan:"));
+        const lockedSum = lockedItems.reduce((sum, i) => sum + i.amount, 0);
+        const unlockedItems = c.items.filter(i => !i.name.startsWith("Target:") && !i.name.startsWith("Cicilan:"));
+
+        if (unlockedItems.length > 0) {
+          const remainingForUnlocked = Math.max(0, c.amount - lockedSum);
+          const share = Math.round(remainingForUnlocked / unlockedItems.length);
+          let allocatedUnlocked = 0;
+          unlockedItems.forEach((i, uIdx) => {
+            const itemAmt = uIdx === unlockedItems.length - 1 ? (remainingForUnlocked - allocatedUnlocked) : share;
+            i.amount = itemAmt;
+            allocatedUnlocked += itemAmt;
+          });
+        } else {
+          const itemsSum = c.items.reduce((s, i) => s + i.amount, 0);
+          if (itemsSum !== c.amount && c.items.length > 0) {
+            c.items[c.items.length - 1].amount = Math.max(0, c.items[c.items.length - 1].amount + (c.amount - itemsSum));
+          }
+        }
       }
     });
   };
@@ -311,13 +365,14 @@ function balanceRecommendationLocally(
   recommendation: any,
   salary: number,
   force: boolean = false,
-  categoryName: string | null = null
+  categoryName: string | null = null,
+  syncedDecisions: any[] = []
 ): any {
   if (!recommendation) {
-    return getStandardBaseline(salary, "");
+    return getStandardBaseline(salary, "", syncedDecisions);
   }
 
-  const sanitized = sanitizeAiResult(recommendation, salary, force, categoryName);
+  const sanitized = sanitizeAiResult(recommendation, salary, force, categoryName, syncedDecisions);
 
   let suggestRejection = false;
   if (!force) {
@@ -365,18 +420,46 @@ export async function POST(request: Request) {
       );
     }
 
-    const additionalNotes = notes || "";
+    // Fetch user's active synchronized target decisions from database
+    const syncedDecisions = await prisma.decisionAnalysis.findMany({
+      where: {
+        userId,
+        status: "TERSINKRONISASI",
+      },
+    });
+
+    let syncedDecisionsText = "";
+    if (syncedDecisions.length > 0) {
+      syncedDecisionsText = "\n\n[SINKRONISASI TARGET BELANJA WAJIB]:\n" + 
+        syncedDecisions.map(d => {
+          let isDebt = false;
+          try {
+            if (d.recommendation) {
+              const rec = typeof d.recommendation === "string" ? JSON.parse(d.recommendation) : d.recommendation;
+              if (rec && rec.sumberDana) {
+                isDebt = rec.sumberDana === "Paylater/Kredit" || rec.sumberDana === "Pinjaman Online";
+              } else {
+                const recStr = JSON.stringify(d.recommendation).toLowerCase();
+                isDebt = recStr.includes("paylater") || recStr.includes("pinjaman online");
+              }
+            }
+          } catch (_) {}
+          return `- ${isDebt ? "Cicilan" : "Target"}: ${d.targetName} Rp ${Number(d.decisionCost || 0).toLocaleString("id-ID")}/bulan (Pos: ${isDebt ? "debts" : "savings"})`;
+        }).join("\n");
+    }
+
+    const additionalNotes = (notes || "") + syncedDecisionsText;
     const apiKey = process.env.API_KEY;
 
     // Calculate deterministic standard baseline
-    const baseline = getStandardBaseline(salaryNum, additionalNotes);
+    const baseline = getStandardBaseline(salaryNum, additionalNotes, syncedDecisions);
 
     let aiResult: typeof baseline;
     let modelUsed = "local-fallback";
 
     if (!apiKey) {
       console.warn("API_KEY environment variable is not defined, running local fallback.");
-      aiResult = action === "negotiate" ? balanceRecommendationLocally(recommendation, salaryNum, forceBool, categoryName) : baseline;
+      aiResult = action === "negotiate" ? balanceRecommendationLocally(recommendation, salaryNum, forceBool, categoryName, syncedDecisions) : baseline;
     } else {
       let systemPrompt = "";
 
@@ -587,12 +670,12 @@ Karena Anda berjalan dalam mode efisiensi tinggi (Gemini 3.1 Flash-Lite), harap 
       } catch (err) {
         console.error("Gemini API error during budgeting, falling back locally:", err);
         modelUsed = "local-fallback";
-        aiResult = action === "negotiate" ? balanceRecommendationLocally(recommendation, salaryNum, forceBool, categoryName) : baseline;
+        aiResult = action === "negotiate" ? balanceRecommendationLocally(recommendation, salaryNum, forceBool, categoryName, syncedDecisions) : baseline;
       }
     }
 
     // Sanitize the AI result to enforce schema consistency
-    const sanitizedResult = sanitizeAiResult(aiResult, salaryNum, forceBool, categoryName);
+    const sanitizedResult = sanitizeAiResult(aiResult, salaryNum, forceBool, categoryName, syncedDecisions);
     sanitizedResult.modelUsed = modelUsed;
 
     if (sanitizedResult.suggestRejection) {
@@ -791,7 +874,8 @@ function sanitizeAiResult(
   rawResult: any,
   salaryNum: number,
   forceBool: boolean = false,
-  forcedCategoryName: string | null = null
+  forcedCategoryName: string | null = null,
+  syncedDecisions: any[] = []
 ): any {
   let categories: any[] = [];
   let sources: string[] = Array.isArray(rawResult?.sources) ? rawResult.sources : [];
@@ -880,9 +964,47 @@ function sanitizeAiResult(
     }
   }
 
+  // Programmatically inject synced decisions to ensure they are NEVER lost, even if AI hallucinated or omitted them
+  syncedDecisions.forEach(d => {
+    let isDebt = false;
+    try {
+      if (d.recommendation) {
+        const rec = typeof d.recommendation === "string" ? JSON.parse(d.recommendation) : d.recommendation;
+        isDebt = rec?.sumberDana === "Paylater/Kredit" || rec?.sumberDana === "Pinjaman Online";
+      }
+    } catch (_) {}
+    
+    const categoryType = isDebt ? "debts" : "savings";
+    const itemName = isDebt ? `Cicilan: ${d.targetName}` : `Target: ${d.targetName}`;
+    const itemAmt = Number(d.decisionCost || 0);
+
+    // Find category of matching type
+    let cat = categories.find(c => c.type === categoryType);
+    if (!cat) {
+      // Create a default category of that type if missing
+      cat = {
+        name: isDebt ? "Cicilan & Utang" : "Tabungan Masa Depan",
+        type: categoryType,
+        percentage: 0,
+        amount: 0,
+        description: isDebt ? "Kewajiban pelunasan cicilan." : "Tabungan jangka panjang dan target belanja.",
+        items: []
+      };
+      categories.push(cat);
+    }
+
+    // Ensure the item exists with correct amount
+    const existingItem = cat.items.find((i: any) => i.name === itemName);
+    if (!existingItem) {
+      cat.items.push({ name: itemName, amount: itemAmt });
+    } else {
+      existingItem.amount = itemAmt; // enforce correct synced amount
+    }
+  });
+
   // If empty, fall back to standard baseline
   if (categories.length === 0) {
-    return getStandardBaseline(salaryNum, "");
+    return getStandardBaseline(salaryNum, "", syncedDecisions);
   }
 
   // Separate dynamic categories by type
@@ -922,9 +1044,29 @@ function sanitizeAiResult(
 
         // Adjust items within this category to match category amount
         if (c.items.length > 0) {
-          const itemsSum = c.items.reduce((sum: number, item: any) => sum + item.amount, 0);
-          if (itemsSum !== c.amount) {
-            c.items[c.items.length - 1].amount = Math.max(0, c.items[c.items.length - 1].amount + (c.amount - itemsSum));
+          // Enforce/lock the amount of synced decisions so they don't get diluted
+          const lockedItems = c.items.filter((i: any) => i.name.startsWith("Target:") || i.name.startsWith("Cicilan:"));
+          const lockedSum = lockedItems.reduce((sum: number, i: any) => sum + i.amount, 0);
+          const unlockedItems = c.items.filter((i: any) => !i.name.startsWith("Target:") && !i.name.startsWith("Cicilan:"));
+
+          // Make sure the category amount is at least the sum of locked items
+          c.amount = Math.max(c.amount, lockedSum);
+          c.percentage = salaryNum > 0 ? (c.amount / salaryNum) * 100 : 0;
+
+          if (unlockedItems.length > 0) {
+            const remainingForUnlocked = Math.max(0, c.amount - lockedSum);
+            const share = Math.round(remainingForUnlocked / unlockedItems.length);
+            let allocatedUnlocked = 0;
+            unlockedItems.forEach((i: any, uIdx: number) => {
+              const itemAmt = uIdx === unlockedItems.length - 1 ? (remainingForUnlocked - allocatedUnlocked) : share;
+              i.amount = itemAmt;
+              allocatedUnlocked += itemAmt;
+            });
+          } else {
+            const itemsSum = c.items.reduce((sum: number, item: any) => sum + item.amount, 0);
+            if (itemsSum !== c.amount) {
+              c.items[c.items.length - 1].amount = Math.max(0, c.items[c.items.length - 1].amount + (c.amount - itemsSum));
+            }
           }
         }
       });

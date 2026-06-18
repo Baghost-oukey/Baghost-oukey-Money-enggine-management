@@ -60,6 +60,20 @@ export function AnalysisDashboard({
   const [roadmap, setRoadmap] = React.useState<any>(null);
   const [msgIdx, setMsgIdx] = React.useState(0);
 
+  // Syncing states
+  const [isSyncing, setIsSyncing] = React.useState(false);
+  const [isSynced, setIsSynced] = React.useState(analysisResult.status === "TERSINKRONISASI");
+
+  // Calculate months difference for savings
+  const currentDate = new Date();
+  let monthsDiff = 1;
+  if (targetDate) {
+    const tDate = new Date(targetDate);
+    const diffTime = tDate.getTime() - currentDate.getTime();
+    const daysDiff = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    monthsDiff = Math.max(1, Math.ceil(daysDiff / 30.44));
+  }
+
   const loadingMessages = [
     "Menganalisis profil tempat tinggal...",
     "Memetakan target berdasarkan urgensi...",
@@ -127,8 +141,18 @@ export function AnalysisDashboard({
   let aiData: {
     score: number;
     riskLevel: string;
+    decisionVerdict?: "RECOMMENDED_CASH" | "WARNING_REPLAN" | "BLOCKED_DANGER";
     impactOnTarget: string;
     healthScoreExplanation: string;
+    financialTrapWarning?: string;
+    paylaterSimulation?: {
+      cashPrice: number;
+      paylaterPrice: number;
+      adminFee: number;
+      interestExpense: number;
+      moneyWasted: number;
+      comparisonNote: string;
+    };
     budgetEvolution: string[];
     emergencyMode: { isActive: boolean; strategy: string };
     sacrificeTransparency: Array<{ item: string; nominalToCut?: number; reasons: string[] }>;
@@ -136,6 +160,8 @@ export function AnalysisDashboard({
     realMarketPrice?: string;
     priceComparisonNote?: string;
     alternativeSuggestions?: string[];
+    sumberDana?: string;
+    jenisTarget?: string;
   };
 
   try {
@@ -148,10 +174,12 @@ export function AnalysisDashboard({
     aiData = {
       score: analysisResult.score || 70,
       riskLevel: analysisResult.riskLevel || "Sedang",
+      decisionVerdict: isDeficit ? "BLOCKED_DANGER" : "RECOMMENDED_CASH",
       impactOnTarget: isDeficit
         ? "Keputusan ini mengurangi peluang pencapaian target tabungan secara signifikan karena kondisi anggaran Anda saat ini defisit."
         : "Keputusan ini cukup stabil namun membutuhkan alokasi yang lebih disiplin untuk mencapai target.",
       healthScoreExplanation: analysisResult.recommendation || "Penilaian kesehatan keuangan bulanan Anda berdasarkan sisa anggaran saat ini.",
+      financialTrapWarning: isDeficit ? "Anggaran Anda saat ini mengalami defisit. Memaksakan diri membelinya sekarang dapat menjerumuskan Anda pada pinjaman cepat atau paylater." : "",
       realMarketPrice: targetValue ? `Rp ${Number(targetValue).toLocaleString("id-ID")}` : undefined,
       priceComparisonNote: "Menggunakan nominal target sebagai patokan harga dasar di fallback.",
       alternativeSuggestions: [],
@@ -166,7 +194,9 @@ export function AnalysisDashboard({
           : "Anggaran masih aman. Jaga rasio tabungan minimal 20% dari total pendapatan."
       },
       sacrificeTransparency: [],
-      aiRecommendationText: analysisResult.recommendation || "Kelola budget Anda secara bijak."
+      aiRecommendationText: analysisResult.recommendation || "Kelola budget Anda secara bijak.",
+      sumberDana: undefined,
+      jenisTarget: undefined
     };
   }
 
@@ -207,20 +237,20 @@ export function AnalysisDashboard({
           </p>
         </div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-semibold shadow-sm bg-background/50">
-          {aiData.riskLevel === "Tinggi" ? (
-            <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+          {aiData.decisionVerdict === "BLOCKED_DANGER" ? (
+            <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-extrabold uppercase tracking-wider">
               <ShieldAlert size={14} className="animate-pulse" />
-              Risiko Tinggi
+              Verdict: Dilarang Belanja
             </span>
-          ) : aiData.riskLevel === "Sedang" ? (
-            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+          ) : aiData.decisionVerdict === "WARNING_REPLAN" ? (
+            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider">
               <AlertCircle size={14} />
-              Risiko Sedang
+              Verdict: Tunda / Re-Plan
             </span>
           ) : (
-            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-wider">
               <ShieldCheck size={14} />
-              Risiko Rendah
+              Verdict: Recommended (Cash)
             </span>
           )}
         </div>
@@ -487,14 +517,55 @@ export function AnalysisDashboard({
                 </AlertDialogContent>
               </AlertDialog>
 
-              <Link href="/goal-analysis" className="w-full">
-                <Button
-                  className="w-full flex items-center justify-center gap-1 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-bold px-1 h-9 shadow-sm cursor-pointer transition-all duration-200 hover:scale-[1.02]"
-                  title="Masukkan ke Target Goals"
-                >
-                  Set Goals
-                </Button>
-              </Link>
+              <Button
+                disabled={isSyncing || isSynced || aiData.decisionVerdict === "BLOCKED_DANGER"}
+                onClick={async () => {
+                  if (isSynced) return;
+                  setIsSyncing(true);
+                  try {
+                    const response = await fetch("/api/decision/sync", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        userId: analysisResult.userId,
+                        decisionId: analysisResult.id,
+                        targetName: target,
+                        monthlySavingsRequired: Math.round(Number(targetValue || 0) / (monthsDiff || 1)),
+                        sumberDana: aiData.sumberDana || (aiData.paylaterSimulation ? "Paylater/Kredit" : "Nabung Cash"),
+                      }),
+                    });
+                    const res = await response.json();
+                    if (res.success) {
+                      setIsSynced(true);
+                      alert(res.message);
+                    } else {
+                      alert("Gagal sinkron: " + res.message);
+                    }
+                  } catch (e) {
+                    console.error(e);
+                    alert("Kesalahan jaringan saat sinkronisasi anggaran.");
+                  } finally {
+                    setIsSyncing(false);
+                  }
+                }}
+                className={cn(
+                  "w-full flex items-center justify-center gap-1 text-[10px] font-bold px-1 h-9 rounded-xl shadow-sm cursor-pointer transition-all duration-200 hover:scale-[1.02]",
+                  isSynced
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    : aiData.decisionVerdict === "BLOCKED_DANGER"
+                    ? "bg-muted text-muted-foreground border border-muted-foreground/15 cursor-not-allowed hover:scale-100"
+                    : "bg-violet-600 hover:bg-violet-700 text-white"
+                )}
+                title={
+                  aiData.decisionVerdict === "BLOCKED_DANGER"
+                    ? "Sinkronisasi dinonaktifkan untuk rencana belanja berbahaya"
+                    : "Sinkronisasikan nominal tabungan bulanan target ini ke Anggaran Bulanan Anda"
+                }
+              >
+                {isSynced ? "Tersinkron ✔" : isSyncing ? "Syncing..." : "Sync Budget"}
+              </Button>
 
               <Button
                 variant="outline"
@@ -511,6 +582,20 @@ export function AnalysisDashboard({
 
         {/* Right Column: Feasibility, Evolution & Sacrifice */}
         <div className="lg:col-span-8 space-y-6">
+
+          {/* Financial Trap Warning Panel (Paylater/Pinjol/Judol Alert) */}
+          {aiData.financialTrapWarning && (
+            <div className="p-4 rounded-2xl border border-rose-500/30 bg-rose-500/[0.03] space-y-2 relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full blur-xl pointer-events-none" />
+              <h4 className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
+                <ShieldAlert size={15} className="animate-pulse text-rose-500" />
+                Peringatan Bahaya Finansial!
+              </h4>
+              <p className="text-xs leading-relaxed text-muted-foreground font-semibold">
+                {aiData.financialTrapWarning}
+              </p>
+            </div>
+          )}
 
           {/* Kelayakan & Emergency Mode Status */}
           <div className={cn(
@@ -594,6 +679,43 @@ export function AnalysisDashboard({
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {/* Paylater vs Nabung Cash Cost Simulator */}
+            {aiData.paylaterSimulation && (
+              <div className="p-3.5 bg-amber-500/[0.02] border border-amber-500/15 rounded-xl space-y-3 animate-in fade-in duration-300">
+                <h5 className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Activity size={13} className="text-amber-500" />
+                  Simulasi Kerugian Kredit / Paylater (12 Bulan)
+                </h5>
+                <div className="grid grid-cols-2 gap-3.5 text-xs">
+                  <div className="p-2.5 rounded-xl bg-background/55 border border-muted/20 space-y-0.5">
+                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Harga Tunai (Cash)</span>
+                    <p className="text-xs font-bold text-emerald-600">Rp {aiData.paylaterSimulation.cashPrice.toLocaleString("id-ID")}</p>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-background/55 border border-muted/20 space-y-0.5">
+                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Total Harga Paylater</span>
+                    <p className="text-xs font-bold text-rose-600">Rp {aiData.paylaterSimulation.paylaterPrice.toLocaleString("id-ID")}</p>
+                  </div>
+                </div>
+                <div className="text-[10px] space-y-1 text-muted-foreground border-t border-muted/20 pt-2 leading-relaxed">
+                  <div className="flex justify-between">
+                    <span>Biaya Admin (5%):</span>
+                    <span className="font-semibold text-foreground">Rp {aiData.paylaterSimulation.adminFee.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Bunga Kredit (3.5%/bln x 12):</span>
+                    <span className="font-semibold text-foreground">Rp {aiData.paylaterSimulation.interestExpense.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-dashed border-muted/30 pt-1 font-bold text-rose-600 dark:text-rose-400 text-xs">
+                    <span>Kerugian Uang Sia-Sia:</span>
+                    <span>Rp {aiData.paylaterSimulation.moneyWasted.toLocaleString("id-ID")}</span>
+                  </div>
+                  <p className="mt-1.5 text-[9px] italic text-muted-foreground/80 leading-normal">
+                    💡 {aiData.paylaterSimulation.comparisonNote}
+                  </p>
+                </div>
               </div>
             )}
 

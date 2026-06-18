@@ -17,6 +17,8 @@ interface BudgetSummaryPreviewProps {
   target: string;
   targetValue: string;
   targetDate?: string;
+  jenisTarget?: string;
+  keteranganTambahan?: string;
   expenses: Expense[];
 }
 
@@ -25,8 +27,65 @@ export function BudgetSummaryPreview({
   target,
   targetValue,
   targetDate,
+  jenisTarget,
+  keteranganTambahan,
   expenses,
 }: BudgetSummaryPreviewProps) {
+  // Live local keyword detection for preview
+  const detectSumberDana = (text: string): string => {
+    if (!text) return "Nabung Cash";
+    const lowerText = text.toLowerCase();
+    if (
+      lowerText.includes("judi") ||
+      lowerText.includes("slot") ||
+      lowerText.includes("gacor") ||
+      lowerText.includes("jp") ||
+      lowerText.includes("maxwin") ||
+      lowerText.includes("taruhan") ||
+      lowerText.includes("depo") ||
+      lowerText.includes("zeus") ||
+      lowerText.includes("spekulasi")
+    ) {
+      return "Hasil Judi / Spekulasi";
+    }
+    if (
+      lowerText.includes("pinjol") ||
+      lowerText.includes("pinjam online") ||
+      lowerText.includes("cair cepat") ||
+      lowerText.includes("dana cepat") ||
+      lowerText.includes("easycash") ||
+      lowerText.includes("kredivo") ||
+      lowerText.includes("adakami") ||
+      lowerText.includes("rupiah cepat")
+    ) {
+      return "Pinjaman Online";
+    }
+    if (
+      lowerText.includes("paylater") ||
+      lowerText.includes("spaylater") ||
+      lowerText.includes("gopaylater") ||
+      lowerText.includes("cicil") ||
+      lowerText.includes("kredit") ||
+      lowerText.includes("cc") ||
+      lowerText.includes("kartu kredit") ||
+      lowerText.includes("tempo")
+    ) {
+      return "Paylater/Kredit";
+    }
+    if (
+      lowerText.includes("tabungan") ||
+      lowerText.includes("dana cadangan") ||
+      lowerText.includes("simpanan") ||
+      lowerText.includes("aktif") ||
+      lowerText.includes("emas") ||
+      lowerText.includes("celengan")
+    ) {
+      return "Dana Cadangan";
+    }
+    return "Nabung Cash";
+  };
+
+  const sDana = keteranganTambahan ? detectSumberDana(keteranganTambahan) : undefined;
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const budgetNum = Number(budget || 0);
   const remainingBudget = budgetNum - totalExpenses;
@@ -78,24 +137,18 @@ export function BudgetSummaryPreview({
             Rencana Target Kamu
           </div>
 
-          <div className="grid grid-cols-1 gap-5 text-xs">
-            <div className="flex flex-col">
-              <p className="text-[9px] font-bold uppercase">Tujuan Target  <span className="text-xs"> :</span></p>
-              <p className="font-light text-sm mt-0.5 truncate">
-                {target || <span className="text-muted-foreground/50 font-normal italic">Belum ditentukan</span>}
-              </p>
-            </div>
-
-            <div className="flex justify-between items-end gap-4">
+          <div className="grid grid-cols-1 gap-4 text-xs">
+            {/* Row 1: Target name and Date */}
+            <div className="flex justify-between items-start gap-4">
               <div className="flex flex-col">
-                <p className="text-[9px] font-semibold uppercase">Nilai Target <span className="text-xs"> :</span> </p>
-                <p className="font-extrabold text-base text-foreground mt-0.5">
-                  {targetValue ? `Rp ${Number(targetValue).toLocaleString("id-ID")}` : <span className="text-muted-foreground/50 font-normal italic text-sm">Rp 0</span>}
+                <p className="text-[9px] font-bold uppercase text-muted-foreground">Tujuan Target:</p>
+                <p className="font-semibold text-sm mt-0.5 truncate max-w-[200px] sm:max-w-[240px]">
+                  {target || <span className="text-muted-foreground/50 font-normal italic">Belum ditentukan</span>}
                 </p>
               </div>
 
               <div className={cn(
-                "flex items-center gap-1.5 text-[10px] font-bold bg-card px-2.5 py-1.5 rounded-lg border shadow-sm leading-none shrink-0 mb-0.5",
+                "flex items-center gap-1.5 text-[10px] font-bold bg-card px-2.5 py-1.5 rounded-lg border shadow-sm leading-none shrink-0",
                 targetDate ? "text-rose-500 border-rose-500/15 bg-rose-500/[0.02]" : "text-muted-foreground/60 border-muted/30"
               )}>
                 <CalendarDays size={12} className={targetDate ? "text-rose-500" : "text-muted-foreground/60"} />
@@ -110,35 +163,33 @@ export function BudgetSummaryPreview({
                 )}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* List of expenses */}
-        <div className="space-y-2.5">
-          <div className="flex items-center gap-1.5">
-           <p className="text-xs font-semibold"> Rincian Pengeluaran Bulanan</p>
-          </div>
-
-          <div className="border rounded-xl overflow-hidden divide-y max-h-36 overflow-y-auto mt-4">
-            {expenses.length > 0 ? (
-              expenses.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 text-xs transition-colors"
-                >
-                  <p className="font-semibold truncate max-w-[220px]">{item.description}</p>
-                  <p className="font-bold text-rose-500">
-                    Rp {item.amount.toLocaleString("id-ID")}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <div className="p-4 text-center text-xs text-muted-foreground italic">
-                Belum ada rincian pengeluaran yang dimasukkan.
+            {/* Row 2: Target Value and Category Badge */}
+            <div className="flex justify-between items-center gap-4">
+              <div className="flex flex-col">
+                <p className="text-[9px] font-bold uppercase text-muted-foreground">Nilai Target:</p>
+                <p className="font-extrabold text-base text-foreground mt-0.5">
+                  {targetValue ? `Rp ${Number(targetValue).toLocaleString("id-ID")}` : <span className="text-muted-foreground/50 font-normal italic text-sm">Rp 0</span>}
+                </p>
               </div>
-            )}
+
+              {jenisTarget && (
+                <span className={cn(
+                  "text-[9px] font-extrabold px-2.5 py-0.5 rounded-full border shadow-sm tracking-wide uppercase shrink-0",
+                  jenisTarget === "Kebutuhan"
+                    ? "bg-violet-500/10 border-violet-500/20 text-violet-600 dark:text-violet-400"
+                    : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
+                )}>
+                  {jenisTarget === "Kebutuhan" ? "💼 Kebutuhan" : "⭐ Keinginan"}
+                </span>
+              )}
+            </div>
+
+
           </div>
         </div>
+
+
       </div>
 
       {/* Aesthetic clean subtle bottom note */}

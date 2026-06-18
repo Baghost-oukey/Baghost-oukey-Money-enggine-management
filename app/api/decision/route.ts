@@ -1,10 +1,72 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+function detectSumberDana(text: string): string {
+  if (!text) return "Nabung Cash";
+  const lowerText = text.toLowerCase();
+  
+  if (
+    lowerText.includes("judi") ||
+    lowerText.includes("slot") ||
+    lowerText.includes("gacor") ||
+    lowerText.includes("jp") ||
+    lowerText.includes("maxwin") ||
+    lowerText.includes("taruhan") ||
+    lowerText.includes("depo") ||
+    lowerText.includes("zeus") ||
+    lowerText.includes("spekulasi")
+  ) {
+    return "Hasil Judi / Spekulasi";
+  }
+  
+  if (
+    lowerText.includes("pinjol") ||
+    lowerText.includes("pinjam online") ||
+    lowerText.includes("cair cepat") ||
+    lowerText.includes("dana cepat") ||
+    lowerText.includes("rupiah cepat") ||
+    lowerText.includes("adakami") ||
+    lowerText.includes("kredivo") ||
+    lowerText.includes("easycash") ||
+    lowerText.includes("pinjaman online")
+  ) {
+    return "Pinjaman Online";
+  }
+  
+  if (
+    lowerText.includes("paylater") ||
+    lowerText.includes("spaylater") ||
+    lowerText.includes("gopaylater") ||
+    lowerText.includes("cicil") ||
+    lowerText.includes("kredit") ||
+    lowerText.includes("cc") ||
+    lowerText.includes("kartu kredit") ||
+    lowerText.includes("tempo")
+  ) {
+    return "Paylater/Kredit";
+  }
+  
+  if (
+    lowerText.includes("tabungan") ||
+    lowerText.includes("dana cadangan") ||
+    lowerText.includes("simpanan") ||
+    lowerText.includes("aktif") ||
+    lowerText.includes("emas") ||
+    lowerText.includes("reksa") ||
+    lowerText.includes("saham") ||
+    lowerText.includes("celengan")
+  ) {
+    return "Dana Cadangan";
+  }
+  
+  return "Nabung Cash";
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, monthlyBudget, targetName, targetValue, targetDate, expenses, userProfile } = body;
+    const { userId, monthlyBudget, targetName, targetValue, targetDate, expenses, userProfile, jenisTarget, keteranganTambahan } = body;
+    const sumberDana = detectSumberDana(keteranganTambahan || "");
 
     if (!userId) {
       return NextResponse.json(
@@ -68,8 +130,9 @@ export async function POST(request: Request) {
 
     // AI Analysis Prompt with strict mathematical logic and audience customization
     const systemPrompt = `
-Anda adalah seorang analis keputusan keuangan (financial decision analyst) pribadi yang sangat logis, matematis, tegas, dan jujur (brutally honest). Panggil pengguna dengan sebutan yang akrab ("kamu").
-Tugas utama Anda adalah **mengambil keputusan** dan menganalisis kelayakan rencana keuangan pengguna secara jujur, realistis, tajam, dan bertanggung jawab tanpa basa-basi. Jangan pernah menghibur pengguna dengan harapan palsu. Jika rencananya tidak masuk akal, katakan secara langsung bahwa rencana tersebut "mustahil", "konyol secara finansial", atau "tidak logis".
+Anda adalah seorang analis keputusan keuangan (financial decision analyst) pribadi yang sangat logis, matematis, tegas, jujur, dan blak-blakan (brutally honest). Panggil pengguna dengan sebutan yang akrab ("kamu").
+Tugas utama Anda adalah **mengambil keputusan** dan menganalisis kelayakan rencana keuangan pengguna secara jujur, realistis, tajam, dan bertanggung jawab tanpa basa-basi. Jangan pernah menghibur pengguna dengan harapan palsu. Jika rencananya tidak masuk akal atau berisiko, katakan secara langsung dengan gaya bahasa yang menampar realitas (misalnya: "mustahil", "konyol secara finansial", "jebakan setan pinjol", "spekulasi konyol judol").
+Secara khusus, bedahlah 'Keterangan Tambahan / Curhatan Pengguna' yang dituliskan pengguna (jika ada). Pahami alasan/cerita di balik curhatan mereka (misalnya jika mereka menggunakan paylater/utang demi urgensi tertentu atau memiliki pengeluaran membengkak) dan berikan saran serta kritik mendidik yang sangat relevan dengan kisah curhatan mereka.
 
 Data Keuangan Nyata (Hari ini: ${currentDateStr}):
 1. Budget Bulanan Kamu: Rp ${Number(monthlyBudget).toLocaleString("id-ID")}
@@ -78,11 +141,34 @@ Data Keuangan Nyata (Hari ini: ${currentDateStr}):
 ${expensesText}
 3. Sisa Anggaran Bulanan (Sisa): Rp ${remainingBudget.toLocaleString("id-ID")}
 4. Rencana Target Belanja: "${targetName}"
-5. Nominal Target (Ekspektasi Kamu): Rp ${targetValNum.toLocaleString("id-ID")}
-6. Batas Waktu Target (Deadline): ${targetDate ? new Date(targetDate).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' }) : "Tidak ditentukan"}
-7. Durasi Hingga Deadline: ${daysDiff} Hari (~ ${monthsDiff} Bulan)
-8. Kebutuhan Tabungan Bulanan Ideal (Target / Durasi Bulan): Rp ${Math.round(requiredMonthlySavings).toLocaleString("id-ID")} per bulan
-9. Rasio Kelayakan Tabungan (Sisa / Kebutuhan Tabungan Ideal): ${(feasibilityRatio * 100).toFixed(1)}%
+5. Kategori Target Belanja: "${jenisTarget || "Keinginan"}" (Kebutuhan vs Keinginan)
+6. Nominal Target (Ekspektasi Kamu): Rp ${targetValNum.toLocaleString("id-ID")}
+7. Batas Waktu Target (Deadline): ${targetDate ? new Date(targetDate).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' }) : "Tidak ditentukan"}
+8. Durasi Hingga Deadline: ${daysDiff} Hari (~ ${monthsDiff} Bulan)
+9. Rencana Sumber Dana Pembelian: "${sumberDana || "Nabung Cash"}"
+10. Kebutuhan Tabungan Bulanan Ideal (Target / Durasi Bulan): Rp ${Math.round(requiredMonthlySavings).toLocaleString("id-ID")} per bulan
+11. Rasio Kelayakan Tabungan (Sisa / Kebutuhan Tabungan Ideal): ${(feasibilityRatio * 100).toFixed(1)}%
+12. Keterangan Tambahan / Curhatan Pengguna: "${keteranganTambahan || "(Tidak ada)"}"
+
+---
+PANDUAN BAHAYA FINANSIAL & PUTUSAN KEPUTUSAN (WAJIB DIIKUTI SECARA RIGID):
+1. **Analisis Sumber Dana**:
+   - Jika "Sumber Dana" adalah "Hasil Judi / Spekulasi", Anda **WAJIB** memberikan keputusan penolakan mutlak (verdict: "BLOCKED_DANGER"). Berikan teguran keras blak-blakan mengenai bahaya judi online (judol) yang pasti menghancurkan masa depan secara statistik (matematika bandar).
+   - Jika "Sumber Dana" adalah "Pinjaman Online", Anda **WAJIB** memberikan keputusan penolakan mutlak (verdict: "BLOCKED_DANGER"). Berikan peringatan tajam mengenai bahaya jeratan pinjol ilegal/legal (bunga harian mencekik, teror penagihan, kehancuran skor kredit SLIK OJK).
+   - Jika "Sumber Dana" adalah "Paylater/Kredit", beri keputusan bahaya/tunda (verdict: "BLOCKED_DANGER" jika sisa dana/budget bulanan negatif/mepet, atau "WARNING_REPLAN" jika mepet tapi masih positif). Berikan penjelasan detail mengenai kerugian membayar bunga paylater konsumtif.
+   - Jika "Sumber Dana" adalah "Nabung Cash" atau "Dana Cadangan", berikan status "RECOMMENDED_CASH" dengan catatan rasio kelayakan tabungan >= 100%.
+
+2. **Skor Kesehatan Keuangan**:
+   - Jika rencana bersumber dari "Hasil Judi / Spekulasi" atau "Pinjaman Online", Skor Kesehatan Keuangan **WAJIB bernilai 0**.
+   - Jika Sisa Anggaran Bulanan NEGATIF (Defisit), Skor Kesehatan Keuangan **WAJIB bernilai 0**.
+   - Jika rasio kelayakan di bawah 100%, berikan skor di rentang 10 - 55 tergantung kelayakannya. Nyatakan keterlambatan waktu menabung nyata (Nominal Target / Sisa Anggaran).
+
+3. **Simulasi Nabung vs Paylater (Biaya Utang)**:
+   - Jika pengguna memilih "Paylater/Kredit" atau "Pinjaman Online" (atau jika rencana menabung cash sangat mepet sehingga berisiko tergiur utang), isi properti "paylaterSimulation" dengan perbandingan matematis berikut:
+     - Biaya Admin: 5% dari Nominal Target.
+     - Bunga 12 Bulan: 3.5% per bulan x 12 bulan = 42% dari Nominal Target.
+     - Total Harga Paylater: Nominal Target + Biaya Admin + Bunga 12 Bulan.
+     - Kerugian Finansial (Sia-sia): Biaya Admin + Bunga 12 Bulan.
 
 ---
 PROFIL SASARAN PENGGUNA:
@@ -97,14 +183,13 @@ Sebutkan rentang harga pasar nyata terupdate berdasarkan spesifikasi dasar, rent
 ---
 EVALUASI EKSPEKTASI USER VS HARGA PASAR:
 Bandingkan secara tegas nominal target ("targetValue") yang dimasukkan pengguna dengan hasil riset harga pasar riil Anda di atas.
-Jika nominal target ("targetValue") yang dimasukkan pengguna jauh di bawah harga pasar aslinya (misalnya ingin beli iPhone 17 Pro tapi target nominal diisi hanya Rp 5.000.000, padahal harga aslinya diperkirakan Rp 25.000.000+), sebutkan secara tegas di "priceComparisonNote" bahwa estimasi target nominal yang diajukan pengguna terlalu rendah dan tidak realistis di bawah harga pasar asli. Nyatakan berapa gap kekurangannya berdasarkan ekspektasi mereka.
+If nominal target ("targetValue") yang dimasukkan pengguna jauh di bawah harga pasar aslinya (misalnya ingin beli iPhone 17 Pro tapi target nominal diisi hanya Rp 5.000.000, padahal harga aslinya diperkirakan Rp 25.000.000+), sebutkan secara tegas di "priceComparisonNote" bahwa estimasi target nominal yang diajukan pengguna terlalu rendah dan tidak realistis di bawah harga pasar asli. Nyatakan berapa gap kekurangannya berdasarkan ekspektasi mereka.
 
 ---
 ALTERNATIF OPSI REALISTIS:
 Jika nama target ("targetName") tidak spesifik (misalnya hanya diisi kata generik seperti "hp", "handphone", "laptop", "motor", "mobil", "rumah") ATAU jika rencana target spesifik tersebut dinilai mustahil/tidak logis dicapai sesuai deadline:
-Anda wajib menyajikan 2-3 alternatif pilihan barang yang spesifik, nyata, dan konkret beserta perkiraan harganya di lapangan pada array "alternativeSuggestions" (misalnya: jika diisi targetName adalah "hp" dengan budget Rp 5.000.000 dan sisa anggaran tipis, sarankan model spesifik seperti "Samsung Galaxy A15 (Sekitar Rp 2.900.000)" atau "IQOO Z9x (Sekitar Rp 3.200.000)" yang lebih realistis dan terjangkau dibeli tepat waktu berdasarkan kapasitas menabung nyata pengguna).
+Anda wajib menyajikan 2-3 alternatif pilihan barang yang spesifik, nyata, dan konkret beserta perkiraan harganya di lapangan pada array "alternativeSuggestions" (misalnya: jika diisi targetName adalah "hp" dengan budget Rp 5.000.000 dan sisa anggaran tipis, sarankan model spesifik seperti "Samsung Galaxy A15 (Sekitar Rp 2.900.000)" atau "Redmi Note 13 (Sekitar Rp 2.500.000)" yang lebih realistis dan terjangkau dibeli tepat waktu berdasarkan kapasitas menabung nyata pengguna).
 
----
 ---
 PANDUAN PENGURANGAN PENGELUARAN (SACRIFICE RULES):
 - Dalam merekomendasikan pengurangan pengeluaran di "sacrificeTransparency", Anda **HANYA BOLEH** memilih item dari daftar nyata pengguna ("Rincian Pengeluaran Kamu Saat Ini").
@@ -122,24 +207,25 @@ Pengguna malas membaca teks panjang. Tulis respon sesingkat mungkin!
 - Alasan "sacrificeTransparency": Maksimal 1 kalimat sangat pendek per poin alasan.
 - "aiRecommendationText": Maksimal 1 kalimat kesimpulan/keputusan tegas.
 
----
-PANDUAN SKOR KESEHATAN KEUANGAN (WAJIB DIIKUTI SECARA RIGID):
-- Jika Sisa Anggaran Bulanan NEGATIF (Defisit): Skor Kesehatan Keuangan WAJIB bernilai 0 (nol). Risiko Tinggi.
-- Jika Rasio Kelayakan Tabungan di bawah 100% (Sisa < Kebutuhan Tabungan Ideal): Target ini tidak realistis dicapai tepat waktu!
-  - Jika rencana target benar-benar tidak masuk akal atau mustahil dicapai (misalnya sisa anggaran bulanan sangat kecil/minus, atau target nominal sangat tinggi dibandingkan sisa anggaran dengan deadline yang terlampau singkat sehingga rasio kelayakan < 15%), **Skor Kesehatan Keuangan WAJIB bernilai 0 (nol)**. Jangan ragu atau sungkan memberikan skor 0 jika rencana target ini tidak masuk akal secara matematika.
-  - Jika rasio kelayakan di bawah 100% namun masih dalam batas rasional rendah (rasio kelayakan 15% - 99%), Skor Kesehatan Keuangan berada di rentang (10 - 55) tergantung tingkat kelayakannya. Risiko Tinggi/Sedang. Katakan dengan jujur bahwa rencana ini tidak layak/tidak realistis.
-  - Hitung secara matematis berapa lama waktu yang sebenarnya dibutuhkan untuk menabung (Nominal Target / Sisa Anggaran) dan nyatakan berapa bulan/hari keterlambatannya dibandingkan deadline awal.
-- Jika Rasio Kelayakan >= 100% (Sisa >= Kebutuhan Tabungan Ideal): Keuangan sehat dan target realistis! Skor Kesehatan Keuangan bernilai tinggi (80-100). Risiko Rendah.
-
 Anda WAJIB memberikan respon dalam format JSON murni dengan skema berikut:
 {
   "score": number, // Skor sesuai aturan di atas. Jika mustahil atau tidak logis sama sekali, berikan 0.
   "riskLevel": "Rendah" | "Sedang" | "Tinggi", // Tingkat risiko sesuai analisis di atas.
+  "decisionVerdict": "RECOMMENDED_CASH" | "WARNING_REPLAN" | "BLOCKED_DANGER", // Putusan AI secara tegas
   "impactOnTarget": string, // Evaluasi kelayakan super ringkas dan jujur (maks 2 kalimat). Sebutkan durasi/persentase keterlambatan riil atau kata "mustahil".
   "healthScoreExplanation": string, // Penjelasan gap matematis yang realistis dan tegas (maks 2 kalimat).
-  "realMarketPrice": string, // Perkiraan rincian/spesifikasi dan rentang harga pasar nyata/faktual terupdate dari targetName di lapangan (misal: "Rp 26.500.000 - Rp 29.900.000 untuk iPhone 17 Pro varian 256GB baru").
-  "priceComparisonNote": string, // Komparasi jujur dan tegas (maks 2 kalimat) antara nominal target user ("targetValue") dengan harga pasar nyata (jelaskan gap/kesesuaian ekspektasi pengguna).
-  "alternativeSuggestions": string[], // 2-3 rekomendasi pilihan barang spesifik & kisaran harganya yang LEBIH REALISTIS dibeli tepat waktu (misal: ["Samsung Galaxy A15 (Rp 2.900.000)", "Redmi Note 13 (Rp 2.500.000)"]). Jika target sudah sangat spesifik dan realistis, biarkan array ini kosong [].
+  "financialTrapWarning": string, // Peringatan tegas judol/pinjol/paylater (maks 2 kalimat). Jika aman, isi "".
+  "paylaterSimulation": {
+    "cashPrice": number, // Nominal target asli
+    "paylaterPrice": number, // cashPrice + adminFee + interestExpense
+    "adminFee": number, // 5% dari cashPrice
+    "interestExpense": number, // 42% dari cashPrice (3.5% x 12 bulan)
+    "moneyWasted": number, // adminFee + interestExpense
+    "comparisonNote": string // Catatan kerugian rupiah ini (maks 1 kalimat)
+  },
+  "realMarketPrice": string, // Perkiraan rincian/spesifikasi dan rentang harga pasar nyata/faktual terupdate dari targetName di lapangan.
+  "priceComparisonNote": string, // Komparasi jujur dan tegas (maks 2 kalimat) antara nominal target user ("targetValue") dengan harga pasar nyata.
+  "alternativeSuggestions": string[], // 2-3 rekomendasi pilihan barang spesifik & kisaran harganya yang LEBIH REALISTIS. Jika target sudah sangat spesifik dan realistis, biarkan array ini kosong [].
   "budgetEvolution": string[], // 2 poin perkembangan alokasi budget super pendek.
   "emergencyMode": {
     "isActive": boolean,
@@ -149,7 +235,7 @@ Anda WAJIB memberikan respon dalam format JSON murni dengan skema berikut:
     {
       "item": string, // Nama barang/pos pengeluaran (WAJIB persis dari data input pengeluaran)
       "nominalToCut": number, // Nominal Rupiah yang disarankan untuk dikurangi secara logis dan aman (misal: 300000). Jangan gunakan persentase.
-      "reasons": string[] // Alasan & taktik pemangkasan logis (misal: ["Membeli bahan mentah untuk dimasak sendiri", "Membantu menambal kekurangan tabungan bulanan"])
+      "reasons": string[] // Alasan & taktik pemangkasan logis
     }
   ],
   "aiRecommendationText": string // Keputusan akhir super singkat dan tegas (1 kalimat).
@@ -207,19 +293,40 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
       
       let score = 95;
       let riskLevel = "Rendah";
-      
-      if (isDeficit) {
+      let decisionVerdict = "RECOMMENDED_CASH";
+      let financialTrapWarning = "";
+
+      if (sumberDana === "Hasil Judi / Spekulasi") {
+        decisionVerdict = "BLOCKED_DANGER";
         score = 0;
         riskLevel = "Tinggi";
+        financialTrapWarning = "Bahaya Kritis! Judi online (judol) secara statistik diatur agar kamu selalu kalah (matematika bandar). Tindakan ini adalah jalan pintas merusak yang melanggar hukum dan pasti menghancurkan keuanganmu.";
+      } else if (sumberDana === "Pinjaman Online") {
+        decisionVerdict = "BLOCKED_DANGER";
+        score = 0;
+        riskLevel = "Tinggi";
+        financialTrapWarning = "Bahaya Kredit! Meminjam dari Pinjol untuk belanja konsumtif adalah langkah pembunuhan karakter finansial. Bunga harian dan denda akumulatif akan menjerumuskan kamu dalam pusaran utang tanpa akhir.";
+      } else if (sumberDana === "Paylater/Kredit") {
+        decisionVerdict = "BLOCKED_DANGER";
+        score = Math.min(score, 30);
+        riskLevel = "Tinggi";
+        financialTrapWarning = "Peringatan Cicilan! Membeli barang gaya hidup dengan Paylater akan membebani masa depanmu dengan cicilan berbunga. Kamu membayar jauh lebih mahal dibanding harga asli barang.";
+      } else if (isDeficit) {
+        score = 0;
+        riskLevel = "Tinggi";
+        decisionVerdict = "BLOCKED_DANGER";
       } else if (feasibilityRatio < 0.15) {
         score = 0;
         riskLevel = "Tinggi";
+        decisionVerdict = "BLOCKED_DANGER";
       } else if (feasibilityRatio < 0.5) {
         score = 30;
         riskLevel = "Tinggi";
+        decisionVerdict = "WARNING_REPLAN";
       } else if (isUnrealistic) {
         score = 55;
         riskLevel = "Sedang";
+        decisionVerdict = "WARNING_REPLAN";
       }
 
       const calculatedMonthsNeeded = remainingBudget > 0 ? (targetValNum / remainingBudget).toFixed(1) : "selamanya";
@@ -239,9 +346,25 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
         tipsNote = "sisihkan ekstra saat proyek ramai";
       }
 
+      // Calculate Paylater Simulation
+      const adminFee = Math.round(targetValNum * 0.05);
+      const interestExpense = Math.round(targetValNum * 0.42);
+      const moneyWasted = adminFee + interestExpense;
+      const paylaterPrice = targetValNum + moneyWasted;
+
       aiAnalysis = {
         score,
         riskLevel,
+        decisionVerdict,
+        financialTrapWarning,
+        paylaterSimulation: {
+          cashPrice: targetValNum,
+          paylaterPrice,
+          adminFee,
+          interestExpense,
+          moneyWasted,
+          comparisonNote: `Menggunakan Paylater membuat kamu rugi sia-sia Rp ${moneyWasted.toLocaleString("id-ID")} untuk membayar bunga.`
+        },
         impactOnTarget: isDeficit 
           ? `Rencana target "${targetName}" terhambat karena anggaran kamu defisit Rp ${Math.abs(remainingBudget).toLocaleString("id-ID")}.`
           : isUnrealistic
@@ -289,6 +412,11 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
           ? "Keputusan akhir: Revisi deadline target tabungan agar keuangan tidak tertekan."
           : "Keputusan akhir: Lanjutkan rencana belanja dan tetap menabung dengan disiplin!"
       };
+    }
+
+    if (aiAnalysis) {
+      aiAnalysis.sumberDana = sumberDana;
+      aiAnalysis.jenisTarget = jenisTarget;
     }
 
     // Save decision analysis and its nested expenses inside a transaction

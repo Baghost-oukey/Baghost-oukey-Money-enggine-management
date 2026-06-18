@@ -9,6 +9,8 @@ export function useBudgetAnalysis() {
   const [target, setTarget] = useState("");
   const [targetValue, setTargetValue] = useState("");
   const [targetDate, setTargetDate] = useState("");
+  const [jenisTarget, setJenisTarget] = useState("Keinginan");
+  const [keteranganTambahan, setKeteranganTambahan] = useState("");
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
@@ -19,7 +21,7 @@ export function useBudgetAnalysis() {
     Number(budget) > 0 ? Math.min((totalExpenses / Number(budget)) * 100, 100) : 0;
 
   const isEmpty =
-    !budget && !target && !targetValue && !targetDate && expenses.length === 0;
+    !budget && !target && !targetValue && !targetDate && !keteranganTambahan;
 
   const removeExpense = (index: number) => {
     setExpenses(expenses.filter((_, i) => i !== index));
@@ -30,6 +32,8 @@ export function useBudgetAnalysis() {
     setTarget("");
     setTargetValue("");
     setTargetDate("");
+    setJenisTarget("Keinginan");
+    setKeteranganTambahan("");
     setExpenses([]);
     setAnalysisResult(null);
   };
@@ -61,6 +65,8 @@ export function useBudgetAnalysis() {
           targetValue: Number(targetValue || 0),
           targetDate: targetDate || undefined,
           expenses,
+          jenisTarget,
+          keteranganTambahan,
         }),
       });
 
@@ -88,6 +94,10 @@ export function useBudgetAnalysis() {
     setTargetValue,
     targetDate,
     setTargetDate,
+    jenisTarget,
+    setJenisTarget,
+    keteranganTambahan,
+    setKeteranganTambahan,
     expenses,
     setExpenses,
     isLoading,

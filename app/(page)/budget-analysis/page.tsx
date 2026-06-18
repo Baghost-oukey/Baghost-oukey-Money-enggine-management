@@ -17,6 +17,10 @@ export function BudgetaAnalysis() {
     setTargetValue,
     targetDate,
     setTargetDate,
+    jenisTarget,
+    setJenisTarget,
+    keteranganTambahan,
+    setKeteranganTambahan,
     expenses,
     setExpenses,
     isLoading,
@@ -55,6 +59,10 @@ export function BudgetaAnalysis() {
             setTargetValue={setTargetValue}
             targetDate={targetDate}
             setTargetDate={setTargetDate}
+            jenisTarget={jenisTarget}
+            setJenisTarget={setJenisTarget}
+            keteranganTambahan={keteranganTambahan}
+            setKeteranganTambahan={setKeteranganTambahan}
             expenses={expenses}
             setExpenses={setExpenses}
             isLoading={isLoading}
@@ -71,6 +79,8 @@ export function BudgetaAnalysis() {
             target={target}
             targetValue={targetValue}
             targetDate={targetDate}
+            jenisTarget={jenisTarget}
+            keteranganTambahan={keteranganTambahan}
             expenses={expenses.map((e) => ({
               description: e.name,
               amount: e.amount,

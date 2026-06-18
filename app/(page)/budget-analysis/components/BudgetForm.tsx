@@ -15,6 +15,10 @@ interface BudgetFormProps {
   setTargetValue: (value: string) => void;
   targetDate: string;
   setTargetDate: (value: string) => void;
+  jenisTarget: string;
+  setJenisTarget: (value: string) => void;
+  keteranganTambahan: string;
+  setKeteranganTambahan: (value: string) => void;
   expenses: Expense[];
   setExpenses: React.Dispatch<React.SetStateAction<Expense[]>>;
   isLoading: boolean;
@@ -49,6 +53,10 @@ export function BudgetForm({
   setTargetValue,
   targetDate,
   setTargetDate,
+  jenisTarget,
+  setJenisTarget,
+  keteranganTambahan,
+  setKeteranganTambahan,
   expenses,
   setExpenses,
   isLoading,
@@ -84,21 +92,60 @@ export function BudgetForm({
           </div>
         </LabelInputContainer>
 
-        {/* Target Name */}
-        <LabelInputContainer>
-          <Label htmlFor="targetGoals" className="text-xs font-semibold uppercase tracking-wider">
-            Apa <span className="text-violet-600 font-bold">Tujuan</span> mu?
-          </Label>
-          <Input
-            id="targetGoals"
-            placeholder="Contoh: Membeli Laptop Baru, Dana Darurat, Investasi..."
-            type="text"
-            className="h-10 transition-all rounded-xl text-xs"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            required
-          />
-        </LabelInputContainer>
+        {/* Target Name & Type */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <LabelInputContainer>
+            <Label htmlFor="targetGoals" className="text-xs font-semibold uppercase tracking-wider">
+              Apa <span className="text-violet-600 font-bold">Tujuan</span> mu?
+            </Label>
+            <Input
+              id="targetGoals"
+              placeholder="Contoh: Membeli Laptop Baru, Dana..."
+              type="text"
+              className="h-10 transition-all rounded-xl text-xs"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              required
+            />
+          </LabelInputContainer>
+
+          <LabelInputContainer>
+            <Label className="text-xs font-semibold uppercase tracking-wider">
+              Kategori Belanja
+            </Label>
+            <div className="grid grid-cols-2 gap-2 h-10">
+              <button
+                type="button"
+                onClick={() => setJenisTarget("Kebutuhan")}
+                className={cn(
+                  "text-[10px] font-bold rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-center",
+                  jenisTarget === "Kebutuhan"
+                    ? "border-violet-600 bg-violet-600/[0.04] text-violet-600 ring-2 ring-violet-500/10 font-black"
+                    : "border-muted-foreground/15 bg-card/50 text-muted-foreground hover:border-violet-500/50"
+                )}
+              >
+                Kebutuhan
+              </button>
+              <button
+                type="button"
+                onClick={() => setJenisTarget("Keinginan")}
+                className={cn(
+                  "text-[10px] font-bold rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-center",
+                  jenisTarget === "Keinginan"
+                    ? "border-violet-600 bg-violet-600/[0.04] text-violet-600 ring-2 ring-violet-500/10 font-black"
+                    : "border-muted-foreground/15 bg-card/50 text-muted-foreground hover:border-violet-500/50"
+                )}
+              >
+                Keinginan
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-normal mt-1.5 transition-all duration-200">
+              {jenisTarget === "Kebutuhan" 
+                ? "💡 Kebutuhan: Sangat menunjang pekerjaan, pendidikan, kesehatan harian, atau kebutuhan pokok wajib."
+                : "💡 Keinginan: Gaya hidup, gadget baru, hobi, liburan, keinginan sosial, atau memanjakan diri."}
+            </p>
+          </LabelInputContainer>
+        </div>
 
         {/* Target Value & Date Group */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -123,7 +170,7 @@ export function BudgetForm({
 
           <LabelInputContainer>
             <Label htmlFor="dateAwal" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
-              Kapan Rencana Anda <span className="text-violet-600 font-bold">Membeli ?</span>
+              Kapan Rencana Membeli ?
             </Label>
             <Input
               id="dateAwal"
@@ -135,11 +182,19 @@ export function BudgetForm({
           </LabelInputContainer>
         </div>
 
-        {/* Expenses Manager Section */}
+        {/* Keterangan Tambahan / Curhatan Finansial */}
         <LabelInputContainer>
-          <Label className="text-xs font-semibold uppercase tracking-wider mb-4">Daftar Pengeluaran Bulanan</Label>
-          <DynamicInput expenses={expenses} setExpenses={setExpenses} />
-          <ExpenseChips expenses={expenses} onRemove={onRemoveExpense} />
+          <Label htmlFor="keteranganTambahan" className="text-xs font-semibold uppercase tracking-wider">
+            Keterangan Tambahan & Curhatan Finansial
+          </Label>
+          <textarea
+            id="keteranganTambahan"
+            value={keteranganTambahan}
+            onChange={(e) => setKeteranganTambahan(e.target.value)}
+            placeholder="Ceritakan kondisi atau alasan keuanganmu di sini (misal: 'Sebenarnya aku mau pake paylater karena butuh cepat untuk kerja, tapi pengeluaranku lagi banyak banget...')"
+            rows={4}
+            className="w-full p-3 text-xs bg-background border border-muted-foreground/15 rounded-xl outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-500/20 transition-all cursor-text dark:bg-zinc-900 resize-none font-light leading-relaxed"
+          />
         </LabelInputContainer>
 
         {/* Submit Button */}

@@ -138,11 +138,6 @@ export function BudgetForm({
                 Keinginan
               </button>
             </div>
-            <p className="text-[10px] text-muted-foreground leading-normal mt-1.5 transition-all duration-200">
-              {jenisTarget === "Kebutuhan" 
-                ? "💡 Kebutuhan: Sangat menunjang pekerjaan, pendidikan, kesehatan harian, atau kebutuhan pokok wajib."
-                : "💡 Keinginan: Gaya hidup, gadget baru, hobi, liburan, keinginan sosial, atau memanjakan diri."}
-            </p>
           </LabelInputContainer>
         </div>
 

@@ -65,7 +65,7 @@ function detectSumberDana(text: string): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, monthlyBudget, targetName, targetValue, targetDate, jenisTarget, keteranganTambahan } = body;
+    const { userId, monthlyBudget, targetName, targetValue, targetDate, jenisTarget, keteranganTambahan, expenses } = body;
     const sumberDana = detectSumberDana(keteranganTambahan || "");
 
     if (!userId) {
@@ -87,9 +87,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsedExpenses: any[] = [];
-    const totalExpenses = 0;
-    const remainingBudget = Number(monthlyBudget);
+    const parsedExpenses = Array.isArray(expenses) ? expenses : [];
+    const totalExpenses = parsedExpenses.reduce((sum: number, exp: any) => sum + Number(exp.amount || 0), 0);
+    const remainingBudget = Number(monthlyBudget) - totalExpenses;
 
     // Calculate metrics programmatically in Node to enforce mathematical accuracy in AI prompt
     const currentDate = new Date();
@@ -167,8 +167,11 @@ Data Keuangan Nyata (Hari ini: ${currentDateStr}):
 6. Durasi Hingga Deadline: ${daysDiff} Hari (~ ${monthsDiff} Bulan)
 7. Rencana Sumber Dana Pembelian: "${sumberDana || "Nabung Cash"}"
 8. Kebutuhan Tabungan Bulanan Ideal (Target / Durasi Bulan): Rp ${Math.round(requiredMonthlySavings).toLocaleString("id-ID")} per bulan
-9. Rasio Kelayakan Tabungan (Budget Bulanan / Kebutuhan Tabungan Ideal): ${(feasibilityRatio * 100).toFixed(1)}%
-10. Keterangan Tambahan / Curhatan Pengguna: "${keteranganTambahan || "(Tidak ada)"}"
+9. Sisa Uang Buffer Kamu (Setelah Pengeluaran Rutin): Rp ${remainingBudget.toLocaleString("id-ID")}
+10. Rasio Kelayakan Tabungan (Sisa Uang Buffer / Kebutuhan Tabungan Ideal): ${(feasibilityRatio * 100).toFixed(1)}%
+11. Keterangan Tambahan / Curhatan Pengguna: "${keteranganTambahan || "(Tidak ada)"}"
+12. Total Pengeluaran Bulanan Kamu Saat Ini: Rp ${totalExpenses.toLocaleString("id-ID")}
+13. Daftar Rincian Pengeluaran Bulanan Saat Ini (yang di-input oleh user): [${parsedExpenses.map(exp => `{"name": "${exp.name}", "amount": ${exp.amount}}`).join(", ")}]
 
 ---
 STRUKTUR HASIL OUTPUT YANG WAJIB DISEDIAKAN (DETAIL & BERSAHABAT):

@@ -37,7 +37,7 @@ export function BudgetSummaryPreview({
     <div className="rounded-2xl border p-5 sm:p-6 shadow-md space-y-6 flex flex-col justify-between h-full min-h-[480px]">
       <div className="space-y-6">
         {/* Header */}
-        <div className="border-b border-muted/20">
+        <div className="border-b">
           <h2 className="text-lg font-semibold">
             Ringkasan Rencana <span className="text-violet-600 hover:text-violet-500">Finansial</span>
           </h2>
@@ -47,7 +47,7 @@ export function BudgetSummaryPreview({
         </div>
 
         {/* Financial Card */}
-        <div className="p-4 rounded-xl bg-muted/10 border flex flex-col justify-between shadow-sm">
+        <div className="p-4 rounded-xl border flex flex-col justify-between shadow-sm">
           <p className="text-[10px] font-light uppercase">
             <span className="text-violet-600 font-bold">Budget</span> Bulanan
           </p>

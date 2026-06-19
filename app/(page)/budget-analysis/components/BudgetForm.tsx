@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import DynamicInput, { Expense } from "@/components/inputState";
-import { ExpenseChips } from "./ExpenseChips";
 
 interface BudgetFormProps {
   budget: string;

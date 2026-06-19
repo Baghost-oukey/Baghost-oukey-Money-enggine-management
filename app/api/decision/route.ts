@@ -123,7 +123,7 @@ export async function POST(request: Request) {
 
     // AI Analysis Prompt with strict mathematical logic and audience customization
     const systemPrompt = `
-Anda adalah seorang Sahabat & Mentor Keuangan Pribadi (Warm & Friendly Financial Coach) yang sangat peduli, hangat, tulus, namun jujur, logis, dan kritis saat memberikan masukan keuangan. Panggil pengguna dengan sebutan hangat seperti "Sobat Finansial", "Kamu", atau "Kak". Gunakan gaya bahasa yang santun, bersahabat, penuh empati, dan tidak kaku, layaknya seorang kakak atau teman baik yang ingin pengguna sukses secara finansial.
+Anda adalah seorang Sahabat & Mentor Keuangan Pribadi (Warm & Friendly Financial Coach) yang sangat peduli, hangat, tulus, namun jujur, logis, dan kritis saat memberikan masukan keuangan. Panggil pengguna dengan sebutan hangat seperti "Kamu", atau "Kak". Gunakan gaya bahasa yang santun, bersahabat, penuh empati, dan tidak kaku, layaknya seorang kakak atau teman baik yang ingin pengguna sukses secara finansial.
 
 Tugas utama Anda adalah **memberikan keputusan final yang jujur dan logis** terhadap rencana pembelian barang/target ("targetName") oleh pengguna berdasarkan data keuangan mereka. Anda harus menganalisis kelayakan pembelian ini secara bijak, tajam, dan matematis tanpa memberikan harapan palsu, namun menyampaikannya secara suportif dan hangat.
 
@@ -142,6 +142,7 @@ PENTING - PANDUAN BAHASA & NADA BICARA (WAJIB DIIKUTI SECARA KETAT):
 - **PENTING - STRATEGI RESPONS BERDASARKAN KATEGORI TARGET ("jenisTarget"):**
   * **Jika Kategori Target Belanja ("jenisTarget") adalah "Kebutuhan" (Needs)**:
     - Anda WAJIB bertindak sebagai **Partner Pemecah Masalah (Solution-Oriented Partner)** yang fokus penuh mencari jalan keluar dan memberikan solusi konkret agar pengguna dapat memiliki barang kebutuhan penting ini secara sehat.
+    - Anda WAJIB menentukan "purchaseDriver" sebagai "Kebutuhan Nyata" (bukan "FOMO/Gengsi" atau "Impulsive Buying"), apa pun nama barang atau curhatan yang dimasukkan (misalnya meskipun barangnya berupa laptop/HP mewah/mahal). Hargai penuh pilihan kategori "Kebutuhan" yang ditentukan pengguna.
     - Jangan langsung melarang atau memvonis secara kaku seperti "Jangan Beli" tanpa memberikan solusi. Jika budget bulanan mepet atau tidak mencukupi untuk menabung target secara aman, tetap berikan dorongan semangat, tunjukkan empati yang tinggi, dan sarankan langkah-langkah solutif nyata (misal: bagaimana memotong pos pengeluaran gaya hidup lain secara sukarela, menyarankan alternatif merk/tipe barang kebutuhan sejenis yang lebih terjangkau, atau merekomendasikan penundaan jangka waktu menabung secara aman).
     - Mulailah respons di Reality Check and Verdict dengan nada yang sangat membesarkan hati, seperti: "Aku tahu ini kebutuhan penting buat produktivitas/hidupmu Kak. Yuk, mari kita atur strategi bareng-bareng biar barang ini bisa terbeli secara aman tanpa merusak keuangan harianmu!"
   * **Jika Kategori Target Belanja ("jenisTarget") adalah "Keinginan" (Wants)**:
@@ -202,7 +203,7 @@ Anda WAJIB memberikan respon dalam format JSON murni dengan skema berikut:
 {
   "score": number, // Skor kesehatan rencana (0 - 100)
   "riskLevel": "Rendah" | "Sedang" | "Tinggi",
-  "decisionVerdict": "BOLEH_BELI" | "BELI_DENGAN_MENABUNG" | "TUNDA" | "JANGAN_BELI",
+  "decisionVerdict": "BOLEH BELI" | "BELI DENGAN MENABUNG" | "TUNDA" | "JANGAN BELI",
   "realityCheck": {
     "isRealistic": boolean,
     "impactDescription": string // Keterangan detail dampak nyata target terhadap sisa budget dan tabungan (nada bersahabat).
@@ -557,7 +558,7 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
           savingAlternative: `Untuk mempermudah rencana ini, kamu bisa menggunakan sistem auto-debet otomatis sebesar Rp ${fallbackMonthlySaving.toLocaleString("id-ID")} ke rekening terpisah sesaat setelah gajian, serta menghentikan sementara pengeluaran tersier yang kurang mendesak.`
         },
         psychologicalInsight: {
-          purchaseDriver: isPrestige ? "FOMO/Gengsi" : isDeficit ? "Impulsive Buying" : "Kebutuhan Nyata",
+          purchaseDriver: isKebutuhan ? "Kebutuhan Nyata" : (isPrestige ? "FOMO/Gengsi" : isDeficit ? "Impulsive Buying" : "Kebutuhan Nyata"),
           motivationText: isKebutuhan
             ? "Memenuhi kebutuhan utama adalah bentuk tanggung jawab dan investasi diri yang sangat baik. Tetap semangat mengelola anggaran agar segala kebutuhan dasarmu terpenuhi secara aman."
             : (isPrestige

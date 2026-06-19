@@ -5,17 +5,11 @@ import { motion } from "framer-motion";
 import {
   Sparkles,
   Target,
-  RefreshCw,
   AlertCircle,
   ShieldCheck,
   ShieldAlert,
-  Flame,
   CheckCircle2,
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  Calendar,
-  FileText
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +23,7 @@ import {
   AlertDialogContent
 } from "@/components/ui/alert-dialog";
 import { FormPlaning } from "./FormPlaning";
+import { ResultComments } from "./ResultComments";
 
 interface ResultAnalisisProps {
   analysisResult: any;
@@ -135,31 +130,7 @@ export function ResultAnalisis({
   };
 
   // Parse recommendation JSON
-  let aiData: {
-    score: number;
-    riskLevel: string;
-    decisionVerdict?: "RECOMMENDED_CASH" | "WARNING_REPLAN" | "BLOCKED_DANGER";
-    impactOnTarget: string;
-    healthScoreExplanation: string;
-    financialTrapWarning?: string;
-    paylaterSimulation?: {
-      cashPrice: number;
-      paylaterPrice: number;
-      adminFee: number;
-      interestExpense: number;
-      moneyWasted: number;
-      comparisonNote: string;
-    };
-    budgetEvolution: string[];
-    emergencyMode: { isActive: boolean; strategy: string };
-    sacrificeTransparency: Array<{ item: string; nominalToCut?: number; reasons: string[] }>;
-    aiRecommendationText: string;
-    realMarketPrice?: string;
-    priceComparisonNote?: string;
-    alternativeSuggestions?: string[];
-    sumberDana?: string;
-    jenisTarget?: string;
-  };
+  let aiData: any = {};
 
   try {
     aiData = typeof analysisResult.recommendation === "string"
@@ -167,10 +138,58 @@ export function ResultAnalisis({
       : analysisResult.recommendation;
   } catch (e) {
     const isDeficit = remainingBudget < 0;
+    const isUnrealistic = targetDate ? (remainingBudget < (Number(targetValue) / monthsDiff)) : true;
+    const decisionVerdict = isDeficit ? "JANGAN_BELI" : isUnrealistic ? "BELI_DENGAN_MENABUNG" : "BOLEH_BELI";
+    
+    // Fallbacks
+    const cashPrice = Number(targetValue || 0);
+    const adminFee = Math.round(cashPrice * 0.05);
+    const interestExpense = Math.round(cashPrice * 0.42);
+    const moneyWasted = adminFee + interestExpense;
+    const paylaterPrice = cashPrice + moneyWasted;
+    const monthlyDebtPayment = Math.round(paylaterPrice / 12);
+    const debtImpactPct = remainingBudget > 0 ? Math.round((monthlyDebtPayment / remainingBudget) * 100) : 100;
+    
+    const futureInvestedVal = Math.round(cashPrice * 1.46);
+    const savingsMonthsCovered = totalExpenses && totalExpenses > 0 ? Math.round(cashPrice / totalExpenses) : 6;
+
     aiData = {
       score: analysisResult.score || 70,
       riskLevel: analysisResult.riskLevel || "Sedang",
-      decisionVerdict: isDeficit ? "BLOCKED_DANGER" : "RECOMMENDED_CASH",
+      decisionVerdict: decisionVerdict,
+      realityCheck: {
+        isRealistic: !isUnrealistic && !isDeficit,
+        impactDescription: isDeficit
+          ? "Arus kas bulanan Anda saat ini mengalami defisit. Membeli target ini sekarang sangat tidak realistis dan berisiko membahayakan kestabilan hidup harian Anda."
+          : isUnrealistic
+          ? "Pembelian target ini kurang realistis dengan sisa uang menabung bulanan Anda saat ini. Rencana Anda berpotensi mengalami penundaan dari deadline awal."
+          : "Rencana target belanja Anda cukup realistis dan masih aman dijangkau dengan kapasitas anggaran bulanan Anda."
+      },
+      verdictOpinion: {
+        title: decisionVerdict === "BOLEH_BELI" ? "Keputusan: Boleh Beli" : decisionVerdict === "BELI_DENGAN_MENABUNG" ? "Keputusan: Beli Dengan Menabung" : "Keputusan: Tunda/Jangan Beli",
+        explanation: isDeficit
+          ? "Sebagai konsultan keuangan, kami melarang keras pembelian ini karena anggaran Anda defisit. Memaksakan membeli barang mewah di kala anggaran negatif akan merusak arus kas bulanan Anda."
+          : isUnrealistic
+          ? "Kami merekomendasikan membeli barang ini hanya dengan cara menabung tunai secara bertahap. Hindari utang konsumtif/paylater dan sesuaikan target deadline agar lebih realistis."
+          : "Pembelian disetujui penuh secara tunai. Keuangan Anda sehat dan menyisakan kapasitas menabung yang ideal untuk membeli target ini tanpa mengorbankan pos pengeluaran dasar."
+      },
+      paylaterSimulation: {
+        cashPrice,
+        paylaterPrice,
+        adminFee,
+        interestExpense,
+        moneyWasted,
+        consequencesNote: `Jika kamu nekat menggunakan cicilan, beban bulanan Rp ${monthlyDebtPayment.toLocaleString("id-ID")} akan mengambil sekitar ${debtImpactPct}% dari sisa anggaran belanjamu.`
+      },
+      opportunityCost: {
+        investmentAlternative: `Jika dialokasikan ke reksa dana dengan return 8% per tahun, dalam 5 tahun uang ini akan bertumbuh menjadi sekitar Rp ${futureInvestedVal.toLocaleString("id-ID")}.`,
+        savingAlternative: `Nominal ini setara dengan jaring pengaman dana darurat yang mampu menanggung pengeluaran wajib harianmu selama ${savingsMonthsCovered} bulan.`
+      },
+      psychologicalInsight: {
+        purchaseDriver: "Kebutuhan Nyata",
+        motivationText: "Fokuslah pada ketenangan finansial jangka panjang daripada kepuasan memiliki barang baru secara instan. Memiliki dana darurat yang aman jauh lebih membahagiakan.",
+        riskText: "Membeli barang tersier secara terburu-buru atau karena dorongan impulsif dapat merusak cash flow bulanan dan memicu stres finansial akibat tagihan cicilan."
+      },
       impactOnTarget: isDeficit
         ? "Keputusan ini mengurangi peluang pencapaian target tabungan secara signifikan karena kondisi anggaran Anda saat ini defisit."
         : "Keputusan ini cukup stabil namun membutuhkan alokasi yang lebih disiplin untuk mencapai target.",
@@ -190,11 +209,51 @@ export function ResultAnalisis({
           : "Anggaran masih aman. Jaga rasio tabungan minimal 20% dari total pendapatan."
       },
       sacrificeTransparency: [],
-      aiRecommendationText: analysisResult.recommendation || "Kelola budget Anda secara bijak.",
+      aiRecommendationText: "Kelola budget Anda secara bijak.",
       sumberDana: undefined,
       jenisTarget: undefined
     };
   }
+
+  // Safely extract nested structures from aiData
+  const realityCheck = aiData.realityCheck || {
+    isRealistic: false,
+    impactDescription: aiData.impactOnTarget || "Analisis kelayakan realita belum tersedia secara rinci."
+  };
+  const verdictOpinion = aiData.verdictOpinion || {
+    title: "Keputusan Keuangan",
+    explanation: aiData.healthScoreExplanation || "Silakan evaluasi detail sisa anggaran bulanan Anda."
+  };
+  const opportunityCost = aiData.opportunityCost || {
+    investmentAlternative: `Jika dana tunai Rp ${Number(targetValue || 0).toLocaleString("id-ID")} ini dialokasikan ke reksa dana dengan return 8% per tahun, dalam 5 tahun nilainya akan bertumbuh menjadi Rp ${Math.round(Number(targetValue || 0) * 1.46).toLocaleString("id-ID")}.`,
+    savingAlternative: `Nominal ini dapat dialokasikan untuk memperkuat dana darurat demi menjaga ketahanan finansial Anda.`
+  };
+  const psychologicalInsight = aiData.psychologicalInsight || {
+    purchaseDriver: "Kebutuhan Nyata",
+    motivationText: "Fokuslah pada ketenangan finansial jangka panjang daripada kepuasan memiliki barang baru secara instan.",
+    riskText: "Pembelian yang impulsif atau didasari motif gengsi dapat memicu kecemasan dan stres cicilan bulanan."
+  };
+
+  const plans = aiData.paylaterSimulation?.plans || [3, 6, 12].map((tenor: number) => {
+    const cashPrice = aiData.paylaterSimulation?.cashPrice || Number(targetValue || 0);
+    const adminRatePct = aiData.paylaterSimulation?.adminRatePct || 1.0;
+    const interestRatePct = aiData.paylaterSimulation?.interestRatePct || 2.95;
+    
+    const planAdminFee = Math.round(cashPrice * (adminRatePct / 100));
+    const planInterest = Math.round(cashPrice * (interestRatePct / 100) * tenor);
+    const planWasted = planAdminFee + planInterest;
+    const totalPrice = cashPrice + planWasted;
+    const monthlyInstallment = Math.round(totalPrice / tenor);
+    
+    return {
+      tenor,
+      monthlyInstallment,
+      totalPrice,
+      interestAmount: planInterest,
+      adminFee: planAdminFee,
+      moneyWasted: planWasted,
+    };
+  });
 
   const score = aiData.score ?? 70;
   const radius = 50;
@@ -213,6 +272,60 @@ export function ResultAnalisis({
     return "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-300";
   };
 
+  const getVerdictLabel = (verdict?: string) => {
+    switch (verdict) {
+      case "BOLEH_BELI":
+      case "RECOMMENDED_CASH":
+        return "Boleh Beli";
+      case "BELI_DENGAN_MENABUNG":
+        return "Beli dengan Menabung";
+      case "TUNDA":
+      case "WARNING_REPLAN":
+        return "Tunda Rencana";
+      case "JANGAN_BELI":
+      case "BLOCKED_DANGER":
+        return "Jangan Beli";
+      default:
+        return "Tinjau Kembali";
+    }
+  };
+
+  const getVerdictBadgeStyles = (verdict?: string) => {
+    switch (verdict) {
+      case "BOLEH_BELI":
+      case "RECOMMENDED_CASH":
+        return "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400";
+      case "BELI_DENGAN_MENABUNG":
+        return "bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400";
+      case "TUNDA":
+      case "WARNING_REPLAN":
+        return "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400";
+      case "JANGAN_BELI":
+      case "BLOCKED_DANGER":
+        return "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400";
+      default:
+        return "bg-muted border-muted/50 text-muted-foreground";
+    }
+  };
+
+  const getVerdictIcon = (verdict?: string) => {
+    switch (verdict) {
+      case "BOLEH_BELI":
+      case "RECOMMENDED_CASH":
+        return <ShieldCheck size={13} />;
+      case "BELI_DENGAN_MENABUNG":
+        return <CheckCircle2 size={13} />;
+      case "TUNDA":
+      case "WARNING_REPLAN":
+        return <AlertCircle size={13} />;
+      case "JANGAN_BELI":
+      case "BLOCKED_DANGER":
+        return <ShieldAlert size={13} className="animate-pulse" />;
+      default:
+        return <HelpCircle size={13} />;
+    }
+  };
+
   return (
     <div className="relative overflow-hidden rounded-2xl border bg-card/25 backdrop-blur-md p-5 sm:p-6 shadow-sm transition-all duration-300 space-y-6">
       {/* Glow Effects */}
@@ -223,209 +336,100 @@ export function ResultAnalisis({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-3">
         <div>
           <h2 className="text-lg font-bold text-foreground">
-            Hasil Analisis <span className="text-violet-600">Keputusan</span>
+            Hasil Analisis <span className="text-violet-600">Keuangan Sobat</span>
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5 font-light">
-            Evaluasi finansial & kelayakan target belanja oleh AI.
+            Yuk cek pendapat dan kalkulasi jujur dari sahabat finansialmu.
           </p>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-extrabold uppercase tracking-wide shadow-sm bg-background/50 w-fit">
-          {aiData.decisionVerdict === "BLOCKED_DANGER" ? (
-            <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400">
-              <ShieldAlert size={12} className="animate-pulse" />
-              Dilarang Belanja
-            </span>
-          ) : aiData.decisionVerdict === "WARNING_REPLAN" ? (
-            <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-              <AlertCircle size={12} />
-              Tunda / Re-Plan
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-              <ShieldCheck size={12} />
-              Recommended (Cash)
-            </span>
-          )}
+        <div className={cn(
+          "inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-extrabold uppercase tracking-wide shadow-sm w-fit",
+          getVerdictBadgeStyles(aiData.decisionVerdict)
+        )}>
+          {getVerdictIcon(aiData.decisionVerdict)}
+          {getVerdictLabel(aiData.decisionVerdict)}
         </div>
       </div>
 
-      {/* Score and Main Summary */}
-      <div className="flex flex-col sm:flex-row gap-5 items-center p-4 rounded-xl bg-muted/10 border">
-        {/* Circle Score Chart */}
-        <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-            <circle
-              cx="60"
-              cy="60"
-              r={radius}
-              className="stroke-muted/40 fill-none"
-              strokeWidth="6"
-            />
-            <motion.circle
-              cx="60"
-              cy="60"
-              r={radius}
-              className={cn("fill-none transition-all duration-1000 ease-out", getScoreColor(score))}
-              strokeWidth="7"
-              strokeDasharray={circumference}
-              initial={{ strokeDashoffset: circumference }}
-              animate={{ strokeDashoffset: scoreOffset }}
-              strokeLinecap="round"
-            />
-          </svg>
-          <div className="absolute flex flex-col items-center justify-center">
-            <span className="text-2xl font-extrabold text-foreground">{score}</span>
-            <span className="text-[8px] uppercase tracking-widest text-muted-foreground font-semibold">Skor</span>
+      {/* Reality Check & Score Panel */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+        {/* Score Ring */}
+        <div className="md:col-span-4 flex flex-col items-center justify-center p-4 rounded-xl bg-muted/10 border text-center">
+          <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+              <circle
+                cx="60"
+                cy="60"
+                r={radius}
+                className="stroke-muted/40 fill-none"
+                strokeWidth="6"
+              />
+              <motion.circle
+                cx="60"
+                cy="60"
+                r={radius}
+                className={cn("fill-none transition-all duration-1000 ease-out", getScoreColor(score))}
+                strokeWidth="7"
+                strokeDasharray={circumference}
+                initial={{ strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset: scoreOffset }}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute flex flex-col items-center justify-center">
+              <span className="text-2xl font-extrabold text-foreground">{score}</span>
+              <span className="text-[8px] uppercase tracking-widest text-muted-foreground font-semibold">Skor Rencana</span>
+            </div>
+          </div>
+          <div className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider mt-2.5", getScoreBgColor(score))}>
+            Kesehatan
           </div>
         </div>
 
-        <div className="space-y-1.5 text-center sm:text-left">
-          <div className={cn("text-[9px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wider w-fit mx-auto sm:mx-0", getScoreBgColor(score))}>
-            Kesehatan Rencana
+        {/* AI Professional Opinion Card */}
+        <div className="md:col-span-8 p-4.5 rounded-xl bg-violet-600/[0.02] border border-violet-500/15 flex flex-col justify-between space-y-2">
+          <div className="space-y-1">
+            <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1">
+              <HelpCircle size={13} className="text-violet-500" />
+              {verdictOpinion.title || "Komentar Asisten Finansial"}
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed font-semibold pl-0.5 mt-1">
+              {verdictOpinion.explanation}
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed italic">
-            "{aiData.healthScoreExplanation}"
-          </p>
         </div>
       </div>
 
-      {/* Trap Warning Panel */}
+      {/* Trap Warning Panel (Judi / Pinjol / Paylater warnings) */}
       {aiData.financialTrapWarning && (
         <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/[0.02] space-y-1.5 animate-in fade-in slide-in-from-top-1">
-          <h4 className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
+          <h4 className="text-[9px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
             <ShieldAlert size={14} className="animate-pulse text-rose-500" />
-            Peringatan Bahaya Finansial!
+            Peringatan Penting Buat Kamu ⚠️
           </h4>
-          <p className="text-xs text-muted-foreground leading-relaxed font-semibold">
+          <p className="text-xs text-rose-600/90 dark:text-rose-400/90 leading-relaxed font-bold">
             {aiData.financialTrapWarning}
           </p>
         </div>
       )}
 
-      {/* Target Details & Market Info */}
-      <div className="space-y-3">
-        {/* Real Market Price Facts */}
-        {aiData.realMarketPrice && (
-          <div className="p-3.5 bg-violet-600/[0.02] border rounded-xl space-y-1">
-            <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1">
-              <Sparkles size={11} className="animate-pulse" />
-              Fakta Harga Pasar AI
-            </div>
-            <div className="text-xs font-semibold text-foreground flex items-center gap-1">
-              <span>Estimasi Harga Nyata:</span>
-              <span className="text-violet-600 dark:text-violet-400 font-extrabold">{aiData.realMarketPrice}</span>
-            </div>
-            {aiData.priceComparisonNote && (
-              <p className="text-[10px] text-muted-foreground leading-relaxed italic">
-                💡 {aiData.priceComparisonNote}
-              </p>
-            )}
-          </div>
-        )}
+      {/* Detailed Analysis Collapsible Comments Drawer */}
+      <ResultComments
+        aiData={aiData}
+        targetValue={targetValue}
+        monthsDiff={monthsDiff}
+        remainingBudget={remainingBudget}
+        totalExpenses={totalExpenses || 0}
+      />
 
-        {/* Alternative Suggestions */}
-        {aiData.alternativeSuggestions && aiData.alternativeSuggestions.length > 0 && (
-          <div className="p-3.5 bg-emerald-500/[0.02] border rounded-xl space-y-2">
-            <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-              <ShieldCheck size={12} className="shrink-0 text-emerald-500" />
-              Alternatif Lebih Terjangkau
-            </div>
-            <ul className="space-y-1 pl-4 list-disc text-xs text-muted-foreground">
-              {aiData.alternativeSuggestions.map((item, index) => (
-                <li key={index}>
-                  <span className="text-foreground font-semibold">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Paylater vs Cash Calculator */}
-        {aiData.paylaterSimulation && (
-          <div className="p-3.5 bg-amber-500/[0.01] border rounded-xl space-y-3">
-            <h5 className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-1">
-              <Activity size={12} className="text-amber-500" />
-              Simulasi Kerugian Paylater / Cicilan (12 Bulan)
-            </h5>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-2 rounded-xl bg-background/55 border border-muted/20">
-                <span className="text-[8px] text-muted-foreground font-semibold uppercase">Harga Cash</span>
-                <p className="text-xs font-bold text-emerald-600">Rp {aiData.paylaterSimulation.cashPrice.toLocaleString("id-ID")}</p>
-              </div>
-              <div className="p-2 rounded-xl bg-background/55 border border-muted/20">
-                <span className="text-[8px] text-muted-foreground font-semibold uppercase">Total Paylater</span>
-                <p className="text-xs font-bold text-rose-600">Rp {aiData.paylaterSimulation.paylaterPrice.toLocaleString("id-ID")}</p>
-              </div>
-            </div>
-            <div className="text-[10px] space-y-1 text-muted-foreground border-t pt-2">
-              <div className="flex justify-between">
-                <span>Biaya Admin (5%):</span>
-                <span className="font-semibold text-foreground">Rp {aiData.paylaterSimulation.adminFee.toLocaleString("id-ID")}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Bunga Kredit (42%):</span>
-                <span className="font-semibold text-foreground">Rp {aiData.paylaterSimulation.interestExpense.toLocaleString("id-ID")}</span>
-              </div>
-              <div className="flex justify-between border-t border-dashed pt-1 font-bold text-rose-600 dark:text-rose-400 text-xs">
-                <span>Kerugian Uang Sia-Sia:</span>
-                <span>Rp {aiData.paylaterSimulation.moneyWasted.toLocaleString("id-ID")}</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* AI Taktik & Sacrifice */}
-      <div className="space-y-3">
-        {/* Financial Tactics */}
-        <div className="p-3.5 rounded-xl bg-muted/10 border space-y-1">
-          <h5 className="text-[10px] font-bold text-foreground flex items-center gap-1">
-            <Flame size={12} className="text-violet-500" />
-            Taktik Finansial AI
-          </h5>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {aiData.emergencyMode.strategy}
-          </p>
-        </div>
-
-        {/* Sacrifice Saran */}
-        {aiData.sacrificeTransparency && aiData.sacrificeTransparency.length > 0 && (
-          <div className="p-3.5 rounded-xl bg-muted/10 border space-y-2">
-            <h5 className="text-[10px] font-bold text-foreground flex items-center gap-1">
-              <FileText size={12} className="text-amber-500" />
-              Saran Pengorbanan Pengeluaran
-            </h5>
-            {aiData.sacrificeTransparency.slice(0, 1).map((sacrifice, index) => (
-              <div key={index} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-foreground">
-                    Pos: <span className="text-amber-600 dark:text-amber-400">{sacrifice.item}</span>
-                  </span>
-                  {sacrifice.nominalToCut && (
-                    <span className="font-bold text-rose-500">
-                      Potong Rp {sacrifice.nominalToCut.toLocaleString("id-ID")}
-                    </span>
-                  )}
-                </div>
-                <ul className="space-y-1 pl-3.5 list-disc text-xs text-muted-foreground leading-relaxed">
-                  {sacrifice.reasons.map((reason, rIdx) => (
-                    <li key={rIdx}>{reason}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Keputusan Akhir AI */}
-      <div className="p-4 rounded-xl bg-violet-500/[0.02] border border-violet-500/15 space-y-1 leading-relaxed">
-        <h4 className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider flex items-center gap-1">
+      {/* Final recommendation text */}
+      <div className="p-4 rounded-xl bg-violet-500/[0.02] border border-violet-500/15 space-y-1">
+        <h4 className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1">
           <Sparkles size={12} />
-          Rekomendasi Akhir
+          Saran Hangat Akhir dari Sahabatmu ❤️
         </h4>
-        <p className="text-xs text-muted-foreground italic font-medium leading-relaxed">
+        <p className="text-xs text-muted-foreground italic font-semibold leading-relaxed">
           "{aiData.aiRecommendationText}"
         </p>
       </div>
@@ -457,26 +461,26 @@ export function ResultAnalisis({
 
                 <AlertDialogHeader className="space-y-1">
                   <AlertDialogTitle className="text-lg font-extrabold tracking-tight">
-                    Buat Rencana Personal
+                    Bikin Roadmap Finansialmu 🗺️
                   </AlertDialogTitle>
                   <AlertDialogDescription className="text-xs font-semibold text-violet-600 dark:text-violet-400">
-                    "Saya bisa membuat roadmap yang lebih personal."
+                    "Yuk susun strategi menabung yang paling cocok buat kondisi hidupmu!"
                   </AlertDialogDescription>
                 </AlertDialogHeader>
 
                 <div className="w-full bg-muted/30 p-4 rounded-xl border text-left space-y-2 text-xs">
                   <p className="font-bold text-foreground flex items-center gap-1 uppercase tracking-wider">
                     <Target size={14} className="text-violet-500" />
-                    Mengapa Perlu Roadmap?
+                    Kenapa Penting Punya Roadmap?
                   </p>
                   <div className="space-y-2 text-muted-foreground leading-relaxed">
                     <div className="flex items-start gap-2">
                       <CheckCircle2 size={13} className="text-emerald-500 shrink-0 mt-0.5" />
-                      <span>Disesuaikan spesifik untuk profil pekerjaan & Hunian.</span>
+                      <span>Sangat pas dengan profil pekerjaan & tempat tinggalmu.</span>
                     </div>
                     <div className="flex items-start gap-2">
                       <CheckCircle2 size={13} className="text-emerald-500 shrink-0 mt-0.5" />
-                      <span>Taktik alokasi dana darurat & rasio cicilan OJK.</span>
+                      <span>Taktik alokasi dana darurat & rasio aman cicilan OJK.</span>
                     </div>
                   </div>
                 </div>
@@ -552,7 +556,7 @@ export function ResultAnalisis({
 
         {/* Sync Button */}
         <Button
-          disabled={isSyncing || isSynced || aiData.decisionVerdict === "BLOCKED_DANGER"}
+          disabled={isSyncing || isSynced || aiData.decisionVerdict === "JANGAN_BELI" || aiData.decisionVerdict === "BLOCKED_DANGER"}
           onClick={async () => {
             if (isSynced) return;
             setIsSyncing(true);
@@ -588,7 +592,7 @@ export function ResultAnalisis({
             "w-full flex items-center justify-center text-[10px] font-bold h-9 rounded-xl shadow-sm cursor-pointer",
             isSynced
               ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-              : aiData.decisionVerdict === "BLOCKED_DANGER"
+              : (aiData.decisionVerdict === "JANGAN_BELI" || aiData.decisionVerdict === "BLOCKED_DANGER")
               ? "bg-muted text-muted-foreground border cursor-not-allowed"
               : "bg-violet-600 hover:bg-violet-700 text-white"
           )}

@@ -31,68 +31,7 @@ export function BudgetSummaryPreview({
   keteranganTambahan,
   expenses,
 }: BudgetSummaryPreviewProps) {
-  // Live local keyword detection for preview
-  const detectSumberDana = (text: string): string => {
-    if (!text) return "Nabung Cash";
-    const lowerText = text.toLowerCase();
-    if (
-      lowerText.includes("judi") ||
-      lowerText.includes("slot") ||
-      lowerText.includes("gacor") ||
-      lowerText.includes("jp") ||
-      lowerText.includes("maxwin") ||
-      lowerText.includes("taruhan") ||
-      lowerText.includes("depo") ||
-      lowerText.includes("zeus") ||
-      lowerText.includes("spekulasi")
-    ) {
-      return "Hasil Judi / Spekulasi";
-    }
-    if (
-      lowerText.includes("pinjol") ||
-      lowerText.includes("pinjam online") ||
-      lowerText.includes("cair cepat") ||
-      lowerText.includes("dana cepat") ||
-      lowerText.includes("easycash") ||
-      lowerText.includes("kredivo") ||
-      lowerText.includes("adakami") ||
-      lowerText.includes("rupiah cepat")
-    ) {
-      return "Pinjaman Online";
-    }
-    if (
-      lowerText.includes("paylater") ||
-      lowerText.includes("spaylater") ||
-      lowerText.includes("gopaylater") ||
-      lowerText.includes("cicil") ||
-      lowerText.includes("kredit") ||
-      lowerText.includes("cc") ||
-      lowerText.includes("kartu kredit") ||
-      lowerText.includes("tempo")
-    ) {
-      return "Paylater/Kredit";
-    }
-    if (
-      lowerText.includes("tabungan") ||
-      lowerText.includes("dana cadangan") ||
-      lowerText.includes("simpanan") ||
-      lowerText.includes("aktif") ||
-      lowerText.includes("emas") ||
-      lowerText.includes("celengan")
-    ) {
-      return "Dana Cadangan";
-    }
-    return "Nabung Cash";
-  };
-
-  const sDana = keteranganTambahan ? detectSumberDana(keteranganTambahan) : undefined;
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const budgetNum = Number(budget || 0);
-  const remainingBudget = budgetNum - totalExpenses;
-
-  // Calculate percent spent cleanly
-  const percentSpent = budgetNum > 0 ? Math.min(100, (totalExpenses / budgetNum) * 100) : 0;
-  const isDeficit = remainingBudget < 0;
 
   return (
     <div className="rounded-2xl border p-5 sm:p-6 shadow-md space-y-6 flex flex-col justify-between h-full min-h-[480px]">
@@ -107,28 +46,14 @@ export function BudgetSummaryPreview({
           </p>
         </div>
 
-        {/* Financial Cards Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Budget Bulanan */}
-          <div className="p-4 rounded-xl bg-muted/10 border flex flex-col justify-between shadow-sm">
-            <p className="text-[10px] font-light uppercase">
-              <span className="text-violet-600 font-bold">Budget</span> Bulanan</p>
-            <span className="text-lg font-extrabold text-foreground mt-2">
-              Rp {budgetNum.toLocaleString("id-ID")}
-            </span>
-          </div>
-
-          {/* Sisa Anggaran */}
-          <div className={cn(
-            "p-4 rounded-xl border flex flex-col justify-between shadow-sm transition-colors duration-300",
-          )}>
-            <p className="text-[10px] font-light uppercase">
-              Sisa <span className="text-violet-600 font-bold">Anggaran</span>
-            </p>
-            <span className="text-lg font-extrabold mt-2">
-              Rp {remainingBudget.toLocaleString("id-ID")}
-            </span>
-          </div>
+        {/* Financial Card */}
+        <div className="p-4 rounded-xl bg-muted/10 border flex flex-col justify-between shadow-sm">
+          <p className="text-[10px] font-light uppercase">
+            <span className="text-violet-600 font-bold">Budget</span> Bulanan
+          </p>
+          <span className="text-lg font-extrabold text-foreground mt-2">
+            Rp {budgetNum.toLocaleString("id-ID")}
+          </span>
         </div>
 
         {/* Target Goals Card */}

@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { monthlyBudget, targetName, targetValue, targetDate, totalExpenses, remainingBudget } = budgetData;
+    const { monthlyBudget, targetName, targetValue, targetDate } = budgetData;
     const { tempatTinggal, penghasilan, prioritasTarget, hutangCicilan, danaDarurat } = answers;
 
     const apiKey = process.env.API_KEY;
@@ -27,11 +27,9 @@ Tugas utama Anda adalah **merancang roadmap (rencana aksi) keuangan personal** b
 
 Data Anggaran & Target Keuangan:
 1. Pendapatan/Budget Bulanan: Rp ${Number(monthlyBudget || 0).toLocaleString("id-ID")}
-2. Total Pengeluaran: Rp ${Number(totalExpenses || 0).toLocaleString("id-ID")}
-3. Sisa Anggaran Bulanan: Rp ${Number(remainingBudget || 0).toLocaleString("id-ID")}
-4. Rencana Target: "${targetName || "Target Keuangan"}"
-5. Nominal Target: Rp ${Number(targetValue || 0).toLocaleString("id-ID")}
-6. Batas Waktu Target: ${targetDate ? new Date(targetDate).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' }) : "Tidak ditentukan"}
+2. Rencana Target: "${targetName || "Target Keuangan"}"
+3. Nominal Target: Rp ${Number(targetValue || 0).toLocaleString("id-ID")}
+4. Batas Waktu Target: ${targetDate ? new Date(targetDate).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' }) : "Tidak ditentukan"}
 
 Profil Kehidupan Pengguna (Hasil Kuesioner):
 1. Kondisi Tempat Tinggal: ${tempatTinggal}
@@ -41,21 +39,23 @@ Profil Kehidupan Pengguna (Hasil Kuesioner):
 5. Ketersediaan Dana Darurat: ${danaDarurat}
 
 ---
-PANDUAN STRATEGI ROADMAP PERSONAL (WAJIB COCOKKAN DENGAN JAWABAN KUESIONER):
-1. **Kondisi Tempat Tinggal**:
+PANDUAN STRATEGI ROADMAP PERSONAL & ATURAN BAHASA (WAJIB DIIKUTI SECARA KETAT):
+- **JANGAN PERNAH menggunakan istilah "sisa anggaran" atau "sisa budget"** di seluruh hasil analisis, roadmap, dan fase-fase rencana Anda. Gunakan istilah "budget bulanan" atau "uang bulanan" saja.
+- Jangan menyarankan menabung sebesar 100% dari budget bulanan. Rekomendasikan porsi alokasi menabung yang aman dan realistis (misalnya, menyisihkan 20% - 30% dari budget bulanan secara konsisten, atau hingga 50% jika target dinilai sangat mendesak/penting).
+- **Kondisi Tempat Tinggal**:
    - Jika "Tinggal sendiri" atau "Bersama pasangan", ingatkan tentang biaya utilitas tersembunyi, sewa, dan pengeluaran rumah tangga mandiri.
    - Jika "Bersama orang tua", sarankan untuk memanfaatkan kesempatan ini untuk menabung secara agresif (>40% pendapatan).
    - Jika "Bersama keluarga", tekankan stabilitas alokasi belanja bulanan esensial.
-2. **Stabilitas Penghasilan**:
+- **Stabilitas Penghasilan**:
    - Jika "Tidak, berubah-ubah" (misal Freelancer / Pekerja harian), prioritaskan pembentukan "buffer fund" (dana penyangga) dan menabung lebih banyak saat pendapatan naik.
    - Jika "Ya, relatif tetap" (Karyawan), sarankan otomatisasi debet tabungan langsung setelah gajian.
-3. **Prioritas Target**:
+- **Prioritas Target**:
    - Jika target adalah "Sangat penting" atau "Kebutuhan pekerjaan", rekomendasikan pemangkasan pos pengeluaran hiburan/keinginan untuk mencapainya lebih cepat.
    - Jika target adalah "Keinginan pribadi", ingatkan untuk tidak mengorbankan dana darurat demi target ini.
-4. **Hutang atau Cicilan**:
+- **Hutang atau Cicilan**:
    - Jika "Ada, cukup besar", berikan saran taktik "Debt Snowball" atau "Debt Avalanche" sebelum menabung secara agresif untuk target. Prioritaskan pelunasan hutang berbunga tinggi.
    - Jika "Ada, ringan", ingatkan agar cicilan tidak melebihi 30% dari total pendapatan bulanan.
-5. **Dana Darurat**:
+- **Dana Darurat**:
    - Jika "Belum ada" atau "Kurang dari 3 bulan pengeluaran", roadmap Fase 1 WAJIB berfokus pada pembentukan dana darurat dasar terlebih dahulu sebelum berfokus pada target tabungan utama.
    - Jika "Lebih dari 3 bulan pengeluaran", berikan pujian dan rekomendasikan investasi atau akselerasi target.
 
@@ -151,8 +151,11 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
 
 // Generates a tailored local roadmap fallback when Gemini is unavailable
 function generateFallbackRoadmap(budgetData: any, answers: any) {
-  const { remainingBudget, targetName, targetValue } = budgetData;
+  const { monthlyBudget, targetName, targetValue } = budgetData;
   const { tempatTinggal, penghasilan, prioritasTarget, hutangCicilan, danaDarurat } = answers;
+
+  const budgetNum = Number(monthlyBudget || 0);
+  const suggestedSaving = Math.round(budgetNum * 0.3); // recommend saving 30% of monthly budget
 
   let summary = `Analisis profil menunjukkan kamu tinggal ${tempatTinggal.toLowerCase()} dengan stabilitas penghasilan yang ${penghasilan === "Ya, relatif tetap" ? "stabil" : "fluktuatif"}. `;
   
@@ -184,7 +187,7 @@ function generateFallbackRoadmap(budgetData: any, answers: any) {
       duration: "Bulan 1",
       steps: [
         "Pertahankan dana darurat yang sudah terkumpul dengan baik.",
-        "Mulailah menyisihkan otomatis sisa anggaran sebesar Rp " + Number(remainingBudget || 0).toLocaleString("id-ID") + " untuk target utama.",
+        "Mulailah menyisihkan otomatis sebesar Rp " + suggestedSaving.toLocaleString("id-ID") + " dari budget bulananmu untuk target utama.",
         "Evaluasi langganan bulanan non-aktif untuk memperbesar kapasitas tabungan."
       ]
     });
@@ -195,7 +198,7 @@ function generateFallbackRoadmap(budgetData: any, answers: any) {
     name: "Fase 2: Akselerasi Target Rencana " + (targetName || "Keuangan"),
     duration: "Bulan 2-3",
     steps: [
-      `Fokus menabung Rp ${Number(remainingBudget || 0).toLocaleString("id-ID")} secara konsisten untuk mengumpulkan target nominal Rp ${Number(targetValue || 0).toLocaleString("id-ID")}.`,
+      `Fokus menabung Rp ${suggestedSaving.toLocaleString("id-ID")} secara konsisten dari budget bulananmu untuk mengumpulkan target nominal Rp ${Number(targetValue || 0).toLocaleString("id-ID")}.`,
       hutangCicilan === "Ada, cukup besar" 
         ? "Gunakan metode cicilan minimum untuk hutang kecil lalu lunasi hutang terbesar (Debt Snowball)."
         : "Pastikan pengeluaran bulanan tetap stabil di bawah budget agar tidak mengganggu pos tabungan.",

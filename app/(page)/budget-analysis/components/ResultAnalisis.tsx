@@ -102,13 +102,10 @@ export function ResultAnalisis({
         },
         body: JSON.stringify({
           budgetData: {
-            monthlyBudget: monthlyBudget || remainingBudget + (totalExpenses || 0),
-            totalExpenses: totalExpenses || 0,
-            remainingBudget: remainingBudget,
+            monthlyBudget,
             targetName: target,
             targetValue: targetValue,
             targetDate: targetDate,
-            expenses: []
           },
           answers,
         }),
@@ -153,6 +150,45 @@ export function ResultAnalisis({
     const futureInvestedVal = Math.round(cashPrice * 1.46);
     const savingsMonthsCovered = totalExpenses && totalExpenses > 0 ? Math.round(cashPrice / totalExpenses) : 6;
 
+    const targetLower = (target || "").toLowerCase();
+    let fallbackAlternatives: string[] = [];
+
+    if (targetLower.includes("hp") || targetLower.includes("phone") || targetLower.includes("samsung") || targetLower.includes("iphone") || targetLower.includes("android") || targetLower.includes("xiaomi") || targetLower.includes("oppo")) {
+      fallbackAlternatives = [
+        "Samsung Galaxy A15 (Rp 2.900.000) - Opsi HP Android stabil & terjangkau",
+        "Redmi Note 13 (Rp 2.500.000) - Spesifikasi unggul dengan harga bersahabat",
+        "Samsung Galaxy A05 (Rp 1.500.000) - Alternatif paling ekonomis untuk kebutuhan pokok"
+      ];
+    } else if (targetLower.includes("laptop") || targetLower.includes("komputer") || targetLower.includes("pc") || targetLower.includes("macbook") || targetLower.includes("asus") || targetLower.includes("lenovo")) {
+      fallbackAlternatives = [
+        "ASUS Vivobook Go 14 (Rp 5.800.000) - Ringan, andal, cocok untuk produktivitas",
+        "Lenovo IdeaPad Slim 1 (Rp 4.900.000) - Performa mumpuni dengan harga bersahabat",
+        "Acer Aspire Lite 14 (Rp 4.500.000) - Pilihan ekonomis untuk tugas harian"
+      ];
+    } else if (targetLower.includes("motor") || targetLower.includes("honda") || targetLower.includes("yamaha") || targetLower.includes("kendaraan")) {
+      fallbackAlternatives = [
+        "Honda Beat Second (Rp 8.000.000 - Rp 10.000.000) - Irit bahan bakar dan mudah perawatannya",
+        "Yamaha Mio Second (Rp 6.000.000 - Rp 8.000.000) - Pilihan murah meriah untuk harian"
+      ];
+    } else {
+      if (cashPrice > 10000000) {
+        fallbackAlternatives = [
+          `Cari barang sejenis versi bekas berkualitas dengan rentang harga Rp ${Math.round(cashPrice * 0.5).toLocaleString("id-ID")} - Rp ${Math.round(cashPrice * 0.6).toLocaleString("id-ID")}`,
+          `Pertimbangkan opsi rental/sewa jika frekuensi pemakaian barang ini rendah`
+        ];
+      } else if (cashPrice > 2000000) {
+        fallbackAlternatives = [
+          `Cari alternatif merk lokal atau seri tahun lalu yang menawarkan fungsi serupa dengan harga Rp ${Math.round(cashPrice * 0.6).toLocaleString("id-ID")} - Rp ${Math.round(cashPrice * 0.7).toLocaleString("id-ID")}`,
+          `Beli versi second-hand/bekas layak pakai untuk menghemat hingga 40% budget`
+        ];
+      } else {
+        fallbackAlternatives = [
+          `Tunda pembelian selama 1 bulan untuk membedakan kebutuhan esensial dari keinginan impulsif`,
+          `Cari promo diskon belanja atau beli saat event promo e-commerce untuk mendapatkan harga terbaik`
+        ];
+      }
+    }
+
     aiData = {
       score: analysisResult.score || 70,
       riskLevel: analysisResult.riskLevel || "Sedang",
@@ -179,7 +215,7 @@ export function ResultAnalisis({
         adminFee,
         interestExpense,
         moneyWasted,
-        consequencesNote: `Jika kamu nekat menggunakan cicilan, beban bulanan Rp ${monthlyDebtPayment.toLocaleString("id-ID")} akan mengambil sekitar ${debtImpactPct}% dari sisa anggaran belanjamu.`
+        consequencesNote: `Jika kamu nekat menggunakan cicilan, beban bulanan Rp ${monthlyDebtPayment.toLocaleString("id-ID")} akan mengambil sekitar ${debtImpactPct}% dari budget bulananmu.`
       },
       opportunityCost: {
         investmentAlternative: `Jika dialokasikan ke reksa dana dengan return 8% per tahun, dalam 5 tahun uang ini akan bertumbuh menjadi sekitar Rp ${futureInvestedVal.toLocaleString("id-ID")}.`,
@@ -193,13 +229,13 @@ export function ResultAnalisis({
       impactOnTarget: isDeficit
         ? "Keputusan ini mengurangi peluang pencapaian target tabungan secara signifikan karena kondisi anggaran Anda saat ini defisit."
         : "Keputusan ini cukup stabil namun membutuhkan alokasi yang lebih disiplin untuk mencapai target.",
-      healthScoreExplanation: analysisResult.recommendation || "Penilaian kesehatan keuangan bulanan Anda berdasarkan sisa anggaran saat ini.",
+      healthScoreExplanation: analysisResult.recommendation || "Penilaian kesehatan keuangan bulanan Anda berdasarkan budget bulanan saat ini.",
       financialTrapWarning: isDeficit ? "Anggaran Anda saat ini mengalami defisit. Memaksakan diri membelinya sekarang dapat menjerumuskan Anda pada pinjaman cepat atau paylater." : "",
       realMarketPrice: targetValue ? `Rp ${Number(targetValue).toLocaleString("id-ID")}` : undefined,
       priceComparisonNote: "Menggunakan nominal target sebagai patokan harga dasar di fallback.",
-      alternativeSuggestions: [],
+      alternativeSuggestions: fallbackAlternatives,
       budgetEvolution: [
-        "Sisa anggaran bulanan bernilai positif.",
+        "Budget bulanan bernilai positif.",
         "Butuh monitoring rutin terhadap pengeluaran harian."
       ],
       emergencyMode: {
@@ -222,7 +258,7 @@ export function ResultAnalisis({
   };
   const verdictOpinion = aiData.verdictOpinion || {
     title: "Keputusan Keuangan",
-    explanation: aiData.healthScoreExplanation || "Silakan evaluasi detail sisa anggaran bulanan Anda."
+    explanation: aiData.healthScoreExplanation || "Silakan evaluasi detail budget bulanan Anda."
   };
   const opportunityCost = aiData.opportunityCost || {
     investmentAlternative: `Jika dana tunai Rp ${Number(targetValue || 0).toLocaleString("id-ID")} ini dialokasikan ke reksa dana dengan return 8% per tahun, dalam 5 tahun nilainya akan bertumbuh menjadi Rp ${Math.round(Number(targetValue || 0) * 1.46).toLocaleString("id-ID")}.`,

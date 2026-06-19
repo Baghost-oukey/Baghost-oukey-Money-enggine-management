@@ -56,7 +56,7 @@ export function ResultComments({
   
   const verdictOpinion = aiData.verdictOpinion || {
     title: "Keputusan Keuangan",
-    explanation: aiData.healthScoreExplanation || "Silakan evaluasi detail sisa anggaran bulanan Anda.",
+    explanation: aiData.healthScoreExplanation || "Silakan evaluasi detail budget bulanan Anda.",
   };
   
   const opportunityCost = aiData.opportunityCost || {

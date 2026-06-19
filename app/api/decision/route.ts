@@ -65,7 +65,7 @@ function detectSumberDana(text: string): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, monthlyBudget, targetName, targetValue, targetDate, expenses, userProfile, jenisTarget, keteranganTambahan } = body;
+    const { userId, monthlyBudget, targetName, targetValue, targetDate, jenisTarget, keteranganTambahan } = body;
     const sumberDana = detectSumberDana(keteranganTambahan || "");
 
     if (!userId) {
@@ -87,12 +87,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsedExpenses = Array.isArray(expenses) ? expenses : [];
-    const totalExpenses = parsedExpenses.reduce(
-      (sum: number, exp: any) => sum + Number(exp.amount || 0),
-      0
-    );
-    const remainingBudget = Number(monthlyBudget) - totalExpenses;
+    const parsedExpenses: any[] = [];
+    const totalExpenses = 0;
+    const remainingBudget = Number(monthlyBudget);
 
     // Calculate metrics programmatically in Node to enforce mathematical accuracy in AI prompt
     const currentDate = new Date();
@@ -124,10 +121,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const expensesText = parsedExpenses.length > 0
-      ? parsedExpenses.map((exp: any) => `   - ${exp.name}: Rp ${Number(exp.amount || 0).toLocaleString("id-ID")}`).join("\n")
-      : "   - (Tidak ada pengeluaran bulanan spesifik yang diinput)";
-
     // AI Analysis Prompt with strict mathematical logic and audience customization
     const systemPrompt = `
 Anda adalah seorang Sahabat & Mentor Keuangan Pribadi (Warm & Friendly Financial Coach) yang sangat peduli, hangat, tulus, namun jujur, logis, dan kritis saat memberikan masukan keuangan. Panggil pengguna dengan sebutan hangat seperti "Sobat Finansial", "Kamu", atau "Kak". Gunakan gaya bahasa yang santun, bersahabat, penuh empati, dan tidak kaku, layaknya seorang kakak atau teman baik yang ingin pengguna sukses secara finansial.
@@ -144,52 +137,49 @@ PENTING - PANDUAN BAHASA & NADA BICARA (WAJIB DIIKUTI SECARA KETAT):
   * "Taktik Keuangan Biar Dompet Sehat" (untuk Emergency Mode / Strategy)
   * "Rekomendasi Pemangkasan Jajan / Pos Belanja" (untuk Sacrifice Transparency)
 - **JANGAN PERNAH MENGGUNAKAN DESIMAL (koma seperti .0, .5)** dalam menentukan atau menampilkan jumlah bulan di seluruh teks analisis Anda. Selalu bulatkan jumlah bulan ke bilangan bulat terdekat (misalnya: tulis '10 bulan', bukan '10.0 bulan' atau '10.3 bulan').
+- **JANGAN PERNAH menyebutkan istilah "sisa anggaran" atau "sisa budget" atau "sisa uang"** di seluruh hasil analisis Anda. Selalu gunakan istilah "budget bulanan" atau "uang bulanan" untuk merujuk pada uang/anggaran bulanan pengguna. Jangan menulis kalimat redundan seperti "kamu punya tabungan awal Rp X dan sisa anggaran Rp X" atau mengulang nominal budget bulanan sebagai sisa anggaran secara redundan.
 - Dalam Cek Realita Keuangan, buatlah narasi yang menyentuh sisi psikologis pengguna (terutama jika rencana pembelian tidak masuk akal atau didorong oleh gengsi/FOMO) sebagai bahan pertimbangan yang mendalam bagi mereka. Gunakan pendekatan yang peduli, seperti: "Membeli barang ini dengan menyisihkan uang bulananmu saat ini butuh waktu sekitar Z bulan. Memaksakan diri memilikinya terlalu cepat hanya akan memicu kecemasan mental dan membuatmu tergiur utang instan yang merusak ketenangan pikiranmu."
 - **PENTING - STRATEGI RESPONS BERDASARKAN KATEGORI TARGET ("jenisTarget"):**
   * **Jika Kategori Target Belanja ("jenisTarget") adalah "Kebutuhan" (Needs)**:
     - Anda WAJIB bertindak sebagai **Partner Pemecah Masalah (Solution-Oriented Partner)** yang fokus penuh mencari jalan keluar dan memberikan solusi konkret agar pengguna dapat memiliki barang kebutuhan penting ini secara sehat.
-    - Jangan langsung melarang atau memvonis secara kaku seperti "Jangan Beli" tanpa memberikan solusi. Jika sisa anggaran mepet atau defisit, tetap berikan dorongan semangat, tunjukkan empati yang tinggi, dan sarankan langkah-langkah solutif nyata (misal: bagaimana memotong pos pengeluaran gaya hidup lain secara sukarela, menyarankan alternatif merk/tipe barang kebutuhan sejenis yang lebih terjangkau, atau merekomendasikan penundaan jangka waktu menabung secara aman).
-    - Mulailah respons di Reality Check dan Verdict dengan nada yang sangat membesarkan hati, seperti: "Aku tahu ini kebutuhan penting buat produktivitas/hidupmu Kak. Yuk, mari kita atur strategi bareng-bareng biar barang ini bisa terbeli secara aman tanpa merusak keuangan harianmu!"
+    - Jangan langsung melarang atau memvonis secara kaku seperti "Jangan Beli" tanpa memberikan solusi. Jika budget bulanan mepet atau tidak mencukupi untuk menabung target secara aman, tetap berikan dorongan semangat, tunjukkan empati yang tinggi, dan sarankan langkah-langkah solutif nyata (misal: bagaimana memotong pos pengeluaran gaya hidup lain secara sukarela, menyarankan alternatif merk/tipe barang kebutuhan sejenis yang lebih terjangkau, atau merekomendasikan penundaan jangka waktu menabung secara aman).
+    - Mulailah respons di Reality Check and Verdict dengan nada yang sangat membesarkan hati, seperti: "Aku tahu ini kebutuhan penting buat produktivitas/hidupmu Kak. Yuk, mari kita atur strategi bareng-bareng biar barang ini bisa terbeli secara aman tanpa merusak keuangan harianmu!"
   * **Jika Kategori Target Belanja ("jenisTarget") adalah "Keinginan" (Wants)**:
     - Gunakan respons kritis yang mendidik dan protektif seperti yang sudah ada. Sadarkan pengguna jika rencana ini didorong oleh gengsi sosial, FOMO, atau sekadar keinginan sesaat.
     - Tekankan konsekuensi nyata dari cicilan paylater/kredit terhadap cash flow bulanan mereka agar mereka berpikir ulang dan memprioritaskan ketenangan pikiran daripada gengsi sosial semata.
 
 PENTING - TENTUKAN KEPUTUSAN FINAL DARI 4 PILIHAN BERIKUT (decisionVerdict):
-1. **BOLEH_BELI**: Rencana pembelian sangat realistis, dibayar tunai (cash) dari tabungan/surplus anggaran bulanan, rasio kelayakan tabungan >= 100%, arus kas bulanan surplus stabil, dan tidak mengganggu dana darurat atau kebutuhan pokok harian.
-2. **BELI_DENGAN_MENABUNG**: Rencana pembelian dinilai realistis dan sehat untuk dibeli tunai, namun dana sisa bulanan saat ini belum mencukupi secara instan (rasio kelayakan < 100% tapi sisa anggaran bernilai positif). Pengguna harus disiplin menyisihkan tabungan bulanan secara berkala sampai dana target terkumpul penuh.
+1. **BOLEH_BELI**: Rencana pembelian sangat realistis, dibayar tunai (cash) dari budget bulanan secara sehat, rasio kelayakan tabungan >= 100%, arus kas bulanan surplus stabil, dan tidak mengganggu dana darurat atau kebutuhan pokok harian.
+2. **BELI_DENGAN_MENABUNG**: Rencana pembelian dinilai realistis dan sehat untuk dibeli tunai, namun budget bulanan saat ini belum mencukupi secara instan (rasio kelayakan < 100% tapi budget bulanan masih mampu dialokasikan untuk menabung). Pengguna harus disiplin menyisihkan tabungan bulanan secara berkala sampai dana target terkumpul penuh.
 3. **TUNDA**: Arus kas bulanan terlalu ketat, target waktu terlampau dekat, cadangan dana darurat masih minim, atau pembelian menggunakan Paylater/Kredit konsumtif yang berisiko menekan pengeluaran pokok bulanan. Pembelian harus ditunda beberapa bulan untuk pemulihan kas.
 4. **JANGAN_BELI**: Anggaran bulanan mengalami defisit parah, target pembelian barang gaya hidup tidak masuk akal secara finansial (misal: budget bulanan Rp 3 juta tapi nekat membeli HP Rp 30 juta demi gengsi/FOMO, terutama jika curhatan menyebutkan status pelajar/mahasiswa), atau sumber dana didapat dari spekulasi/judi (judol) maupun pinjaman online (pinjol) yang pasti merusak masa depan keuangan.
 
 PROFIL SASARAN PENGGUNA:
-Analisislah tipe/profil pengguna secara dinamis dari konteks nama target dan daftar pengeluaran yang di-inputkan (misalnya: jika ada biaya kos maka dia anak kos, jika ada biaya tugas/kuliah maka dia mahasiswa, jika ada modal usaha maka dia UMKM, jika ada pos gaji bulanan tetap maka dia karyawan, freelancer, pekerja harian, pasangan muda, keluarga kecil, dll). Gunakan gaya bahasa, analogi pengeluaran, dan saran keuangan yang sesuai dengan hasil deduksi profil tersebut secara natural dan hangat.
+Analisislah tipe/profil pengguna secara dinamis dari konteks nama target dan keterangan tambahan / curhatan finansial yang di-inputkan (misalnya: jika ada curhat tentang kuliah/kos maka dia mahasiswa/anak kos, jika curhat tentang modal usaha maka dia UMKM, jika curhat tentang gaji bulanan tetap maka dia karyawan, dll). Gunakan gaya bahasa, analogi pengeluaran, dan saran keuangan yang sesuai dengan hasil deduksi profil tersebut secara natural dan hangat.
 
 Data Keuangan Nyata (Hari ini: ${currentDateStr}):
-1. Budget Bulanan Kamu: Rp ${Number(monthlyBudget).toLocaleString("id-ID")}
-2. Total Pengeluaran Diajukan: Rp ${totalExpenses.toLocaleString("id-ID")}
-   Rincian Pengeluaran Kamu Saat Ini:
-${expensesText}
-3. Sisa Anggaran Bulanan (Sisa): Rp ${remainingBudget.toLocaleString("id-ID")}
-4. Rencana Target Belanja: "${targetName}"
-5. Kategori Target Belanja: "${jenisTarget || "Keinginan"}" (Kebutuhan vs Keinginan)
-6. Nominal Target (Ekspektasi Kamu): Rp ${targetValNum.toLocaleString("id-ID")}
-7. Batas Waktu Target (Deadline): ${targetDate ? new Date(targetDate).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' }) : "Tidak ditentukan"}
-8. Durasi Hingga Deadline: ${daysDiff} Hari (~ ${monthsDiff} Bulan)
-9. Rencana Sumber Dana Pembelian: "${sumberDana || "Nabung Cash"}"
-10. Kebutuhan Tabungan Bulanan Ideal (Target / Durasi Bulan): Rp ${Math.round(requiredMonthlySavings).toLocaleString("id-ID")} per bulan
-11. Rasio Kelayakan Tabungan (Sisa / Kebutuhan Tabungan Ideal): ${(feasibilityRatio * 100).toFixed(1)}%
-12. Keterangan Tambahan / Curhatan Pengguna: "${keteranganTambahan || "(Tidak ada)"}"
+1. Budget Bulanan Kamu (Uang Bulanan): Rp ${Number(monthlyBudget).toLocaleString("id-ID")}
+2. Rencana Target Belanja: "${targetName}"
+3. Kategori Target Belanja: "${jenisTarget || "Keinginan"}" (Kebutuhan vs Keinginan)
+4. Nominal Target (Ekspektasi Kamu): Rp ${targetValNum.toLocaleString("id-ID")}
+5. Batas Waktu Target (Deadline): ${targetDate ? new Date(targetDate).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' }) : "Tidak ditentukan"}
+6. Durasi Hingga Deadline: ${daysDiff} Hari (~ ${monthsDiff} Bulan)
+7. Rencana Sumber Dana Pembelian: "${sumberDana || "Nabung Cash"}"
+8. Kebutuhan Tabungan Bulanan Ideal (Target / Durasi Bulan): Rp ${Math.round(requiredMonthlySavings).toLocaleString("id-ID")} per bulan
+9. Rasio Kelayakan Tabungan (Budget Bulanan / Kebutuhan Tabungan Ideal): ${(feasibilityRatio * 100).toFixed(1)}%
+10. Keterangan Tambahan / Curhatan Pengguna: "${keteranganTambahan || "(Tidak ada)"}"
 
 ---
 STRUKTUR HASIL OUTPUT YANG WAJIB DISEDIAKAN (DETAIL & BERSAHABAT):
 1. **Reality Check (Cek Realita)**:
-   Analisis realita secara jujur tapi suportif. Apakah dengan budget dan sisa uang segini untuk membeli target barang seharga itu realistis? Apa dampak langsungnya terhadap kehidupan sehari-hari (misal: tidak bisa makan enak, tabungan habis total, tabungan jangka panjang mandek)?
+   Analisis realita secara jujur tapi suportif. Apakah dengan budget bulanan segini untuk membeli target barang seharga itu realistis? Apa dampak langsungnya terhadap kehidupan sehari-hari (misal: membatasi pengeluaran bulanan lainnya, tabungan jangka panjang mandek)?
 2. **AI Verdict Opinion (Pendapat Jujur Sahabat Finansialmu)**:
    Berikan pendapat profesional dengan gaya bersahabat. Mengapa Kamu memberikan keputusan boleh beli, menabung dulu, tunda, atau jangan beli? Berikan alasan detail yang logis dan matematis (jika dilarang/diperingatkan, apa alasannya; jika boleh, apa prasyaratnya).
 3. **Simulasi Dampak & Konsekuensi Nyata (Paylater/Cicilan)**:
-   Bandingkan secara detail dan nyata jika pengguna memilih Paylater/Kredit (Kredivo/SPayLater dengan bunga riil 2.95% per bulan dan biaya penanganan/admin transaksi 1%) dengan Nabung Mandiri (bunga 0%, admin 0%). Anda harus menghitung dan menyediakan data cicilan untuk tenor 3 bulan, 6 bulan, dan 12 bulan di dalam array plans. Berikan catatan konsekuensi nyata dari cicilan tersebut terhadap sisa budget bulanan mereka dengan nada bersahabat.
+   Bandingkan secara detail dan nyata jika pengguna memilih Paylater/Kredit (Kredivo/SPayLater dengan bunga riil 2.95% per bulan dan biaya penanganan/admin transaksi 1%) dengan Nabung Mandiri (bunga 0%, admin 0%). Anda harus menghitung dan menyediakan data cicilan untuk tenor 3 bulan, 6 bulan, dan 12 bulan di dalam array plans. Berikan catatan konsekuensi nyata dari cicilan tersebut terhadap budget bulanan mereka dengan nada bersahabat.
 4. **Saran Strategi Mengelola Uang**:
-   Berikan saran bagaimana target nominal tersebut secara masuk akal bisa dicapai dalam berapa bulan dengan menyisihkan nominal tabungan tertentu yang realistis dari sisa anggaran bulanan mereka. Jangan terpaku pada durasi target dari user jika itu tidak realistis (misal target user 1 bulan padahal harga barang terlalu mahal dibanding gajinya, maka hitunglah durasi bulan yang masuk akal dan sehat).
-   - Rencana Target Nabung Masuk Akal: Hitung durasi bulan yang masuk akal dan alokasi tabungan per bulan untuk mencapai target tersebut dengan sisa anggaran mereka, lalu uraikan rencana tersebut.
+   Berikan saran bagaimana target nominal tersebut secara masuk akal bisa dicapai dalam berapa bulan dengan menyisihkan nominal tabungan tertentu yang realistis dari budget bulanan mereka. Jangan terpaku pada durasi target dari user jika itu tidak realistis (misal target user 1 bulan padahal harga barang terlalu mahal dibanding gajinya, maka hitunglah durasi bulan yang masuk akal dan sehat).
+   - Rencana Target Nabung Masuk Akal: Hitung durasi bulan yang masuk akal dan alokasi tabungan per bulan untuk mencapai target tersebut dengan budget bulanan mereka, lalu uraikan rencana tersebut.
    - Langkah Taktis Pengelolaan Uang: Berikan tips konkret mengelola keuangan bulanan (seperti auto-debet tabungan di awal bulan, dll) agar target aman tercapai.
 5. **Insight Psikologis & Emosional**:
    Identifikasi motivasi pembelian (apakah kebutuhan nyata, atau karena FOMO, gengsi, gengsi akademis, tekanan sosial, atau sekadar nafsu belanja sesaat). Berikan motivasi finansial yang bijak dan ingatkan risiko kesehatan mental (stres cicilan, lingkaran setan utang) jika nekat membelinya demi gengsi.
@@ -252,7 +242,7 @@ Anda WAJIB memberikan respon dalam format JSON murni dengan skema berikut:
   },
   "realMarketPrice": string, // Perkiraan rincian spesifikasi dan rentang harga pasar nyata terupdate dari targetName di lapangan secara lengkap.
   "priceComparisonNote": string, // Komparasi jujur, rinci, dan tegas antara nominal target user ("targetValue") dengan harga pasar nyata.
-  "alternativeSuggestions": string[], // 2-3 rekomendasi pilihan barang spesifik & kisaran harganya yang LEBIH REALISTIS dan SEHAT untuk dibeli sesuai dengan kapasitas budget bulanan/tabungan nyata pengguna (misalnya, jika budget mepet dan sisa uang sedikit sedangkan targetnya iPhone seharga Rp 15.000.000, berikan rekomendasi tipe HP Android range Rp 2.000.000 - Rp 3.000.000 yang bisa dibeli cash dengan cepat).
+  "alternativeSuggestions": string[], // 2-3 rekomendasi pilihan barang spesifik & kisaran harganya yang LEBIH REALISTIS dan SEHAT untuk dibeli sesuai dengan kapasitas budget bulanan/tabungan nyata pengguna (misalnya, jika budget mepet sedangkan targetnya iPhone seharga Rp 15.000.000, berikan rekomendasi tipe HP Android range Rp 2.000.000 - Rp 3.000.000 yang bisa dibeli cash dengan cepat).
   "budgetEvolution": string[], // 2 poin perkembangan alokasi budget detail.
   "emergencyMode": {
     "isActive": boolean,
@@ -402,15 +392,20 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
       const delayMonths = remainingBudget > 0 ? Math.max(0, Number(calculatedMonthsNeeded) - monthsDiff) : "tidak terhingga";
 
       // Tailored fallback terms
+      const curhatLower = (keteranganTambahan || "").toLowerCase();
+      const isMahasiswa = curhatLower.includes("mahasiswa") || curhatLower.includes("kuliah") || curhatLower.includes("kos") || curhatLower.includes("sekolah");
+      const isUMKM = curhatLower.includes("umkm") || curhatLower.includes("usaha") || curhatLower.includes("bisnis") || curhatLower.includes("toko");
+      const isFreelancer = curhatLower.includes("freelance") || curhatLower.includes("proyek") || curhatLower.includes("harian");
+
       let profileNote = "keuangan kamu";
       let tipsNote = "pangkas pengeluaran non-esensial";
-      if (userProfile === "Mahasiswa" || userProfile === "Anak kos") {
+      if (isMahasiswa) {
         profileNote = "anggaran mahasiswa/kos kamu";
         tipsNote = "kurangi jajan luar, kurangi kopi susu nongkrong, dan masak sendiri";
-      } else if (userProfile === "UMKM skala kecil") {
+      } else if (isUMKM) {
         profileNote = "kas bisnis UMKM kamu";
         tipsNote = "pisahkan kas pribadi dan kas usaha agar arus modal tidak bocor";
-      } else if (userProfile === "Freelancer" || userProfile === "Pekerja harian") {
+      } else if (isFreelancer) {
         profileNote = "pos pendapatan tidak menentumu";
         tipsNote = "sisihkan ekstra saat proyek ramai dan jangan tergiur konsumsi berlebihan";
       }
@@ -447,10 +442,9 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
 
       const isPrestige = targetName.toLowerCase().includes("iphone") || 
                          targetName.toLowerCase().includes("flagship") || 
-                         keteranganTambahan.toLowerCase().includes("gengsi") || 
-                         keteranganTambahan.toLowerCase().includes("fomo") ||
-                         userProfile === "Mahasiswa" || 
-                         userProfile === "Anak kos";
+                         curhatLower.includes("gengsi") || 
+                         curhatLower.includes("fomo") ||
+                         isMahasiswa;
 
       let fallbackMonthlySaving = 0;
       let fallbackMonthsNeeded = 12;
@@ -465,6 +459,45 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
         fallbackMonthsNeeded = Math.ceil(targetValNum / fallbackMonthlySaving);
       }
 
+      const targetLower = targetName.toLowerCase();
+      let fallbackAlternatives: string[] = [];
+
+      if (targetLower.includes("hp") || targetLower.includes("phone") || targetLower.includes("samsung") || targetLower.includes("iphone") || targetLower.includes("android") || targetLower.includes("xiaomi") || targetLower.includes("oppo")) {
+        fallbackAlternatives = [
+          "Samsung Galaxy A15 (Rp 2.900.000) - Opsi HP Android stabil & terjangkau",
+          "Redmi Note 13 (Rp 2.500.000) - Spesifikasi unggul dengan harga bersahabat",
+          "Samsung Galaxy A05 (Rp 1.500.000) - Alternatif paling ekonomis untuk kebutuhan pokok"
+        ];
+      } else if (targetLower.includes("laptop") || targetLower.includes("komputer") || targetLower.includes("pc") || targetLower.includes("macbook") || targetLower.includes("asus") || targetLower.includes("lenovo")) {
+        fallbackAlternatives = [
+          "ASUS Vivobook Go 14 (Rp 5.800.000) - Ringan, andal, cocok untuk produktivitas",
+          "Lenovo IdeaPad Slim 1 (Rp 4.900.000) - Performa mumpuni dengan harga bersahabat",
+          "Acer Aspire Lite 14 (Rp 4.500.000) - Pilihan ekonomis untuk tugas harian"
+        ];
+      } else if (targetLower.includes("motor") || targetLower.includes("honda") || targetLower.includes("yamaha") || targetLower.includes("kendaraan")) {
+        fallbackAlternatives = [
+          "Honda Beat Second (Rp 8.000.000 - Rp 10.000.000) - Irit bahan bakar dan mudah perawatannya",
+          "Yamaha Mio Second (Rp 6.000.000 - Rp 8.000.000) - Pilihan murah meriah untuk harian"
+        ];
+      } else {
+        if (targetValNum > 10000000) {
+          fallbackAlternatives = [
+            `Cari barang sejenis versi bekas berkualitas dengan rentang harga Rp ${Math.round(targetValNum * 0.5).toLocaleString("id-ID")} - Rp ${Math.round(targetValNum * 0.6).toLocaleString("id-ID")}`,
+            `Pertimbangkan opsi rental/sewa jika frekuensi pemakaian barang ini rendah`
+          ];
+        } else if (targetValNum > 2000000) {
+          fallbackAlternatives = [
+            `Cari alternatif merk lokal atau seri tahun lalu yang menawarkan fungsi serupa dengan harga Rp ${Math.round(targetValNum * 0.6).toLocaleString("id-ID")} - Rp ${Math.round(targetValNum * 0.7).toLocaleString("id-ID")}`,
+            `Beli versi second-hand/bekas layak pakai untuk menghemat hingga 40% budget`
+          ];
+        } else {
+          fallbackAlternatives = [
+            `Tunda pembelian selama 1 bulan untuk membedakan kebutuhan esensial dari keinginan impulsif`,
+            `Cari promo diskon belanja atau beli saat event promo e-commerce untuk mendapatkan harga terbaik`
+          ];
+        }
+      }
+
       aiAnalysis = {
         score,
         riskLevel,
@@ -474,15 +507,15 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
           isRealistic: !isUnrealistic && !isDeficit,
           impactDescription: isKebutuhan
             ? (isDeficit
-              ? `Karena "${targetName}" adalah kebutuhan pentingmu Kak, sisa anggaran bulananmu yang sedang defisit sebesar Rp ${Math.abs(remainingBudget).toLocaleString("id-ID")} saat ini menjadi tantangan utama. Tapi jangan khawatir, kita bisa cari solusi bersama dengan menyusun ulang prioritas pengeluaran bulananmu agar kebutuhan vital ini lekas terpenuhi.`
+              ? `Karena "${targetName}" adalah kebutuhan pentingmu Kak, budget bulananmu yang sedang defisit sebesar Rp ${Math.abs(remainingBudget).toLocaleString("id-ID")} saat ini menjadi tantangan utama. Tapi jangan khawatir, kita bisa cari solusi bersama dengan menyusun ulang prioritas pengeluaran bulananmu agar kebutuhan vital ini lekas terpenuhi.`
               : isUnrealistic
-              ? `Membeli kebutuhan "${targetName}" seharga Rp ${targetValNum.toLocaleString("id-ID")} sangat bisa diwujudkan! Hanya saja, sisa budgetmu Rp ${remainingBudget.toLocaleString("id-ID")}/bulan butuh waktu sekitar ${calculatedMonthsNeeded} bulan untuk menabung secara penuh. Mari kita sesuaikan target waktunya agar rencana belanja ini terasa lebih ringan dan realistis.`
-              : `Kabar baik Kak! Kebutuhan "${targetName}" seharga Rp ${targetValNum.toLocaleString("id-ID")} ini sangat realistis untuk dipenuhi secara tunai dengan sisa uang bulananmu Rp ${remainingBudget.toLocaleString("id-ID")}/bulan dalam waktu sekitar ${monthsDiff} bulan.`)
+              ? `Membeli kebutuhan "${targetName}" seharga Rp ${targetValNum.toLocaleString("id-ID")} sangat bisa diwujudkan! Hanya saja, budget bulananmu Rp ${Number(monthlyBudget).toLocaleString("id-ID")}/bulan butuh waktu sekitar ${calculatedMonthsNeeded} bulan untuk menabung secara penuh. Mari kita sesuaikan target waktunya agar rencana belanja ini terasa lebih ringan dan realistis.`
+              : `Kabar baik Kak! Kebutuhan "${targetName}" seharga Rp ${targetValNum.toLocaleString("id-ID")} ini sangat realistis untuk dipenuhi secara tunai dengan budget bulananmu Rp ${Number(monthlyBudget).toLocaleString("id-ID")}/bulan dalam waktu sekitar ${monthsDiff} bulan.`)
             : (isDeficit
-              ? `Arus kas bulananmu saat ini sedang defisit sebesar Rp ${Math.abs(remainingBudget).toLocaleString("id-ID")}. Memaksakan diri membeli "${targetName}" seharga Rp ${targetValNum.toLocaleString("id-ID")} saat ini hanya akan memicu kecemasan finansial dan mengancam kestabilan kebutuhan pokokmu sehari-hari.`
+              ? `Budget bulananmu saat ini sedang defisit sebesar Rp ${Math.abs(remainingBudget).toLocaleString("id-ID")}. Memaksakan diri membeli "${targetName}" seharga Rp ${targetValNum.toLocaleString("id-ID")} saat ini hanya akan memicu kecemasan finansial dan mengancam kestabilan kebutuhan pokokmu sehari-hari.`
               : isUnrealistic
-              ? `Membeli "${targetName}" seharga Rp ${targetValNum.toLocaleString("id-ID")} dalam waktu dekat rasanya kurang realistis dengan sisa budgetmu yang Rp ${remainingBudget.toLocaleString("id-ID")}/bulan. Kamu butuh waktu menabung sekitar ${calculatedMonthsNeeded} bulan secara disiplin. Mengharapkan barang ini terkumpul terlalu cepat hanya akan membuatmu tertekan secara batin dan rentan terjebak utang instan.`
-              : `Rencana belanjamu cukup aman dan realistis! Dengan menyisihkan sisa uang bulanan Rp ${remainingBudget.toLocaleString("id-ID")}/bulan, kamu bisa membawa pulang "${targetName}" dalam waktu sekitar ${monthsDiff} bulan secara tunai.`)
+              ? `Membeli "${targetName}" seharga Rp ${targetValNum.toLocaleString("id-ID")} dalam waktu dekat rasanya kurang realistis dengan budget bulananmu yang Rp ${Number(monthlyBudget).toLocaleString("id-ID")}/bulan. Kamu butuh waktu menabung sekitar ${calculatedMonthsNeeded} bulan secara disiplin. Mengharapkan barang ini terkumpul terlalu cepat hanya akan membuatmu tertekan secara batin dan rentan terjebak utang instan.`
+              : `Rencana belanjamu cukup aman dan realistis! Dengan menyisihkan dari budget bulanan Rp ${Number(monthlyBudget).toLocaleString("id-ID")}/bulan, kamu bisa membawa pulang "${targetName}" dalam waktu sekitar ${monthsDiff} bulan secara tunai.`)
         },
         verdictOpinion: {
           title: decisionVerdict === "BOLEH_BELI"
@@ -498,15 +531,15 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
               : decisionVerdict === "TUNDA"
               ? `Saran hangatku, mari kita tunda rencana pembelian ini selama beberapa bulan. Jaga kestabilan kas dasarmu dulu agar ketika barang kebutuhan ini dibeli, kamu tidak berada dalam kondisi rentan secara finansial.`
               : decisionVerdict === "BELI_DENGAN_MENABUNG"
-              ? `Aku dukung penuh rencana ini Kak! Cara terbaik adalah mencicil tabungan bulanan secara konsisten dari sisa budget bulananmu Rp ${remainingBudget.toLocaleString("id-ID")}. Menabung secara tunai adalah solusi paling berkah dan aman dibanding terjerat paylater.`
+              ? `Aku dukung penuh rencana ini Kak! Cara terbaik adalah mencicil tabungan bulanan secara konsisten dari budget bulananmu Rp ${Number(monthlyBudget).toLocaleString("id-ID")}. Menabung secara tunai adalah solusi paling berkah dan aman dibanding terjerat paylater.`
               : `Luar biasa Kak! Postur keuanganmu sangat prima dan siap mendukung pembelian kebutuhan penting ini secara tunai tanpa kendala. Silakan dibeli secara langsung ya!`)
             : (decisionVerdict === "JANGAN_BELI"
               ? `Aku ngerti banget kamu pengen banget punya "${targetName}", tapi kalau melihat kas bulananmu yang lagi defisit atau terpaksa pakai pinjol/judi, rasanya ini bahaya banget buat masa depanmu. Yuk, fokus sehatin keuanganmu dulu ya, Kak!`
               : decisionVerdict === "TUNDA"
-              ? `Saran aku, mending rencana ini ditunda dulu ya. Sisa uang bulananmu masih mepet banget, kasihan kalau dipakai beli barang tersier saat ini nanti kamu nggak punya pegangan cadangan kalau ada keperluan mendadak.`
+              ? `Saran aku, mending rencana ini ditunda dulu ya. Budget bulananmu masih mepet banget, kasihan kalau dipakai beli barang tersier saat ini nanti kamu nggak punya pegangan cadangan kalau ada keperluan mendadak.`
               : decisionVerdict === "BELI_DENGAN_MENABUNG"
-              ? `Kamu boleh banget beli barang ini, tapi syaratnya harus sabar menabung tunai secara bertahap ya! Sisa budget bulananmu sebesar Rp ${remainingBudget.toLocaleString("id-ID")} bisa kamu sisihkan secara disiplin tanpa perlu mencicil pakai paylater.`
-              : `Wah, kondisi keuanganmu lagi sehat banget nih! Kamu punya sisa budget bulanan yang aman dan nggak mengganggu kebutuhan pokok harianmu. Silakan dibeli secara cash ya!`)
+              ? `Kamu boleh banget beli barang ini, tapi syaratnya harus sabar menabung tunai secara bertahap ya! Budget bulananmu sebesar Rp ${Number(monthlyBudget).toLocaleString("id-ID")} bisa kamu sisihkan secara disiplin tanpa perlu mencicil pakai paylater.`
+              : `Wah, kondisi keuanganmu lagi sehat banget nih! Kamu punya budget bulanan yang aman dan nggak mengganggu kebutuhan pokok harianmu. Silakan dibeli secara cash ya!`)
         },
         paylaterSimulation: {
           cashPrice: targetValNum,
@@ -517,10 +550,10 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
           adminRatePct,
           interestRatePct,
           plans,
-          consequencesNote: `Jika kamu nekat mencicil, cicilan bulanan sebesar Rp ${monthlyDebtPayment.toLocaleString("id-ID")} akan menyerap sekitar ${debtImpactPct}% dari sisa anggaran belanjamu setiap bulan. Hal ini merusak fleksibilitas finansial harianmu secara signifikan.`
+          consequencesNote: `Jika kamu nekat mencicil, cicilan bulanan sebesar Rp ${monthlyDebtPayment.toLocaleString("id-ID")} akan menyerap sekitar ${debtImpactPct}% dari budget bulananmu setiap bulan. Hal ini merusak fleksibilitas finansial harianmu secara signifikan.`
         },
         opportunityCost: {
-          investmentAlternative: `Target belanja sebesar Rp ${targetValNum.toLocaleString("id-ID")} secara masuk akal bisa kamu capai dalam waktu sekitar ${fallbackMonthsNeeded} bulan dengan disiplin menabung sebesar Rp ${fallbackMonthlySaving.toLocaleString("id-ID")} per bulan dari sisa anggaran belanjamu.`,
+          investmentAlternative: `Target belanja sebesar Rp ${targetValNum.toLocaleString("id-ID")} secara masuk akal bisa kamu capai dalam waktu sekitar ${fallbackMonthsNeeded} bulan dengan disiplin menabung sebesar Rp ${fallbackMonthlySaving.toLocaleString("id-ID")} per bulan dari budget bulananmu.`,
           savingAlternative: `Untuk mempermudah rencana ini, kamu bisa menggunakan sistem auto-debet otomatis sebesar Rp ${fallbackMonthlySaving.toLocaleString("id-ID")} ke rekening terpisah sesaat setelah gajian, serta menghentikan sementara pengeluaran tersier yang kurang mendesak.`
         },
         psychologicalInsight: {
@@ -538,13 +571,13 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
         },
         impactOnTarget: isDeficit 
           ? (isKebutuhan
-            ? `Karena ini kebutuhan pentingmu Kak, sisa anggaran yang defisit saat ini menjadi tantangan. Tapi kita bisa atur pemotongan pos belanja non-esensial agar tabungan kebutuhan ini bisa segera terkumpul.`
+            ? `Karena ini kebutuhan pentingmu Kak, budget bulanan yang sedang defisit saat ini menjadi tantangan. Tapi kita bisa atur pemotongan pos belanja non-esensial agar tabungan kebutuhan ini bisa segera terkumpul.`
             : `Anggaran bulananmu sedang defisit sebesar Rp ${Math.abs(remainingBudget).toLocaleString("id-ID")}. Pembelian "${targetName}" bernilai Rp ${targetValNum.toLocaleString("id-ID")} saat ini mustahil dilakukan secara tunai tanpa merusak stabilitas pengeluaran dasar.`)
           : isUnrealistic
           ? (isKebutuhan
-            ? `Membeli kebutuhan "${targetName}" membutuhkan sedikit kesabaran. Dengan sisa budget bulananmu, kamu butuh menabung selama sekitar ${calculatedMonthsNeeded} bulan agar target ini tercapai secara sehat.`
-            : `Membeli "${targetName}" kurang realistis dengan deadline ${monthsDiff} bulan. Dengan sisa uang Rp ${remainingBudget.toLocaleString("id-ID")}/bulan, kamu butuh waktu setidaknya ${calculatedMonthsNeeded} bulan untuk menabung secara penuh, mengakibatkan keterlambatan ${delayMonths} bulan dari target asal.`)
-          : `Rencana target "${targetName}" sangat realistis! Sisa uang bulananmu sebesar Rp ${remainingBudget.toLocaleString("id-ID")} berada di atas kebutuhan tabungan ideal bulanan Rp ${Math.round(requiredMonthlySavings).toLocaleString("id-ID")} per bulan.`,
+            ? `Membeli kebutuhan "${targetName}" membutuhkan sedikit kesabaran. Dengan budget bulananmu, kamu butuh menabung selama sekitar ${calculatedMonthsNeeded} bulan agar target ini tercapai secara sehat.`
+            : `Membeli "${targetName}" kurang realistis dengan deadline ${monthsDiff} bulan. Dengan budget bulanan Rp ${Number(monthlyBudget).toLocaleString("id-ID")}/bulan, kamu butuh waktu setidaknya ${calculatedMonthsNeeded} bulan untuk menabung secara penuh, mengakibatkan keterlambatan ${delayMonths} bulan dari target asal.`)
+          : `Rencana target "${targetName}" sangat realistis! Budget bulananmu sebesar Rp ${Number(monthlyBudget).toLocaleString("id-ID")} berada di atas kebutuhan tabungan ideal bulanan Rp ${Math.round(requiredMonthlySavings).toLocaleString("id-ID")} per bulan.`,
         healthScoreExplanation: isDeficit
           ? (isKebutuhan
             ? `Skor kesehatan rencana bernilai 30/100 karena kas bulananmu defisit. Meskipun ini kebutuhan penting, kita harus menutup defisit kas dulu agar kamu bisa menabung secara aman.`
@@ -552,15 +585,11 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
           : isUnrealistic
           ? (isKebutuhan
             ? `Skor kesehatan rencana bernilai ${score}/100. Kebutuhan penting ini bisa kamu cicil tabungannya secara sabar dan kita sesuaikan target waktunya agar cash flow harianmu tetap aman.`
-            : `Skor kesehatan rencana bernilai ${score}/100 karena kesenjangan finansial yang lebar. Sisa anggaranmu hanya Rp ${remainingBudget.toLocaleString("id-ID")}, sementara kamu memerlukan Rp ${Math.round(requiredMonthlySavings).toLocaleString("id-ID")} per bulan demi target tepat waktu.`)
+            : `Skor kesehatan rencana bernilai ${score}/100 karena kesenjangan finansial yang lebar. Budget bulananmu hanya Rp ${Number(monthlyBudget).toLocaleString("id-ID")}, sementara kamu memerlukan Rp ${Math.round(requiredMonthlySavings).toLocaleString("id-ID")} per bulan demi target tepat waktu.`)
           : `Skor kesehatan rencana bernilai ${score}/100 karena postur anggaran bulananmu berada dalam kondisi sehat. Kamu memiliki alokasi surplus dana yang memadai untuk menabung tanpa mengorbankan kebutuhan wajib harian.`,
         realMarketPrice: `Rp ${targetValNum.toLocaleString("id-ID")}`,
-        priceComparisonNote: `Kami menggunakan nilai target Rp ${targetValNum.toLocaleString("id-ID")} yang diajukan sebagai estimasi harga dasar barang di pasar saat ini.`,
-        alternativeSuggestions: targetName.toLowerCase() === "hp" || targetName.toLowerCase() === "handphone"
-          ? ["Samsung Galaxy A15 (Rp 2.900.000)", "Redmi Note 13 (Rp 2.500.000)"]
-          : targetName.toLowerCase() === "laptop"
-          ? ["ASUS Vivobook Go 14 (Rp 5.800.000)", "Lenovo IdeaPad Slim 1 (Rp 4.900.000)"]
-          : [],
+        priceComparisonNote: `Menggunakan nilai target Rp ${targetValNum.toLocaleString("id-ID")} yang diajukan sebagai estimasi harga dasar barang di pasar saat ini.`,
+        alternativeSuggestions: fallbackAlternatives,
         budgetEvolution: [
           `Pengeluaran bulanan menyerap sekitar ${((totalExpenses / monthlyBudget) * 100).toFixed(1)}% dari total budget bulananmu.`,
           `Sisa dana bulanan hanya mampu menutupi ${(feasibilityRatio * 100).toFixed(1)}% dari porsi tabungan ideal bulanan yang dibutuhkan.`
@@ -570,7 +599,7 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
           strategy: isDeficit
             ? `Taktik Pemulihan: Hentikan segala belanja tersier dengan segera. Fokus pada pemangkasan pengeluaran non-esensial dan carilah tambahan pendapatan untuk menyeimbangkan arus kas bulananmu.`
             : isUnrealistic
-            ? `Taktik Penyesuaian: Perpanjang batas waktu pencapaian targetmu menjadi minimal ${Math.ceil(Number(calculatedMonthsNeeded))} bulan. Ini akan menurunkan target tabungan bulanan menjadi setara sisa anggaranmu.`
+            ? `Taktik Penyesuaian: Perpanjang batas waktu pencapaian targetmu menjadi minimal ${Math.ceil(Number(calculatedMonthsNeeded))} bulan. Ini akan menurunkan target tabungan bulanan menjadi setara budget bulananmu.`
             : "Taktik Pemeliharaan: Anggaran stabil. Teruskan disiplin menabung dan pertahankan cadangan dana darurat minimal setara 3 bulan pengeluaran wajibmu."
         },
         sacrificeTransparency: parsedExpenses.slice(0, 2).map((exp: any) => {

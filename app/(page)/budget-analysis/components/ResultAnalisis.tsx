@@ -143,11 +143,11 @@ export function ResultAnalisis({
       {/* Header and Verdict */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-3">
         <div>
-          <h2 className="text-lg font-bold text-foreground">
-            Hasil Analisis <span className="text-violet-600">Keuangan Sobat</span>
+          <h2 className="text-lg font-semibold">
+            Hasil Analisis <span className="text-violet-600 font-bold">Keuangan mu nih</span>
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5 font-light">
-            Yuk cek pendapat dan kalkulasi jujur dari sahabat finansialmu.
+          <p className="text-xs mt-0.5 font-semibold text-gray-500">
+            Yuk Pertimbangkan Lagi apa yang mau kamu beli, Tabung dulu atau langsung beli
           </p>
         </div>
 
@@ -170,11 +170,10 @@ export function ResultAnalisis({
         {/* AI Professional Opinion Card */}
         <div className="md:col-span-8 p-4.5 rounded-xl bg-violet-600/[0.02] border border-violet-500/15 flex flex-col justify-between space-y-2">
           <div className="space-y-1">
-            <div className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1">
-              <HelpCircle size={13} className="text-violet-500" />
+            <div className="text-[14px] font-extrabold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1">
               {verdictOpinion.title || "Komentar Asisten Finansial"}
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed font-semibold pl-0.5 mt-1">
+            <p className="text-[13px] leading-relaxed font-medium text-gray-700 pl-0.5 mt-1 text-justify">
               {verdictOpinion.explanation}
             </p>
           </div>
@@ -186,7 +185,7 @@ export function ResultAnalisis({
         <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/[0.02] space-y-1.5 animate-in fade-in slide-in-from-top-1">
           <h4 className="text-[9px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
             <ShieldAlert size={14} className="animate-pulse text-rose-500" />
-            Peringatan Penting Buat Kamu ⚠️
+            Peringatan Penting Buat Kamu
           </h4>
           <p className="text-xs text-rose-600/90 dark:text-rose-400/90 leading-relaxed font-bold">
             {aiData.financialTrapWarning}
@@ -206,9 +205,8 @@ export function ResultAnalisis({
 
       {/* Final recommendation text */}
       <div className="p-4 rounded-xl bg-violet-500/[0.02] border border-violet-500/15 space-y-1">
-        <h4 className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1">
-          <Sparkles size={12} />
-          Saran Hangat Akhir dari Sahabatmu ❤️
+        <h4 className="text-xs font-bold uppercase flex items-center gap-2 mb-2">
+          Saran Akhir
         </h4>
         <p className="text-xs text-muted-foreground italic font-semibold leading-relaxed">
           "{aiData.aiRecommendationText}"

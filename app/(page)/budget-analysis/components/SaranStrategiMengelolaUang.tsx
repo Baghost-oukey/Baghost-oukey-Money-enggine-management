@@ -45,18 +45,17 @@ export function SaranStrategiMengelolaUang({
 
   return (
     <AccordionItem value="money-management-strategy" className="px-4">
-      <AccordionTrigger className="text-sm font-bold text-amber-600 dark:text-amber-400 hover:no-underline py-4 focus-visible:underline focus-visible:ring-0">
+      <AccordionTrigger className="text-sm font-semibold  hover:no-underline py-4 focus-visible:underline focus-visible:ring-0">
         <div className="flex items-center gap-2">
-          <Coins className="text-amber-500 shrink-0" size={15} />
-          <span>Saran Strategi Mengelola Uang 💸</span>
+          <span>Strategi Pengelolaan Uang </span>
         </div>
       </AccordionTrigger>
-      <AccordionContent className="pb-4 space-y-3 text-xs text-muted-foreground leading-relaxed">
+      <AccordionContent className="space-y-3 text-xs leading-relaxed">
         {canBuyImmediately ? (
           /* Success/Instant Buy Card */
-          <div className="p-4 rounded-xl bg-emerald-500/[0.02] border border-emerald-500/20 space-y-2">
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-widest block">
-              Bisa Langsung Beli Tunai! 💰
+          <div className="p-4 rounded-xl  border space-y-2">
+            <span className="text-[10px] font-semibold uppercase tracking-widest block">
+              Bisa Langsung Beli Tunai!
             </span>
             <p className="text-foreground leading-relaxed font-semibold">
               Kamu tidak perlu menabung bertahap atau berutang! Uang bulananmu sebesar{" "}
@@ -71,8 +70,8 @@ export function SaranStrategiMengelolaUang({
           </div>
         ) : (
           /* Daily & Monthly Saving Target Recommendation */
-          <div className="p-3.5 rounded-xl bg-emerald-500/[0.02] border border-emerald-500/20 space-y-3">
-            <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide block">
+          <div className="p-2 rounded-xl space-y-2">
+            <span className="text-xs font-semibold uppercase block">
               Rencana Target Nabung Terbaik (Harian vs Bulanan)
             </span>
 

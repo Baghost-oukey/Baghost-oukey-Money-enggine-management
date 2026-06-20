@@ -15,27 +15,26 @@ interface InsightPsikologisProps {
 export function InsightPsikologis({ psychologicalInsight }: InsightPsikologisProps) {
   return (
     <AccordionItem value="psychological-insight" className="px-4">
-      <AccordionTrigger className="text-sm font-bold text-sky-600 dark:text-sky-400 hover:no-underline py-4 focus-visible:underline focus-visible:ring-0">
+      <AccordionTrigger className="text-sm font-bold hover:no-underline py-4 focus-visible:underline focus-visible:ring-0">
         <div className="flex items-center gap-2">
-          <Brain className="text-sky-500 shrink-0" size={15} />
-          <span>Insight Psikologis & Tips Emosional 🧠</span>
+          <span>Insight Psikologis & Tips Emosional</span>
         </div>
       </AccordionTrigger>
       <AccordionContent className="pb-4 space-y-3 text-xs leading-relaxed">
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground font-semibold">Pemicu Belanja:</span>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400">
+          <span className="text-xs font-semibold mx-1">Keputusan Anda Membeli Karena :</span>
+          <span className="text-xs font-bold px-2 text-justify py-0.5 rounded border bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400">
             {psychologicalInsight.purchaseDriver}
           </span>
         </div>
-        <p className="italic pl-1.5 border-l-2 text-muted-foreground leading-relaxed mt-1.5">
+        <p className="italic pl-2 border-l-2 text-muted-foreground leading-relaxed">
           "{psychologicalInsight.motivationText}"
         </p>
-        <div className="p-3 rounded-lg bg-rose-500/[0.02] border border-rose-500/10 text-xs">
-          <span className="text-[8px] text-rose-600 dark:text-rose-400 font-extrabold uppercase tracking-widest block mb-0.5">
-            Risiko Emosional & Mental
+        <div className="p-3 rounded-lg border text-xs">
+          <span className="text-[12px] text-red-600  font-extrabold uppercase block mb-1">
+            Catatan Untuk Anda
           </span>
-          <p className="text-muted-foreground leading-normal font-semibold">
+          <p className="leading-normal font-medium text-justify mx-2 text-red-500">
             {psychologicalInsight.riskText}
           </p>
         </div>

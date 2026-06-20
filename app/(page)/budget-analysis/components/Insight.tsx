@@ -17,7 +17,7 @@ export function InsightPsikologis({ psychologicalInsight }: InsightPsikologisPro
     <AccordionItem value="psychological-insight" className="px-4">
       <AccordionTrigger className="text-sm font-bold hover:no-underline py-4 focus-visible:underline focus-visible:ring-0">
         <div className="flex items-center gap-2">
-          <span>Insight Psikologis & Tips Emosional</span>
+          <span>Pertimbangan Anda</span>
         </div>
       </AccordionTrigger>
       <AccordionContent className="pb-4 space-y-3 text-xs leading-relaxed">

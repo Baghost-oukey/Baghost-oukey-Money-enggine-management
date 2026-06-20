@@ -8,9 +8,9 @@ import {
   calculatePaylaterPlans 
 } from "./analysisUtils";
 import { SimulasiNabungVsPaylater } from "./SimulasiNabungVsPaylater";
-import { SaranStrategiMengelolaUang } from "./SaranStrategiMengelolaUang";
-import { InsightPsikologis } from "./InsightPsikologis";
-import { KabarHargaPasar } from "./KabarHargaPasar";
+import { SaranStrategiMengelolaUang } from "./Saran";
+import { InsightPsikologis } from "./Insight";
+import { KabarHargaPasar } from "./HargaPasar";
 import { TaktikKeuangan } from "./TaktikKeuangan";
 
 interface ResultCommentsProps {
@@ -20,6 +20,9 @@ interface ResultCommentsProps {
   remainingBudget: number;
   totalExpenses: number;
   target: string;
+  monthlyBudget?: number;
+  jenisTarget?: string;
+  keteranganTambahan?: string;
 }
 
 export function ResultComments({
@@ -29,6 +32,9 @@ export function ResultComments({
   remainingBudget,
   totalExpenses,
   target,
+  monthlyBudget,
+  jenisTarget,
+  keteranganTambahan,
 }: ResultCommentsProps) {
   const targetValNum = Number(targetValue || 0);
 
@@ -108,6 +114,10 @@ export function ResultComments({
         monthlyTimeline={monthlyTimeline}
         remainingBudget={remainingBudget}
         opportunityCost={opportunityCost}
+        totalExpenses={totalExpenses}
+        monthlyBudget={monthlyBudget}
+        jenisTarget={jenisTarget}
+        keteranganTambahan={keteranganTambahan}
       />
 
       {/* 6. Insight Psikologis */}

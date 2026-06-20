@@ -201,6 +201,9 @@ export function ResultAnalisis({
         remainingBudget={remainingBudget}
         totalExpenses={totalExpenses || 0}
         target={target}
+        monthlyBudget={monthlyBudget}
+        jenisTarget={analysisResult?.jenisTarget || aiData?.jenisTarget}
+        keteranganTambahan={analysisResult?.keteranganTambahan || aiData?.keteranganTambahan}
       />
 
       {/* Final recommendation text */}

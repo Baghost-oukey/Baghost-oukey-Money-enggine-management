@@ -325,3 +325,126 @@ export function getFallbackAIData(
     jenisTarget: undefined
   };
 }
+
+export interface DailyAnalysis {
+  status: string;
+  badgeClass: string;
+  message: string;
+  lifestyleCut: string;
+  reason: string;
+  options: string[];
+}
+
+export interface MonthlyAnalysis {
+  status: string;
+  badgeClass: string;
+  message: string;
+  reason: string;
+  options: string[];
+}
+
+export function analyzeDailySavings(
+  surplus: number,
+  suggestedDailySaving: number,
+  suggestedDaysNeeded: number,
+  targetValNum: number,
+  jenisTarget: string
+): DailyAnalysis {
+  const dailyMonthlyEquiv = suggestedDailySaving * 30;
+  let status = "Aman Banget";
+  let badgeClass = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+  let message = "";
+
+  if (surplus <= 0) {
+    status = "Dompet Lagi Minus";
+    badgeClass = "bg-rose-500/10 text-rose-600 dark:text-rose-400";
+    message = `Kondisi uang bulananmu sekarang lagi seret/minus nih. Kalau dipaksa nyisihin Rp ${suggestedDailySaving.toLocaleString("id-ID")}/hari, yang ada dompetmu malah tekor Rp ${dailyMonthlyEquiv.toLocaleString("id-ID")} sebulan. Kamu terpaksa harus ngurangin belanjaan penting biar nggak makin pusing.`;
+  } else {
+    const dailyPct = Math.round((dailyMonthlyEquiv / surplus) * 100);
+    if (dailyPct <= 30) {
+      status = "Aman Banget";
+      badgeClass = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+      message = `Tenang, ini aman banget buat dompetmu! Uang harian segini cuma kepakai sekitar ${dailyPct}% dari sisa uang bulananmu. Kamu masih punya sisa uang cadangan tebal Rp ${(surplus - dailyMonthlyEquiv).toLocaleString("id-ID")} buat pegangan bulan ini.`;
+    } else if (dailyPct <= 75) {
+      status = "Masih Aman (Pas-pasan)";
+      badgeClass = "bg-amber-500/10 text-amber-600 dark:text-amber-400";
+      message = `Masih aman kok, tapi kamu harus agak nahan diri ya. Tabungan harian ini bakal makan sekitar ${dailyPct}% dari sisa uang bulananmu. Sisa uang peganganmu tinggal Rp ${(surplus - dailyMonthlyEquiv).toLocaleString("id-ID")}, jadi jangan boros-boros ya!`;
+    } else if (dailyPct <= 100) {
+      status = "Mepet Banget";
+      badgeClass = "bg-orange-500/10 text-orange-600 dark:text-orange-400";
+      message = `Duh, ini mepet lho buat dompetmu! Nyisihin jatah harian segini bakal ngabisin hampir semua sisa uang bulananmu (${dailyPct}%). Uang pegangan daruratmu tinggal Rp ${(surplus - dailyMonthlyEquiv).toLocaleString("id-ID")} doang.`;
+    } else {
+      status = "Bisa Tekor/Defisit";
+      badgeClass = "bg-rose-500/10 text-rose-600 dark:text-rose-400";
+      message = `Gawat, tabungan harian segini kegedean buat dompetmu (${dailyPct}% dari sisa uangmu). Keuanganmu bakal nomok/minus Rp ${(dailyMonthlyEquiv - surplus).toLocaleString("id-ID")} sebulan kalau belanjaan rutin nggak dipotong.`;
+    }
+  }
+
+  let lifestyleCut = "";
+  if (suggestedDailySaving < 15000) {
+    lifestyleCut = "Jatah harian segini setara dengan ngurangin jajan es teh manis, camilan sore, atau uang parkir";
+  } else if (suggestedDailySaving < 40000) {
+    lifestyleCut = "Jatah harian segini setara dengan bawa bekal makan siang dari rumah dan nahan diri nggak beli es kopi susu kekinian dulu";
+  } else {
+    lifestyleCut = "Jatah harian segini setara dengan nunda beli barang hobi, jalan-jalan weekend, atau biaya langganan aplikasi/streaming bulanan";
+  }
+
+  const reason = `Nabung Rp ${suggestedDailySaving.toLocaleString("id-ID")} sehari itu masuk akal biar barang impianmu seharga Rp ${targetValNum.toLocaleString("id-ID")} bisa kebeli secara sehat. Apalagi ini kan masuk kategori "${jenisTarget}", nabung harian gini bagus banget buat ngetes apakah kamu beneran butuh barangnya atau cuma laper mata (impulsif) doang, biar nggak gampang ngutang.`;
+
+  const options = [
+    `Mau Lebih Cepat? Kamu bisa nabung lebih agresif jadi Rp ${(Math.round((suggestedDailySaving * 1.5) / 1000) * 1000).toLocaleString("id-ID")}/hari biar barangnya kebeli dalam ~${Math.round(suggestedDaysNeeded / 1.5)} hari aja.`,
+    `Mau Lebih Santai? Turunin aja jadi Rp ${(Math.round((suggestedDailySaving * 0.7) / 1000) * 1000 || 5000).toLocaleString("id-ID")}/hari biar dompet nggak seret, tapi barangnya baru kebeli dalam ~${Math.round(suggestedDaysNeeded / 0.7)} hari ya.`,
+    `Biar nggak gampang kepakai, masukin uang harianmu ke celengan fisik atau fitur kunci saldo di dompet digitalmu tiap malam.`
+  ];
+
+  return { status, badgeClass, message, lifestyleCut, reason, options };
+}
+
+export function analyzeMonthlySavings(
+  surplus: number,
+  suggestedMonthlySaving: number,
+  suggestedMonthsNeeded: number,
+  targetValNum: number,
+  income: number
+): MonthlyAnalysis {
+  let status = "Pilihan Paling Pas";
+  let badgeClass = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+  let message = "";
+
+  if (surplus <= 0) {
+    status = "Dompet Lagi Minus";
+    badgeClass = "bg-rose-500/10 text-rose-600 dark:text-rose-400";
+    message = `Uang bulananmu lagi minus nih. Kalau kamu nekat nyisihin Rp ${suggestedMonthlySaving.toLocaleString("id-ID")} sebulan, dompetmu bakal makin tekor. Mending tunda dulu atau kurang-kurangi pengeluaran yang nggak penting ya.`;
+  } else {
+    const monthlyPct = Math.round((suggestedMonthlySaving / surplus) * 100);
+    if (monthlyPct <= 30) {
+      status = "Pilihan Paling Pas";
+      badgeClass = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+      message = `Ini pilihan paling direkomendasiin! Nabung Rp ${suggestedMonthlySaving.toLocaleString("id-ID")} sebulan cuma kepakai dikit kok dari sisa uang bulananmu (sekitar ${monthlyPct}%). Sisa uang peganganmu masih tebal, ada Rp ${(surplus - suggestedMonthlySaving).toLocaleString("id-ID")}, jadi hidup tetap tenang.`;
+    } else if (monthlyPct <= 75) {
+      status = "Cukup Aman";
+      badgeClass = "bg-amber-500/10 text-amber-600 dark:text-amber-400";
+      message = `Dompetmu masih aman kok! Nabung bulanan segini bakal makan sekitar ${monthlyPct}% dari sisa uang bulananmu. Tapi ingat, sisa uang cadanganmu tinggal Rp ${(surplus - suggestedMonthlySaving).toLocaleString("id-ID")}, jadi harus pintar-pintar atur pengeluaran jajan ya.`;
+    } else if (monthlyPct <= 100) {
+      status = "Mepet/Risiko Tinggi";
+      badgeClass = "bg-orange-500/10 text-orange-600 dark:text-orange-400";
+      message = `Waduh, dompetmu bakal kerasa seret dan mepet banget karena tabungan ini makan ${monthlyPct}% dari sisa uang bulananmu. Sisa uang buat pegangan darurat tinggal Rp ${(surplus - suggestedMonthlySaving).toLocaleString("id-ID")} doang.`;
+    } else {
+      status = "Beban Berlebih (Minus)";
+      badgeClass = "bg-rose-500/10 text-rose-600 dark:text-rose-400";
+      message = `Aduh, nabung Rp ${suggestedMonthlySaving.toLocaleString("id-ID")} sebulan itu kegedean buat dompetmu sekarang (lebih sekitar ${monthlyPct}%). Kamu bakal nomok/minus Rp ${(suggestedMonthlySaving - surplus).toLocaleString("id-ID")} tiap bulan. Daripada nanti pusing utang ke mana-mana, mending potong uang jajanmu dulu ya.`;
+    }
+  }
+
+  const monthlyPctIncome = income > 0 ? Math.round((suggestedMonthlySaving / income) * 100) : 10;
+  const reason = `Nabung Rp ${suggestedMonthlySaving.toLocaleString("id-ID")} sebulan itu setara ${monthlyPctIncome}% dari total pendapatanmu. Angka ini pas banget biar kamu bisa beli barang seharga Rp ${targetValNum.toLocaleString("id-ID")} secara tunai tanpa perlu pusing mikirin cicilan paylater yang bunganya mencekik.`;
+
+  const options = [
+    `Pakai Fitur Auto-Debet: Langsung potong Rp ${suggestedMonthlySaving.toLocaleString("id-ID")} otomatis dari rekening gajianmu di awal bulan biar uangnya nggak telanjur habis buat jajan.`,
+    `Pakai Uang Kaget: Kalau dapat THR, bonus kerja, atau komisi proyek, langsung masukin sebagian besar ke tabungan ini biar barangnya bisa dibeli lebih cepat.`,
+    `Lihat Opsi Lain: Kalau nunggu ~${suggestedMonthsNeeded} bulan kelamaan, cek opsi barang alternatif di bawah yang harganya lebih ramah kantong.`
+  ];
+
+  return { status, badgeClass, message, reason, options };
+}
+

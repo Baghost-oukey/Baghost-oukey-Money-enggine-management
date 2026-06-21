@@ -7,11 +7,11 @@ import {
   generateSavingsTimelines, 
   calculatePaylaterPlans 
 } from "./analysisUtils";
-import { SimulasiNabungVsPaylater } from "./SimulasiNabungVsPaylater";
-import { SaranStrategiMengelolaUang } from "./Saran";
+import { SimulasiNabungVsPaylater } from "./SimulationCard";
+import { SaranStrategiMengelolaUang } from "./FeedbackCard";
 import { InsightPsikologis } from "./Insight";
 import { KabarHargaPasar } from "./HargaPasar";
-import { TaktikKeuangan } from "./TaktikKeuangan";
+import { TaktikKeuangan } from "./TaktikCard";
 
 interface ResultCommentsProps {
   aiData: any;
@@ -85,6 +85,7 @@ export function ResultComments({
   };
 
   const canBuyImmediately = remainingBudget > 0 && targetValNum <= remainingBudget * 0.3;
+  const isWantAndEnoughMoney = jenisTarget === "Keinginan" && remainingBudget >= targetValNum;
 
   return (
     <Accordion
@@ -93,7 +94,7 @@ export function ResultComments({
       className="w-full border rounded-xl overflow-hidden bg-card/15 backdrop-blur-sm"
     >
       {/* 4. Paylater Simulation */}
-      {aiData.paylaterSimulation && !canBuyImmediately && (
+      {aiData.paylaterSimulation && !canBuyImmediately && !isWantAndEnoughMoney && (
         <SimulasiNabungVsPaylater
           savingOptions={savingOptions}
           plans={plans}
@@ -103,22 +104,24 @@ export function ResultComments({
       )}
 
       {/* 5. Saran Strategi Mengelola Uang */}
-      <SaranStrategiMengelolaUang
-        targetValue={targetValue}
-        suggestedDailySaving={suggestedDailySaving}
-        suggestedDaysNeeded={suggestedDaysNeeded}
-        suggestedMonthlySaving={suggestedMonthlySaving}
-        suggestedMonthsNeeded={suggestedMonthsNeeded}
-        monthStep={monthStep}
-        dailyTimeline={dailyTimeline}
-        monthlyTimeline={monthlyTimeline}
-        remainingBudget={remainingBudget}
-        opportunityCost={opportunityCost}
-        totalExpenses={totalExpenses}
-        monthlyBudget={monthlyBudget}
-        jenisTarget={jenisTarget}
-        keteranganTambahan={keteranganTambahan}
-      />
+      {!isWantAndEnoughMoney && (
+        <SaranStrategiMengelolaUang
+          targetValue={targetValue}
+          suggestedDailySaving={suggestedDailySaving}
+          suggestedDaysNeeded={suggestedDaysNeeded}
+          suggestedMonthlySaving={suggestedMonthlySaving}
+          suggestedMonthsNeeded={suggestedMonthsNeeded}
+          monthStep={monthStep}
+          dailyTimeline={dailyTimeline}
+          monthlyTimeline={monthlyTimeline}
+          remainingBudget={remainingBudget}
+          opportunityCost={opportunityCost}
+          totalExpenses={totalExpenses}
+          monthlyBudget={monthlyBudget}
+          jenisTarget={jenisTarget}
+          keteranganTambahan={keteranganTambahan}
+        />
+      )}
 
       {/* 6. Insight Psikologis */}
       <InsightPsikologis psychologicalInsight={psychologicalInsight} />
@@ -134,10 +137,12 @@ export function ResultComments({
       )}
 
       {/* 8. Taktik Keuangan & Rencana Aksi */}
-      <TaktikKeuangan
-        strategy={aiData.emergencyMode?.strategy}
-        sacrificeTransparency={aiData.sacrificeTransparency}
-      />
+      {!isWantAndEnoughMoney && (
+        <TaktikKeuangan
+          strategy={aiData.emergencyMode?.strategy}
+          sacrificeTransparency={aiData.sacrificeTransparency}
+        />
+      )}
     </Accordion>
   );
 }

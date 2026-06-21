@@ -105,7 +105,7 @@ export function BudgetSummaryPreview({
                     ? "bg-violet-500/10 border-violet-500/20 text-violet-600 dark:text-violet-400"
                     : "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
                 )}>
-                  {jenisTarget === "Kebutuhan" ? "💼 Kebutuhan" : "⭐ Keinginan"}
+                  {jenisTarget === "Kebutuhan" ? "Kebutuhan" : "Keinginan"}
                 </span>
               )}
             </div>

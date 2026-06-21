@@ -148,6 +148,9 @@ PENTING - PANDUAN BAHASA & NADA BICARA (WAJIB DIIKUTI SECARA KETAT):
   * **Jika Kategori Target Belanja ("jenisTarget") adalah "Keinginan" (Wants)**:
     - Gunakan respons kritis yang mendidik dan protektif seperti yang sudah ada. Sadarkan pengguna jika rencana ini didorong oleh gengsi sosial, FOMO, atau sekadar keinginan sesaat.
     - Tekankan konsekuensi nyata dari cicilan paylater/kredit terhadap cash flow bulanan mereka agar mereka berpikir ulang dan memprioritaskan ketenangan pikiran daripada gengsi sosial semata.
+    - **ATURAN KHUSUS (Uang Cukup / Keuangan Mencukupi)**: Jika sisa uang buffer bulanan pengguna lebih besar atau sama dengan nominal target (sisa uang buffer >= nominal target), berarti keuangan pengguna sudah mencukupi untuk membeli barang ini secara tunai penuh. Dalam kondisi ini:
+      * Anda **TIDAK PERLU** menyarankan strategi menabung bulanan/harian atau alokasi cicilan di \`opportunityCost\` karena uangnya sudah cukup.
+      * Sebaliknya, buatlah rekomendasi yang berfokus pada **mempertimbangkan kembali urgensi dan sisi keinginan emosional/psikologis** (terutama jika barangnya terkesan untuk hobi, pajangan, mainan, koleksi, atau kesenangan). Ajak pengguna merefleksikan apakah barang pajangan/koleksi tersebut benar-benar bernilai jangka panjang atau sekadar kepuasan sesaat, agar mereka memikirkan ulang esensi membelinya sebelum mengeluarkan uang tunai yang mereka miliki.
 
 PENTING - TENTUKAN KEPUTUSAN FINAL DARI 4 PILIHAN BERIKUT (decisionVerdict):
 1. **BOLEH_BELI**: Rencana pembelian sangat realistis, dibayar tunai (cash) dari budget bulanan secara sehat, rasio kelayakan tabungan >= 100%, arus kas bulanan surplus stabil, dan tidak mengganggu dana darurat atau kebutuhan pokok harian.
@@ -313,6 +316,7 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
       const isUnrealistic = feasibilityRatio < 1.0;
       
       const isKebutuhan = jenisTarget === "Kebutuhan";
+      const isWantAndEnoughMoney = jenisTarget === "Keinginan" && remainingBudget >= targetValNum;
       let score = 95;
       let riskLevel = "Rendah";
       let decisionVerdict: "BOLEH_BELI" | "BELI_DENGAN_MENABUNG" | "TUNDA" | "JANGAN_BELI" = "BOLEH_BELI";
@@ -522,14 +526,18 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
               : `Rencana belanjamu cukup aman dan realistis! Dengan menyisihkan dari budget bulanan Rp ${Number(monthlyBudget).toLocaleString("id-ID")}/bulan, kamu bisa membawa pulang "${targetName}" dalam waktu sekitar ${monthsDiff} bulan secara tunai.`)
         },
         verdictOpinion: {
-          title: decisionVerdict === "BOLEH_BELI"
+          title: isWantAndEnoughMoney
+            ? "Pendapat Sahabatmu: Pertimbangkan Kembali Yuk! 🤔"
+            : decisionVerdict === "BOLEH_BELI"
             ? "Pendapat Sahabatmu: Boleh Banget Beli! 🎉"
             : decisionVerdict === "BELI_DENGAN_MENABUNG"
             ? "Pendapat Sahabatmu: Nabung Dulu Yuk! 💪"
             : decisionVerdict === "TUNDA"
             ? "Pendapat Sahabatmu: Kita Tunda Dulu Ya 🥺"
             : "Pendapat Sahabatmu: Mending Jangan Beli Dulu Deh 🙏",
-          explanation: isKebutuhan
+          explanation: isWantAndEnoughMoney
+            ? `Sisa uang bulananmu sebesar Rp ${remainingBudget.toLocaleString("id-ID")} sangat mencukupi untuk langsung membeli "${targetName}" seharga Rp ${targetValNum.toLocaleString("id-ID")} secara tunai. Namun, karena barang ini adalah keinginan/hobi (seperti koleksi atau pajangan), aku sangat menyarankanmu memikirkan kembali urgensinya sebelum benar-benar membelinya.`
+            : isKebutuhan
             ? (decisionVerdict === "JANGAN_BELI"
               ? `Aduh Kak, walaupun "${targetName}" adalah kebutuhan dasar, kondisi dana bulananmu yang minus atau penggunaan judol membuat rencana ini harus dihentikan dulu. Solusi utamaku: mari kita sehatkan dulu keuanganmu agar bisa membelinya dengan dana yang berkah.`
               : decisionVerdict === "TUNDA"
@@ -557,8 +565,12 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
           consequencesNote: `Jika kamu nekat mencicil, cicilan bulanan sebesar Rp ${monthlyDebtPayment.toLocaleString("id-ID")} akan menyerap sekitar ${debtImpactPct}% dari budget bulananmu setiap bulan. Hal ini merusak fleksibilitas finansial harianmu secara signifikan.`
         },
         opportunityCost: {
-          investmentAlternative: `Target belanja sebesar Rp ${targetValNum.toLocaleString("id-ID")} secara masuk akal bisa kamu capai dalam waktu sekitar ${fallbackMonthsNeeded} bulan dengan disiplin menabung sebesar Rp ${fallbackMonthlySaving.toLocaleString("id-ID")} per bulan dari budget bulananmu.`,
-          savingAlternative: `Untuk mempermudah rencana ini, kamu bisa menggunakan sistem auto-debet otomatis sebesar Rp ${fallbackMonthlySaving.toLocaleString("id-ID")} ke rekening terpisah sesaat setelah gajian, serta menghentikan sementara pengeluaran tersier yang kurang mendesak.`
+          investmentAlternative: isWantAndEnoughMoney
+            ? `Sisa uang bulananmu sudah mencukupi untuk membeli barang ini secara tunai penuh, sehingga kamu tidak perlu menabung bertahap. Namun, coba pertimbangkan kembali apakah uang sebesar Rp ${targetValNum.toLocaleString("id-ID")} ini lebih baik dialokasikan untuk tabungan darurat atau diinvestasikan agar nilainya berkembang.`
+            : `Target belanja sebesar Rp ${targetValNum.toLocaleString("id-ID")} secara masuk akal bisa kamu capai dalam waktu sekitar ${fallbackMonthsNeeded} bulan dengan disiplin menabung sebesar Rp ${fallbackMonthlySaving.toLocaleString("id-ID")} per bulan dari budget bulananmu.`,
+          savingAlternative: isWantAndEnoughMoney
+            ? "Sebelum mengeluarkan uang, pikirkan kembali apakah barang pajangan/koleksi ini benar-benar penting dan akan terus memberikan nilai kebahagiaan jangka panjang atau hanya memuaskan nafsu belanja sesaat."
+            : `Untuk mempermudah rencana ini, kamu bisa menggunakan sistem auto-debet otomatis sebesar Rp ${fallbackMonthlySaving.toLocaleString("id-ID")} ke rekening terpisah sesaat setelah gajian, serta menghentikan sementara pengeluaran tersier yang kurang mendesak.`
         },
         psychologicalInsight: {
           purchaseDriver: isKebutuhan ? "Kebutuhan Nyata" : (isPrestige ? "FOMO/Gengsi" : isDeficit ? "Impulsive Buying" : "Kebutuhan Nyata"),
@@ -618,7 +630,9 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
             ]
           };
         }),
-        aiRecommendationText: isDeficit
+        aiRecommendationText: isWantAndEnoughMoney
+          ? `Keuanganmu sudah sangat memadai untuk langsung membeli "${targetName}" secara cash. Namun, sebagai sahabat finansial, aku menyarankanmu untuk merenungkan kembali apakah barang hobi/koleksi pajangan ini benar-benar penting untuk dibeli sekarang.`
+          : isDeficit
           ? "Saran hangatku: batalkan rencana pembelian ini dengan segera. Yuk, fokuskan seluruh sisa tenaga finansialmu untuk menyehatkan kas bulanan dari defisit terlebih dahulu."
           : isUnrealistic
           ? "Saran hangatku: tunda pembelian dan lakukan penyesuaian target waktu menabung atau carilah alternatif barang lain yang lebih ramah buat kapasitas tabungan nyata kamu."

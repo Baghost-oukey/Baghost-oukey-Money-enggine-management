@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ResultComments } from "./ResultComments";
-import { ScoreRing } from "./ScoreRing";
+import { ResultComments } from "./ResultAccording";
+import { ScoreRing } from "./ScoreChart";
 import { RoadmapDialog } from "./RoadmapDialog";
 import { getFallbackAIData } from "./analysisUtils";
 

@@ -3,7 +3,7 @@
 import React from "react";
 import { useBudgetAnalysis } from "./hooks/useBudgetAnalysis";
 import { BudgetForm } from "./components/BudgetForm";
-import { BudgetSummaryPreview } from "./components/BudgetSummaryPreview";
+import { BudgetSummaryPreview } from "./components/BudgetPreview";
 import { ResultAnalisis } from "./components/ResultAnalisis";
 import { motion, AnimatePresence } from "framer-motion";
 

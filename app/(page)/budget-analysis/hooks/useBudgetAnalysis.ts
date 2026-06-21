@@ -101,6 +101,7 @@ export function useBudgetAnalysis() {
     expenses,
     setExpenses,
     isLoading,
+    setIsLoading,
     analysisResult,
     setAnalysisResult,
     totalExpenses,

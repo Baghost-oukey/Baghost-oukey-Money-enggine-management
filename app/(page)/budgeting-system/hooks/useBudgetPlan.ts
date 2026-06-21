@@ -28,6 +28,25 @@ export function useBudgetPlan() {
     return () => clearInterval(interval);
   }, [isLoading, loadingMessages.length]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const importedSalary = localStorage.getItem("imported_budget_salary");
+      const importedNotes = localStorage.getItem("imported_budget_notes");
+
+      if (importedSalary) {
+        const clean = importedSalary.replace(/[^\d]/g, "");
+        const formatted = clean ? new Intl.NumberFormat("id-ID").format(Number(clean)) : "";
+        setSalary(formatted);
+        localStorage.removeItem("imported_budget_salary");
+      }
+
+      if (importedNotes) {
+        setNotes(importedNotes);
+        localStorage.removeItem("imported_budget_notes");
+      }
+    }
+  }, []);
+
   const handleQuickNote = (phrase: string) => {
     setNotes((prev) => {
       const trimmed = prev.trim();

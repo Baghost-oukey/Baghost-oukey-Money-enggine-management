@@ -5,6 +5,7 @@ import { useBudgetAnalysis } from "./hooks/useBudgetAnalysis";
 import { BudgetForm } from "./components/BudgetForm";
 import { BudgetSummaryPreview } from "./components/BudgetPreview";
 import { ResultAnalisis } from "./components/ResultAnalisis";
+import { ModalSync } from "./components/modal-sync";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function BudgetaAnalysis() {
@@ -24,6 +25,7 @@ export function BudgetaAnalysis() {
     expenses,
     setExpenses,
     isLoading,
+    setIsLoading,
     analysisResult,
     totalExpenses,
     remainingBudget,
@@ -69,6 +71,7 @@ export function BudgetaAnalysis() {
                   onReset={handleReset}
                   monthlyBudget={Number(budget || 0)}
                   totalExpenses={totalExpenses}
+                  expenses={expenses}
                 />
               </motion.div>
             ) : (
@@ -123,6 +126,13 @@ export function BudgetaAnalysis() {
           </div>
         )}
       </div>
+
+      <ModalSync
+        isOpen={isLoading}
+        onClose={() => setIsLoading(false)}
+        title="Menganalisis Keuanganmu..."
+        description="Harap tunggu sebentar, sistem sedang memproses analisis data keuangan Anda."
+      />
     </div>
   );
 }

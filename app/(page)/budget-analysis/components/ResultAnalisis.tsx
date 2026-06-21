@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   ShieldCheck,
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ResultComments } from "./ResultAccording";
 import { ScoreRing } from "./ScoreChart";
-import { RoadmapDialog } from "./RoadmapDialog";
+import { ModalSync } from "./modal-sync";
 import { getFallbackAIData } from "./analysisUtils";
 
 interface ResultAnalisisProps {
@@ -25,6 +26,7 @@ interface ResultAnalisisProps {
   onReset: () => void;
   monthlyBudget?: number;
   totalExpenses?: number;
+  expenses?: any[];
 }
 
 export function ResultAnalisis({
@@ -36,7 +38,9 @@ export function ResultAnalisis({
   onReset,
   monthlyBudget,
   totalExpenses,
+  expenses,
 }: ResultAnalisisProps) {
+  const router = useRouter();
   // Syncing states
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSynced, setIsSynced] = useState(analysisResult.status === "TERSINKRONISASI");
@@ -217,70 +221,123 @@ export function ResultAnalisis({
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-3 gap-3 border-t pt-4">
-        {/* Dialog Planning Button */}
-        <RoadmapDialog
-          monthlyBudget={monthlyBudget}
-          target={target}
-          targetValue={targetValue}
-          targetDate={targetDate}
-        />
+      <div className="flex justify-end border-t pt-4 w-full">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full sm:max-w-[420px]">
 
-        {/* Sync Button */}
-        <Button
-          disabled={isSyncing || isSynced || aiData.decisionVerdict === "JANGAN_BELI" || aiData.decisionVerdict === "BLOCKED_DANGER"}
-          onClick={async () => {
-            if (isSynced) return;
-            setIsSyncing(true);
-            try {
-              const response = await fetch("/api/decision/sync", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  userId: analysisResult.userId,
-                  decisionId: analysisResult.id,
-                  targetName: target,
-                  monthlySavingsRequired: Math.round(Number(targetValue || 0) / (monthsDiff || 1)),
-                  sumberDana: aiData.sumberDana || (aiData.paylaterSimulation ? "Paylater/Kredit" : "Nabung Cash"),
-                }),
-              });
-              const res = await response.json();
-              if (res.success) {
-                setIsSynced(true);
-                alert(res.message);
-              } else {
-                alert("Gagal sinkron: " + res.message);
+          {/* Sync Button */}
+          <Button
+            disabled={isSyncing || isSynced || aiData.decisionVerdict === "JANGAN_BELI" || aiData.decisionVerdict === "BLOCKED_DANGER"}
+            onClick={async () => {
+              if (isSynced || isSyncing) return;
+              setIsSyncing(true);
+              try {
+                const response = await fetch("/api/decision/sync", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    userId: analysisResult.userId,
+                    decisionId: analysisResult.id,
+                    targetName: target,
+                    monthlySavingsRequired: Math.round(Number(targetValue || 0) / (monthsDiff || 1)),
+                    sumberDana: aiData.sumberDana || (aiData.paylaterSimulation ? "Paylater/Kredit" : "Nabung Cash"),
+                  }),
+                });
+                const res = await response.json();
+                if (res.success) {
+                  setIsSynced(true);
+                  
+                  // Pre-fill localStorage
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem("imported_budget_salary", String(monthlyBudget || 0));
+                    
+                    const expensesList = (expenses || [])
+                      .map((exp: any) => `${exp.name} Rp ${Number(exp.amount || 0).toLocaleString("id-ID")}`)
+                      .join(", ");
+                      
+                    const targetSavings = Math.round(Number(targetValue || 0) / (monthsDiff || 1));
+                    const isDebt = (aiData.sumberDana || (aiData.paylaterSimulation ? "Paylater/Kredit" : "Nabung Cash")) === "Paylater/Kredit" || (aiData.sumberDana || (aiData.paylaterSimulation ? "Paylater/Kredit" : "Nabung Cash")) === "Pinjaman Online";
+                    const syncedText = `Sync target "${target}" sebesar Rp ${targetSavings.toLocaleString("id-ID")}/bulan.`;
+                    
+                    let notesText = expensesList 
+                      ? `Pengeluaran bulanan saat ini: ${expensesList}.` 
+                      : "";
+                    
+                    if (notesText) {
+                      notesText += ` ${syncedText}`;
+                    } else {
+                      notesText = syncedText;
+                    }
+                    
+                    localStorage.setItem("imported_budget_notes", notesText);
+                  }
+                  
+                  // Instantly navigate to budgeting system
+                  router.push("/budgeting-system");
+                } else {
+                  alert("Gagal sinkron: " + res.message);
+                }
+              } catch (e) {
+                console.error(e);
+                alert("Kesalahan jaringan saat sinkronisasi anggaran.");
+              } finally {
+                setIsSyncing(false);
               }
-            } catch (e) {
-              console.error(e);
-              alert("Kesalahan jaringan saat sinkronisasi anggaran.");
-            } finally {
-              setIsSyncing(false);
-            }
-          }}
-          className={cn(
-            "w-full flex items-center justify-center text-[10px] font-bold h-9 rounded-xl shadow-sm cursor-pointer",
-            isSynced
-              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-              : (aiData.decisionVerdict === "JANGAN_BELI" || aiData.decisionVerdict === "BLOCKED_DANGER")
-              ? "bg-muted text-muted-foreground border cursor-not-allowed"
-              : "bg-violet-600 hover:bg-violet-700 text-white"
-          )}
-        >
-          {isSynced ? "Tersinkron" : isSyncing ? "Syncing..." : "Sync"}
-        </Button>
+            }}
+            className={cn(
+              "w-full flex items-center justify-center text-[10px] font-bold h-9 rounded-xl shadow-sm cursor-pointer",
+              isSynced
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                : (aiData.decisionVerdict === "JANGAN_BELI" || aiData.decisionVerdict === "BLOCKED_DANGER")
+                ? "bg-muted text-muted-foreground border cursor-not-allowed"
+                : "bg-violet-600 hover:bg-violet-700 text-white"
+            )}
+          >
+            {isSynced ? "Tersinkron" : isSyncing ? "Syncing..." : "Sync"}
+          </Button>
 
-        {/* Reset Button */}
-        <Button
-          variant="outline"
-          className="w-full flex items-center justify-center gap-1 hover:bg-muted border-muted/50 rounded-xl text-[10px] font-bold h-9 shadow-sm cursor-pointer"
-          onClick={onReset}
-        >
-          Reset
-        </Button>
+          {/* Import to Budgeting Button */}
+          <Button
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                localStorage.setItem("imported_budget_salary", String(monthlyBudget || 0));
+                
+                const expensesList = (expenses || [])
+                  .map((exp: any) => `${exp.name} Rp ${Number(exp.amount || 0).toLocaleString("id-ID")}`)
+                  .join(", ");
+                  
+                const notesText = expensesList 
+                  ? `Pengeluaran bulanan saat ini: ${expensesList}.` 
+                  : "";
+                  
+                localStorage.setItem("imported_budget_notes", notesText);
+                router.push("/budgeting-system");
+              }
+            }}
+            className="w-full flex items-center justify-center text-[10px] font-bold h-9 rounded-xl shadow-sm cursor-pointer bg-violet-600 hover:bg-violet-700 text-white"
+          >
+            Buat Budget
+          </Button>
+
+          {/* Reset Button */}
+          <Button
+            variant="outline"
+            className="w-full flex items-center justify-center gap-1 hover:bg-muted border-muted/50 rounded-xl text-[10px] font-bold h-9 shadow-sm cursor-pointer"
+            onClick={onReset}
+          >
+            Reset
+          </Button>
+        </div>
       </div>
+
+      <ModalSync
+        isOpen={isSyncing}
+        onClose={() => setIsSyncing(false)}
+        title="Menyinkronkan Data..."
+        description="Harap tunggu sebentar, sedang menyinkronkan data belanja ke rencana anggaran bulanan Anda."
+        showCancel={false}
+      />
     </div>
   );
 }

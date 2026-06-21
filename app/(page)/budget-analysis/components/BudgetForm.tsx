@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import DynamicInput, { Expense } from "@/components/inputState";
+import { DatePicker } from "@/components/datepicker";
 
 interface BudgetFormProps {
   budget: string;
@@ -163,15 +164,23 @@ export function BudgetForm({
           </LabelInputContainer>
 
           <LabelInputContainer>
-            <Label htmlFor="dateAwal" className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
               Kapan Rencana Membeli ?
             </Label>
-            <Input
-              id="dateAwal"
-              type="date"
-              className="h-10 transition-all rounded-xl text-sm"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
+            <DatePicker
+              value={targetDate ? new Date(targetDate) : undefined}
+              onChange={(date) => {
+                if (date) {
+                  const yyyy = date.getFullYear();
+                  const mm = String(date.getMonth() + 1).padStart(2, "0");
+                  const dd = String(date.getDate()).padStart(2, "0");
+                  setTargetDate(`${yyyy}-${mm}-${dd}`);
+                } else {
+                  setTargetDate("");
+                }
+              }}
+              placeholder="Pilih tanggal rencana"
+              className="h-10 transition-all rounded-xl text-xs"
             />
           </LabelInputContainer>
         </div>

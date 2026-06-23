@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sanitizeAiResult } from "../../budgeting/route";
 
 export async function POST(request: Request) {
   try {
@@ -74,15 +75,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Save the updated recommendation back to database
-    await prisma.budgetPlan.update({
-      where: { id: latestPlan.id },
-      data: {
-        recommendation: recommendation, // Prisma parses object to JSON automatically
-      },
-    });
-
-    // Also update decision status to TERSINKRONISASI and save sync details
+    // 3. Update decision status to TERSINKRONISASI first and save details
     await prisma.decisionAnalysis.update({
       where: { id: decisionId },
       data: {
@@ -90,6 +83,32 @@ export async function POST(request: Request) {
         decisionName: targetName,
         decisionCost: savingsRequired,
         decisionReason: `Tersinkron ke budget bulanan sebagai ${isDebt ? "Cicilan Hutang" : "Tabungan Target"}`,
+      },
+    });
+
+    // 4. Fetch all active synced decisions
+    const syncedDecisions = await prisma.decisionAnalysis.findMany({
+      where: {
+        userId,
+        status: "TERSINKRONISASI",
+      },
+    });
+
+    // 5. Balance and sanitize recommendation
+    const balancedRecommendation = sanitizeAiResult(
+      recommendation,
+      monthlyBudget,
+      false,
+      null,
+      syncedDecisions
+    );
+
+    // Save the updated recommendation back to database
+    await prisma.budgetPlan.update({
+      where: { id: latestPlan.id },
+      data: {
+        recommendation: balancedRecommendation,
+        aiSummary: balancedRecommendation.aiSummary,
       },
     });
 

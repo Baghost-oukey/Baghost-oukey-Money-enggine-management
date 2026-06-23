@@ -1,9 +1,9 @@
 "use client";
 import React from "react";
 import { useBudgetPlan } from "./hooks/useBudgetPlan";
-import { BudgetInputForm } from "./components/BudgetInputForm";
-import { BudgetDashboard } from "./components/BudgetDashboard";
-import { BudgetDashboardSkeleton } from "./components/BudgetDashboardSkeleton";
+import { BudgetInputForm } from "./components/BudgetForm";
+import { BudgetDashboard } from "./components/ResultPage";
+import { ModalSync } from "../budget-analysis/components/modal-sync";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function BudgetingSistem() {
@@ -37,18 +37,7 @@ export function BudgetingSistem() {
       {/* Page Content Animation Wrapper */}
       <div className="w-full relative z-10 flex-1">
         <AnimatePresence mode="wait">
-          {isLoading ? (
-            <motion.div
-              key="loading-skeleton"
-              initial={{ opacity: 0, scale: 0.99, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.99, y: -10 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full"
-            >
-              <BudgetDashboardSkeleton loadingMessage={loadingMessages[msgIdx]} />
-            </motion.div>
-          ) : analysisResult ? (
+          {analysisResult ? (
             <motion.div
               key="dashboard-result"
               initial={{ opacity: 0, scale: 0.99, y: 10 }}
@@ -91,6 +80,15 @@ export function BudgetingSistem() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Loading Modal Overlay */}
+        <ModalSync
+          isOpen={isLoading}
+          onClose={() => {}}
+          title="Menganalisis Keuanganmu..."
+          description={loadingMessages[msgIdx]}
+          showCancel={false}
+        />
       </div>
     </div>
   );

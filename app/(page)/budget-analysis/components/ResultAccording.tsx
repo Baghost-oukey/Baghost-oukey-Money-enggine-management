@@ -9,7 +9,7 @@ import {
 } from "./analysisUtils";
 import { SimulasiNabungVsPaylater } from "./SimulationCard";
 import { SaranStrategiMengelolaUang } from "./FeedbackCard";
-import { InsightPsikologis } from "./Insight";
+import { InsightPsikologis } from "./InsightCard";
 import { KabarHargaPasar } from "./HargaPasar";
 import { TaktikKeuangan } from "./TaktikCard";
 

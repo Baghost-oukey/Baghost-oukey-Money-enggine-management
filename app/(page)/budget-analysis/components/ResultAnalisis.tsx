@@ -43,7 +43,9 @@ export function ResultAnalisis({
   const router = useRouter();
   // Syncing states
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isSynced, setIsSynced] = useState(analysisResult.status === "TERSINKRONISASI");
+  const [isSynced, setIsSynced] = useState(
+    analysisResult.status === "TERSINKRONISASI" || analysisResult.status === "TERINTEGRASI"
+  );
 
   // Calculate months difference for savings
   const currentDate = new Date();

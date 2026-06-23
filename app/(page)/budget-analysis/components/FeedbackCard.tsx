@@ -120,7 +120,7 @@ export function SaranStrategiMengelolaUang({
               <SavingStrategyCard
                 title="Jalan Nabung Harian"
                 rateText={`Rp ${suggestedDailySaving.toLocaleString("id-ID")} / hari`}
-                durationText={`⏰ ${suggestedDaysNeeded} hari`}
+                durationText={` ${suggestedDaysNeeded} hari`}
                 status={daily.status}
                 badgeClass={daily.badgeClass}
                 impactMessage={daily.message}
@@ -130,7 +130,7 @@ export function SaranStrategiMengelolaUang({
                     <p className="mt-1">{daily.reason}</p>
                     {keteranganTambahan && (
                       <p className="text-violet-500 italic mt-1 font-semibold">
-                        💡 Catatan Tambahanmu: "{keteranganTambahan}"
+                        Catatan Tambahanmu: "{keteranganTambahan}"
                       </p>
                     )}
                   </>
@@ -163,7 +163,7 @@ export function SaranStrategiMengelolaUang({
             </div>
 
             <p className="text-[10px] text-muted-foreground leading-normal italic text-center">
-              💡 Strategi ini dihitung secara realistis mengambil {surplus > 0 ? "60% dari sisa uang bulananmu" : "standar aman kelayakan tabungan"} agar pengeluaran pokok harianmu tetap aman berjalan.
+             Strategi ini dihitung secara realistis mengambil {surplus > 0 ? "60% dari sisa uang bulananmu" : "standar aman kelayakan tabungan"} agar pengeluaran pokok harianmu tetap aman berjalan.
             </p>
           </div>
         )}

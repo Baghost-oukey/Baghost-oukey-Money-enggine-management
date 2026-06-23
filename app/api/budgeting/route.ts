@@ -123,7 +123,7 @@ function extractRentFromNotes(notes: string): number {
 }
 
 // Helper to identify if an item is locked (synced targets, cicilan, and rent/kos items)
-function isItemLocked(name: string): boolean {
+export function isItemLocked(name: string): boolean {
   const lower = name.toLowerCase().trim();
   if (name.startsWith("Target:") || name.startsWith("Cicilan:")) {
     return true;
@@ -438,45 +438,49 @@ function getStandardBaseline(salary: number, notes: string, syncedDecisions: any
   };
 
   const lockedNeeds = getLockedSumForTypeInBaseline("needs");
-  const lockedWants = getLockedSumForTypeInBaseline("wants");
   const lockedSavings = getLockedSumForTypeInBaseline("savings");
-  const totalLocked = lockedNeeds + lockedWants + lockedSavings;
 
   let finalNeedsAmount = 0;
   let finalWantsAmount = 0;
   let finalSavingsAmount = 0;
 
-  if (totalLocked > netSalary) {
-    finalNeedsAmount = totalLocked > 0 ? Math.round(netSalary * (lockedNeeds / totalLocked)) : 0;
-    finalWantsAmount = totalLocked > 0 ? Math.round(netSalary * (lockedWants / totalLocked)) : 0;
-    finalSavingsAmount = netSalary - finalNeedsAmount - finalWantsAmount;
+  const idealNeeds = Math.round(netSalary * 0.5);
+  const idealWants = Math.round(netSalary * 0.3);
+  const idealSavings = Math.round(netSalary * 0.2);
+
+  // Needs floor is the higher of idealNeeds or lockedNeeds
+  finalNeedsAmount = Math.max(idealNeeds, lockedNeeds);
+
+  let maxSavingsAllowed = idealSavings;
+  if (finalNeedsAmount >= netSalary) {
+    finalNeedsAmount = netSalary;
+    finalWantsAmount = 0;
+    finalSavingsAmount = 0;
+    maxSavingsAllowed = 0;
   } else {
-    const remainingNet = netSalary - totalLocked;
-    const idealNeeds = Math.round(netSalary * 0.5);
-    const idealWants = Math.round(netSalary * 0.3);
-    const idealSavings = netSalary - idealNeeds - idealWants;
+    // Remaining salary after needs floor
+    const remaining = netSalary - finalNeedsAmount;
 
-    const desiredNeeds = Math.max(0, idealNeeds - lockedNeeds);
-    const desiredWants = Math.max(0, idealWants - lockedWants);
-    const desiredSavings = Math.max(0, idealSavings - lockedSavings);
-    const totalDesired = desiredNeeds + desiredWants + desiredSavings;
+    // Cap savings to protect a basic wants floor (e.g. 10% of netSalary)
+    const wantsFloor = Math.round(netSalary * 0.1);
+    
+    maxSavingsAllowed = Math.max(idealSavings, remaining - wantsFloor);
+    maxSavingsAllowed = Math.min(remaining, maxSavingsAllowed);
 
-    if (totalDesired > 0) {
-      const addNeeds = Math.round(remainingNet * (desiredNeeds / totalDesired));
-      const addWants = Math.round(remainingNet * (desiredWants / totalDesired));
-      const addSavings = remainingNet - addNeeds - addWants;
+    // Savings target is locked savings, capped at maxSavingsAllowed
+    finalSavingsAmount = Math.min(maxSavingsAllowed, lockedSavings);
+    if (finalSavingsAmount < idealSavings) {
+      finalSavingsAmount = Math.min(remaining, idealSavings);
+    }
 
-      finalNeedsAmount = lockedNeeds + addNeeds;
-      finalWantsAmount = lockedWants + addWants;
-      finalSavingsAmount = lockedSavings + addSavings;
-    } else {
-      const addNeeds = Math.round(remainingNet * 0.5);
-      const addWants = Math.round(remainingNet * 0.3);
-      const addSavings = remainingNet - addNeeds - addWants;
-
-      finalNeedsAmount = lockedNeeds + addNeeds;
-      finalWantsAmount = lockedWants + addWants;
-      finalSavingsAmount = lockedSavings + addSavings;
+    // Wants target is whatever is left
+    finalWantsAmount = remaining - finalSavingsAmount;
+    
+    // If wants target is less than wantsFloor, and we have excess savings beyond lockedSavings, we adjust:
+    if (finalWantsAmount < wantsFloor && finalSavingsAmount > lockedSavings) {
+      const adjustment = Math.min(wantsFloor - finalWantsAmount, finalSavingsAmount - lockedSavings);
+      finalSavingsAmount -= adjustment;
+      finalWantsAmount += adjustment;
     }
   }
 
@@ -768,6 +772,7 @@ Hasil pembagian wajib dikembalikan berupa JSON murni dengan skema berikut:
   "sources": [
     "string (Nama sumber/referensi)"
   ],
+  "suggestRejection": boolean,
   "aiSummary": "Saran dan analisis dari asisten AI bulanan secara santai, natural, kritis, dan memotivasi...",
   "frameworkUsed": "Rasio 50:30:20 setelah Cicilan"
 }
@@ -1042,7 +1047,7 @@ function rebalanceCategoriesWithPriority(
   return categories;
 }
 
-function sanitizeAiResult(
+export function sanitizeAiResult(
   rawResult: any,
   salaryNum: number,
   forceBool: boolean = false,
@@ -1191,6 +1196,14 @@ function sanitizeAiResult(
 
   const netSalary = Math.max(0, salaryNum - totalDebtsAmount);
 
+  let lockedNeeds = 0;
+  let lockedWants = 0;
+  let lockedSavings = 0;
+  let needsTargetTotal = 0;
+  let wantsTargetTotal = 0;
+  let savingsTargetTotal = 0;
+  let maxSavingsAllowed = 0;
+
   if (forceBool && forcedCategoryName) {
     categories = rebalanceCategoriesWithPriority(categories, salaryNum, forcedCategoryName);
   } else {
@@ -1200,47 +1213,47 @@ function sanitizeAiResult(
       return cats.reduce((sum, c) => sum + c.items.filter((i: any) => isItemLocked(i.name)).reduce((s: number, i: any) => s + i.amount, 0), 0);
     };
 
-    const lockedNeeds = getLockedSumForType("needs");
-    const lockedWants = getLockedSumForType("wants");
-    const lockedSavings = getLockedSumForType("savings");
-    const totalLocked = lockedNeeds + lockedWants + lockedSavings;
+    lockedNeeds = getLockedSumForType("needs");
+    lockedWants = getLockedSumForType("wants");
+    lockedSavings = getLockedSumForType("savings");
 
-    let needsTargetTotal = 0;
-    let wantsTargetTotal = 0;
-    let savingsTargetTotal = 0;
+    const idealNeeds = Math.round(netSalary * 0.5);
+    const idealWants = Math.round(netSalary * 0.3);
+    const idealSavings = Math.round(netSalary * 0.2);
 
-    if (totalLocked > netSalary) {
-      // Scale down locked targets proportionally to fit netSalary
-      needsTargetTotal = totalLocked > 0 ? Math.round(netSalary * (lockedNeeds / totalLocked)) : 0;
-      wantsTargetTotal = totalLocked > 0 ? Math.round(netSalary * (lockedWants / totalLocked)) : 0;
-      savingsTargetTotal = netSalary - needsTargetTotal - wantsTargetTotal;
+    // Needs floor is the higher of idealNeeds or lockedNeeds
+    needsTargetTotal = Math.max(idealNeeds, lockedNeeds);
+
+    maxSavingsAllowed = idealSavings;
+    if (needsTargetTotal >= netSalary) {
+      needsTargetTotal = netSalary;
+      wantsTargetTotal = 0;
+      savingsTargetTotal = 0;
+      maxSavingsAllowed = 0;
     } else {
-      const remainingNet = netSalary - totalLocked;
-      const idealNeeds = Math.round(netSalary * 0.5);
-      const idealWants = Math.round(netSalary * 0.3);
-      const idealSavings = netSalary - idealNeeds - idealWants;
+      // Remaining salary after needs floor
+      const remaining = netSalary - needsTargetTotal;
 
-      const desiredNeeds = Math.max(0, idealNeeds - lockedNeeds);
-      const desiredWants = Math.max(0, idealWants - lockedWants);
-      const desiredSavings = Math.max(0, idealSavings - lockedSavings);
-      const totalDesired = desiredNeeds + desiredWants + desiredSavings;
+      // Cap savings to protect a basic wants floor (e.g. 10% of netSalary)
+      const wantsFloor = Math.round(netSalary * 0.1);
+      
+      maxSavingsAllowed = Math.max(idealSavings, remaining - wantsFloor);
+      maxSavingsAllowed = Math.min(remaining, maxSavingsAllowed);
 
-      if (totalDesired > 0) {
-        const addNeeds = Math.round(remainingNet * (desiredNeeds / totalDesired));
-        const addWants = Math.round(remainingNet * (desiredWants / totalDesired));
-        const addSavings = remainingNet - addNeeds - addWants;
+      // Savings target is locked savings, capped at maxSavingsAllowed
+      savingsTargetTotal = Math.min(maxSavingsAllowed, lockedSavings);
+      if (savingsTargetTotal < idealSavings) {
+        savingsTargetTotal = Math.min(remaining, idealSavings);
+      }
 
-        needsTargetTotal = lockedNeeds + addNeeds;
-        wantsTargetTotal = lockedWants + addWants;
-        savingsTargetTotal = lockedSavings + addSavings;
-      } else {
-        const addNeeds = Math.round(remainingNet * 0.5);
-        const addWants = Math.round(remainingNet * 0.3);
-        const addSavings = remainingNet - addNeeds - addWants;
-
-        needsTargetTotal = lockedNeeds + addNeeds;
-        wantsTargetTotal = lockedWants + addWants;
-        savingsTargetTotal = lockedSavings + addSavings;
+      // Wants target is whatever is left
+      wantsTargetTotal = remaining - savingsTargetTotal;
+      
+      // If wants target is less than wantsFloor, and we have excess savings beyond lockedSavings, we adjust:
+      if (wantsTargetTotal < wantsFloor && savingsTargetTotal > lockedSavings) {
+        const adjustment = Math.min(wantsFloor - wantsTargetTotal, savingsTargetTotal - lockedSavings);
+        savingsTargetTotal -= adjustment;
+        wantsTargetTotal += adjustment;
       }
     }
 
@@ -1362,6 +1375,17 @@ function sanitizeAiResult(
     ];
   }
 
+  let suggestRejection = !!rawResult?.suggestRejection;
+  let aiSummary = String(rawResult?.aiSummary || "");
+
+  // Programmatically trigger suggestRejection if synced savings targets violate needs/wants floors
+  if (lockedSavings > maxSavingsAllowed && !forceBool) {
+    suggestRejection = true;
+    if (!aiSummary || (!aiSummary.includes("tidak realistis") && !aiSummary.includes("melebihi") && !aiSummary.includes("realistis"))) {
+      aiSummary = `⚠️ Peringatan: Total target tabungan kamu (Rp ${lockedSavings.toLocaleString("id-ID")}/bulan) tidak realistis dengan gaji Rp ${salaryNum.toLocaleString("id-ID")}/bulan karena akan menyisakan Rp 0 untuk kebutuhan pokok! Kami telah menyesuaikan anggaran agar Kebutuhan Pokok tetap aman (Rp ${needsTargetTotal.toLocaleString("id-ID")}). Sebaiknya tahan dulu pembelian ini atau alokasikan untuk dana darurat.`;
+    }
+  }
+
   return {
     categories,
     sources,
@@ -1369,8 +1393,8 @@ function sanitizeAiResult(
     wants,
     savings,
     debts,
-    suggestRejection: !!rawResult?.suggestRejection,
-    aiSummary: String(rawResult?.aiSummary || ""),
+    suggestRejection,
+    aiSummary,
     frameworkUsed: String(rawResult?.frameworkUsed || "Rasio 50:30:20 setelah Cicilan"),
     modelUsed: String(rawResult?.modelUsed || ""),
   };

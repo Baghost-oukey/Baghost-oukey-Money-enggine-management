@@ -10,6 +10,7 @@ interface BudgetInputFormProps {
   setNotes: (val: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   status: string;
+  syncedTarget?: { target: string; amount: number } | null;
 }
 
 export function BudgetInputForm({
@@ -19,6 +20,7 @@ export function BudgetInputForm({
   setNotes,
   onSubmit,
   status,
+  syncedTarget,
 }: BudgetInputFormProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center w-full max-w-7xl mx-auto py-6">
@@ -36,6 +38,21 @@ export function BudgetInputForm({
 
         {/* Form Container */}
         <form onSubmit={onSubmit} className="space-y-5 max-w-xl">
+
+          {/* Synced Target Alert */}
+          {syncedTarget && (
+            <div className="p-4 rounded-2xl border border-violet-500/20 bg-violet-500/[0.03] space-y-1.5 animate-in fade-in slide-in-from-top-1">
+              <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Target Belanja Terkunci (Tersinkronisasi)
+              </span>
+              <p className="text-xs text-zinc-900 dark:text-zinc-100 font-extrabold">
+                {syncedTarget.target}
+              </p>
+            </div>
+          )}
 
           {/* Salary Input */}
           <div className="space-y-2">

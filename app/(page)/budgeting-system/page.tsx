@@ -21,6 +21,7 @@ export function BudgetingSistem() {
     handleReset,
     isSaving,
     status,
+    syncedTarget,
   } = useBudgetPlan();
 
   return (
@@ -85,6 +86,7 @@ export function BudgetingSistem() {
                 setNotes={setNotes}
                 onSubmit={handleSubmit}
                 status={status}
+                syncedTarget={syncedTarget}
               />
             </motion.div>
           )}

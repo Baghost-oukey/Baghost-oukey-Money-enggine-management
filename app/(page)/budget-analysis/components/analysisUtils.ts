@@ -25,7 +25,7 @@ export function calculateSavingOptions(
     // 1. Opsi Ringan (20% of capacity)
     const daily1 = roundToCleanNumber(maxDailyCapacity * 0.2);
     const days1 = Math.ceil(targetValNum / daily1);
-    const months1 = Math.round((days1 / 30) * 10) / 10;
+    const months1 = Math.ceil(days1 / 30);
     savingOptions.push({
       label: "Opsi Ringan (Santai)",
       dailySaving: daily1,
@@ -36,7 +36,7 @@ export function calculateSavingOptions(
     // 2. Opsi Sedang (50% of capacity)
     const daily2 = roundToCleanNumber(maxDailyCapacity * 0.5);
     const days2 = Math.ceil(targetValNum / daily2);
-    const months2 = Math.round((days2 / 30) * 10) / 10;
+    const months2 = Math.ceil(days2 / 30);
     savingOptions.push({
       label: "Opsi Sedang (Konsisten)",
       dailySaving: daily2,
@@ -47,7 +47,7 @@ export function calculateSavingOptions(
     // 3. Opsi Cepat (85% of capacity)
     const daily3 = roundToCleanNumber(maxDailyCapacity * 0.85);
     const days3 = Math.ceil(targetValNum / daily3);
-    const months3 = Math.round((days3 / 30) * 10) / 10;
+    const months3 = Math.ceil(days3 / 30);
     savingOptions.push({
       label: "Opsi Cepat (Agresif)",
       dailySaving: daily3,
@@ -64,7 +64,7 @@ export function calculateSavingOptions(
     
     fallbackOptions.forEach((fOpt) => {
       const days = Math.ceil(targetValNum / fOpt.dailySaving);
-      const months = Math.round((days / 30) * 10) / 10;
+      const months = Math.ceil(days / 30);
       savingOptions.push({
         label: fOpt.label,
         dailySaving: fOpt.dailySaving,
@@ -168,7 +168,7 @@ export function calculatePaylaterPlans(
   targetValue: string,
   aiData: any
 ): PaylaterPlan[] {
-  return aiData?.paylaterSimulation?.plans || [3, 6, 12].map((tenor: number) => {
+  const plans = aiData?.paylaterSimulation?.plans || [3, 6, 12].map((tenor: number) => {
     const cashPrice = aiData?.paylaterSimulation?.cashPrice || Number(targetValue || 0);
     const adminRatePct = aiData?.paylaterSimulation?.adminRatePct || 1.0;
     const interestRatePct = aiData?.paylaterSimulation?.interestRatePct || 2.95;
@@ -188,6 +188,15 @@ export function calculatePaylaterPlans(
       moneyWasted: planWasted,
     };
   });
+
+  return plans.map((plan: any) => ({
+    ...plan,
+    monthlyInstallment: Math.round(plan.monthlyInstallment / 1000) * 1000,
+    totalPrice: Math.round(plan.totalPrice / 1000) * 1000,
+    interestAmount: Math.round(plan.interestAmount / 1000) * 1000,
+    adminFee: Math.round(plan.adminFee / 1000) * 1000,
+    moneyWasted: Math.round(plan.moneyWasted / 1000) * 1000,
+  }));
 }
 
 export function getFallbackAIData(

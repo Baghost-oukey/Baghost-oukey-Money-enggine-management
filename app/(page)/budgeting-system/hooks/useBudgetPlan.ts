@@ -10,6 +10,7 @@ export function useBudgetPlan() {
   const [msgIdx, setMsgIdx] = useState(0);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [syncedTarget, setSyncedTarget] = useState<{ target: string; amount: number } | null>(null);
 
   const loadingMessages = [
     "Menganalisis penghasilan bulanan...",
@@ -32,6 +33,7 @@ export function useBudgetPlan() {
     if (typeof window !== "undefined") {
       const importedSalary = localStorage.getItem("imported_budget_salary");
       const importedNotes = localStorage.getItem("imported_budget_notes");
+      const importedSyncTarget = localStorage.getItem("imported_budget_sync_target");
 
       if (importedSalary) {
         const clean = importedSalary.replace(/[^\d]/g, "");
@@ -43,6 +45,18 @@ export function useBudgetPlan() {
       if (importedNotes) {
         setNotes(importedNotes);
         localStorage.removeItem("imported_budget_notes");
+      }
+
+      if (importedSyncTarget) {
+        try {
+          const parsed = JSON.parse(importedSyncTarget);
+          if (parsed && parsed.target && parsed.amount) {
+            setSyncedTarget(parsed);
+          }
+        } catch (e) {
+          console.error("Error parsing imported sync target", e);
+        }
+        localStorage.removeItem("imported_budget_sync_target");
       }
     }
   }, []);
@@ -61,6 +75,7 @@ export function useBudgetPlan() {
     setNotes("");
     setAnalysisResult(null);
     setIsLoading(false);
+    setSyncedTarget(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -158,5 +173,7 @@ export function useBudgetPlan() {
     handleUpdateBudget,
     isSaving,
     status,
+    syncedTarget,
+    setSyncedTarget,
   };
 }

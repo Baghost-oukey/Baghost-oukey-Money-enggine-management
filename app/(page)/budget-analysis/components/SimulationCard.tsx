@@ -3,6 +3,7 @@
 import React from "react";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Activity } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SavingOption {
   label: string;
@@ -25,6 +26,8 @@ interface SimulasiNabungVsPaylaterProps {
   plans: PaylaterPlan[];
   targetValue: string;
   consequencesNote?: string;
+  remainingBudget?: number;
+  monthlyBudget?: number;
 }
 
 export function SimulasiNabungVsPaylater({
@@ -32,6 +35,8 @@ export function SimulasiNabungVsPaylater({
   plans,
   targetValue,
   consequencesNote,
+  remainingBudget,
+  monthlyBudget,
 }: SimulasiNabungVsPaylaterProps) {
   return (
     <AccordionItem value="paylater-simulation" className="px-4">
@@ -102,9 +107,25 @@ export function SimulasiNabungVsPaylater({
                 >
                   <div>
                     <span className="font-light text-foreground block">{plan.tenor} Bulan Cicilan</span>
-                    <span className="text-[10px] font-semibold">
+                    <span className="text-[10px] font-semibold text-foreground">
                       Rp {plan.monthlyInstallment.toLocaleString("id-ID")}/bulan
                     </span>
+                    {remainingBudget !== undefined && (
+                      <span className={cn(
+                        "inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded border leading-none",
+                        plan.monthlyInstallment <= remainingBudget
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                          : plan.monthlyInstallment <= (monthlyBudget || (remainingBudget * 3))
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                          : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 animate-pulse"
+                      )}>
+                        {plan.monthlyInstallment <= remainingBudget
+                          ? "Realisasi: Sangat Mungkin ✅"
+                          : plan.monthlyInstallment <= (monthlyBudget || (remainingBudget * 3))
+                          ? "Realisasi: Berat (Butuh Penghematan) ⚠️"
+                          : "Realisasi: Tidak Masuk Akal/Beban Berlebih ❌"}
+                      </span>
+                    )}
                   </div>
                   <div className="text-right">
                     <span className="text-[12px] text-gray-600 block font-bold">

@@ -37,7 +37,7 @@ function extractDebtsFromNotes(notes: string): BudgetItem[] {
 
   const notesClean = notes.replace(/\n/g, " ");
   // Match patterns like "cicilan motor 500rb", "utang ke teman 200.000", "kredit hp 300 ribu", "bayar pinjol 100k"
-  const regex = /(cicilan|utang|kredit|pinjol|pinjaman|bayar)\s+([a-zA-Z0-9\s\-_]+?)\s*(?:rp|Rp)?\s*([\d\.,]+)\s*(juta|jt|rb|ribu|k|K)?/gi;
+  const regex = /(cicilan|utang|kredit|pinjol|pinjaman)\s+([a-zA-Z0-9\s\-_]+?)\s*(?:rp|Rp)?\s*([\d\.,]+)\s*(juta|jt|rb|ribu|k|K)?/gi;
   let match;
   while ((match = regex.exec(notesClean)) !== null) {
     const type = match[1];
@@ -82,6 +82,68 @@ function extractDebtsFromNotes(notes: string): BudgetItem[] {
   return items;
 }
 
+// Helper to extract rent/kos amount from Indonesian notes
+function extractRentFromNotes(notes: string): number {
+  if (!notes) return 0;
+  const notesClean = notes.replace(/\n/g, " ");
+  // Match patterns like "kos 700 ribu", "sewa kost 1.2jt", "kostan 700k", "sewa kamar 1.000.000"
+  const regex = /(kos|kost|kosan|kostan|sewa\s+kos|sewa\s+kost|sewa\s+kamar)\s*(?:bulanan|sebulan)?\s*(?:rp|Rp)?\s*([\d\.,]+)\s*(juta|jt|rb|ribu|k|K)?/gi;
+  let match;
+  while ((match = regex.exec(notesClean)) !== null) {
+    let amountStr = match[2];
+    const suffix = match[3]?.toLowerCase();
+
+    const hasDecimal = amountStr.includes(".") || amountStr.includes(",");
+    let amount = 0;
+
+    if (hasDecimal && suffix) {
+      const normalizedStr = amountStr.replace(/,/g, ".");
+      amount = parseFloat(normalizedStr);
+    } else {
+      const cleanStr = amountStr.replace(/[\.,]/g, "");
+      amount = parseInt(cleanStr, 10);
+    }
+
+    if (isNaN(amount)) continue;
+
+    if (suffix) {
+      if (suffix === "juta" || suffix === "jt") {
+        amount = amount * 1000000;
+      } else if (suffix === "rb" || suffix === "ribu" || suffix === "k") {
+        amount = amount * 1000;
+      }
+    } else {
+      if (amount < 10000) {
+        amount = amount * 1000;
+      }
+    }
+    return Math.round(amount);
+  }
+  return 0;
+}
+
+// Helper to identify if an item is locked (synced targets, cicilan, and rent/kos items)
+function isItemLocked(name: string): boolean {
+  const lower = name.toLowerCase().trim();
+  if (name.startsWith("Target:") || name.startsWith("Cicilan:")) {
+    return true;
+  }
+  const strictRentNames = [
+    "sewa kos",
+    "sewa kost",
+    "sewa kamar bulanan",
+    "sewa kamar",
+    "bayar kos",
+    "bayar kost",
+    "kos",
+    "kost",
+    "akomodasi kos",
+    "biaya sewa bulanan",
+    "sewa kos/akomodasi"
+  ];
+  return strictRentNames.includes(lower);
+}
+
 function getStandardBaseline(salary: number, notes: string, syncedDecisions: any[] = []): StandardBudgetResult {
   const debtItems = extractDebtsFromNotes(notes);
 
@@ -119,6 +181,18 @@ function getStandardBaseline(salary: number, notes: string, syncedDecisions: any
   const isStudent = notesLower.includes("mahasiswa") || notesLower.includes("kos") || notesLower.includes("kuliah") || notesLower.includes("kampus") || notesLower.includes("anak kos");
 
   const categories: CategoryAllocation[] = [];
+
+  const rentAmount = extractRentFromNotes(notes);
+  if (rentAmount > 0) {
+    categories.push({
+      name: "Sewa Kos",
+      type: "needs",
+      percentage: salary > 0 ? (rentAmount / salary) * 100 : 0,
+      amount: rentAmount,
+      description: "Biaya utama tempat tinggal kamu.",
+      items: [{ name: "Sewa kamar bulanan", amount: rentAmount }]
+    });
+  }
 
   // 1. Needs categories
   const foodItems: BudgetItem[] = [];
@@ -265,52 +339,150 @@ function getStandardBaseline(salary: number, notes: string, syncedDecisions: any
     });
   }
 
-  // Allocate amounts to categories of each type proportionally
+  // Allocate amounts to categories of each type proportionally, respecting locked items
   const allocateToTypeCats = (type: "needs" | "wants" | "savings", totalAmount: number) => {
     const typeCats = categories.filter(c => c.type === type);
     if (typeCats.length === 0) return;
 
-    let allocated = 0;
-    typeCats.forEach((c, idx) => {
-      let pct = 1 / typeCats.length;
-      if (type === "needs" && typeCats.length >= 3) {
-        if (c.name.includes("Makanan")) pct = 0.5;
-        else if (c.name.includes("Pendidikan")) pct = 0.25;
-        else pct = (1 - 0.5 - (typeCats.some(x => x.name.includes("Pendidikan")) ? 0.25 : 0)) / (typeCats.length - (typeCats.some(x => x.name.includes("Pendidikan")) ? 2 : 1));
-      }
-      const amt = idx === typeCats.length - 1 ? (totalAmount - allocated) : Math.round(totalAmount * pct);
-      c.amount = Math.max(0, amt);
-      c.percentage = salary > 0 ? (c.amount / salary) * 100 : 0;
-      allocated += c.amount;
+    // Calculate locked sums for each category
+    const catsWithLocks = typeCats.map(c => {
+      const lockedItems = c.items.filter(i => isItemLocked(i.name));
+      const lockedSum = lockedItems.reduce((sum, i) => sum + i.amount, 0);
+      return {
+        category: c,
+        lockedSum,
+        unlockedRaw: Math.max(0, c.amount - lockedSum)
+      };
+    });
 
-      if (c.items.length > 0) {
-        // Enforce/lock the amount of synced decisions so they don't get diluted
-        const lockedItems = c.items.filter(i => i.name.startsWith("Target:") || i.name.startsWith("Cicilan:"));
-        const lockedSum = lockedItems.reduce((sum, i) => sum + i.amount, 0);
-        const unlockedItems = c.items.filter(i => !i.name.startsWith("Target:") && !i.name.startsWith("Cicilan:"));
+    const totalLockedSum = catsWithLocks.reduce((sum, item) => sum + item.lockedSum, 0);
+
+    if (totalLockedSum > totalAmount) {
+      let allocated = 0;
+      catsWithLocks.forEach((item, idx) => {
+        const c = item.category;
+        const share = item.lockedSum / (totalLockedSum || 1);
+        const catAmt = idx === catsWithLocks.length - 1 ? (totalAmount - allocated) : Math.round(totalAmount * share);
+        c.amount = Math.max(0, catAmt);
+        c.percentage = salary > 0 ? (c.amount / salary) * 100 : 0;
+        allocated += c.amount;
+
+        const lockedItems = c.items.filter(i => isItemLocked(i.name));
+        const unlockedItems = c.items.filter(i => !isItemLocked(i.name));
+        
+        let allocatedItems = 0;
+        lockedItems.forEach((i, lIdx) => {
+          const itemShare = i.amount / (item.lockedSum || 1);
+          const itemAmt = lIdx === lockedItems.length - 1 ? (c.amount - allocatedItems) : Math.round(c.amount * itemShare);
+          i.amount = Math.max(0, itemAmt);
+          allocatedItems += i.amount;
+        });
+        unlockedItems.forEach(i => {
+          i.amount = 0;
+        });
+      });
+    } else {
+      const remainingAmount = totalAmount - totalLockedSum;
+
+      // In baseline, determine the raw weights of unlocked categories using the hardcoded pct
+      const rawWeights = typeCats.map(c => {
+        let pct = 1 / typeCats.length;
+        if (type === "needs" && typeCats.length >= 3) {
+          if (c.name.includes("Makanan")) pct = 0.5;
+          else if (c.name.includes("Pendidikan")) pct = 0.25;
+          else pct = (1 - 0.5 - (typeCats.some(x => x.name.includes("Pendidikan")) ? 0.25 : 0)) / (typeCats.length - (typeCats.some(x => x.name.includes("Pendidikan")) ? 2 : 1));
+        }
+        return pct;
+      });
+
+      const totalWeight = rawWeights.reduce((sum, w) => sum + w, 0) || 1;
+
+      let allocated = 0;
+      catsWithLocks.forEach((item, idx) => {
+        const c = item.category;
+        const weight = rawWeights[idx];
+        const addedAmt = idx === catsWithLocks.length - 1 ? (remainingAmount - allocated) : Math.round(remainingAmount * (weight / totalWeight));
+        
+        c.amount = item.lockedSum + addedAmt;
+        c.percentage = salary > 0 ? (c.amount / salary) * 100 : 0;
+        allocated += addedAmt;
+
+        const lockedItems = c.items.filter(i => isItemLocked(i.name));
+        const unlockedItems = c.items.filter(i => !isItemLocked(i.name));
+
+        lockedItems.forEach(i => {
+          // Keep original amount (already correct)
+        });
 
         if (unlockedItems.length > 0) {
-          const remainingForUnlocked = Math.max(0, c.amount - lockedSum);
-          const share = Math.round(remainingForUnlocked / unlockedItems.length);
           let allocatedUnlocked = 0;
+          const share = Math.round(addedAmt / unlockedItems.length);
           unlockedItems.forEach((i, uIdx) => {
-            const itemAmt = uIdx === unlockedItems.length - 1 ? (remainingForUnlocked - allocatedUnlocked) : share;
-            i.amount = itemAmt;
+            const itemAmt = uIdx === unlockedItems.length - 1 ? (addedAmt - allocatedUnlocked) : share;
+            i.amount = Math.max(0, itemAmt);
             allocatedUnlocked += itemAmt;
           });
         } else {
-          const itemsSum = c.items.reduce((s, i) => s + i.amount, 0);
-          if (itemsSum !== c.amount && c.items.length > 0) {
-            c.items[c.items.length - 1].amount = Math.max(0, c.items[c.items.length - 1].amount + (c.amount - itemsSum));
+          if (lockedItems.length > 0 && addedAmt > 0) {
+            lockedItems[lockedItems.length - 1].amount += addedAmt;
           }
         }
-      }
-    });
+      });
+    }
   };
 
-  allocateToTypeCats("needs", needsAmount);
-  allocateToTypeCats("wants", wantsAmount);
-  allocateToTypeCats("savings", savingsAmount);
+  // Calculate locked sums for each type in baseline
+  const getLockedSumForTypeInBaseline = (type: "needs" | "wants" | "savings") => {
+    const cats = categories.filter(c => c.type === type);
+    return cats.reduce((sum, c) => sum + c.items.filter(i => isItemLocked(i.name)).reduce((s, i) => s + i.amount, 0), 0);
+  };
+
+  const lockedNeeds = getLockedSumForTypeInBaseline("needs");
+  const lockedWants = getLockedSumForTypeInBaseline("wants");
+  const lockedSavings = getLockedSumForTypeInBaseline("savings");
+  const totalLocked = lockedNeeds + lockedWants + lockedSavings;
+
+  let finalNeedsAmount = 0;
+  let finalWantsAmount = 0;
+  let finalSavingsAmount = 0;
+
+  if (totalLocked > netSalary) {
+    finalNeedsAmount = totalLocked > 0 ? Math.round(netSalary * (lockedNeeds / totalLocked)) : 0;
+    finalWantsAmount = totalLocked > 0 ? Math.round(netSalary * (lockedWants / totalLocked)) : 0;
+    finalSavingsAmount = netSalary - finalNeedsAmount - finalWantsAmount;
+  } else {
+    const remainingNet = netSalary - totalLocked;
+    const idealNeeds = Math.round(netSalary * 0.5);
+    const idealWants = Math.round(netSalary * 0.3);
+    const idealSavings = netSalary - idealNeeds - idealWants;
+
+    const desiredNeeds = Math.max(0, idealNeeds - lockedNeeds);
+    const desiredWants = Math.max(0, idealWants - lockedWants);
+    const desiredSavings = Math.max(0, idealSavings - lockedSavings);
+    const totalDesired = desiredNeeds + desiredWants + desiredSavings;
+
+    if (totalDesired > 0) {
+      const addNeeds = Math.round(remainingNet * (desiredNeeds / totalDesired));
+      const addWants = Math.round(remainingNet * (desiredWants / totalDesired));
+      const addSavings = remainingNet - addNeeds - addWants;
+
+      finalNeedsAmount = lockedNeeds + addNeeds;
+      finalWantsAmount = lockedWants + addWants;
+      finalSavingsAmount = lockedSavings + addSavings;
+    } else {
+      const addNeeds = Math.round(remainingNet * 0.5);
+      const addWants = Math.round(remainingNet * 0.3);
+      const addSavings = remainingNet - addNeeds - addWants;
+
+      finalNeedsAmount = lockedNeeds + addNeeds;
+      finalWantsAmount = lockedWants + addWants;
+      finalSavingsAmount = lockedSavings + addSavings;
+    }
+  }
+
+  allocateToTypeCats("needs", finalNeedsAmount);
+  allocateToTypeCats("wants", finalWantsAmount);
+  allocateToTypeCats("savings", finalSavingsAmount);
 
   if (debtItems.length > 0) {
     const debtCat = categories.find(c => c.type === "debts");
@@ -1022,54 +1194,138 @@ function sanitizeAiResult(
   if (forceBool && forcedCategoryName) {
     categories = rebalanceCategoriesWithPriority(categories, salaryNum, forcedCategoryName);
   } else {
-    // Targets based on 50:30:20 net ratio
-    const needsTargetTotal = Math.round(netSalary * 0.5);
-    const wantsTargetTotal = Math.round(netSalary * 0.3);
-    const savingsTargetTotal = netSalary - needsTargetTotal - wantsTargetTotal;
+    // Dynamic targets based on locked amounts to preserve rent/targets without scaling them down
+    const getLockedSumForType = (type: "needs" | "wants" | "savings") => {
+      const cats = categories.filter(c => c.type === type);
+      return cats.reduce((sum, c) => sum + c.items.filter((i: any) => isItemLocked(i.name)).reduce((s: number, i: any) => s + i.amount, 0), 0);
+    };
+
+    const lockedNeeds = getLockedSumForType("needs");
+    const lockedWants = getLockedSumForType("wants");
+    const lockedSavings = getLockedSumForType("savings");
+    const totalLocked = lockedNeeds + lockedWants + lockedSavings;
+
+    let needsTargetTotal = 0;
+    let wantsTargetTotal = 0;
+    let savingsTargetTotal = 0;
+
+    if (totalLocked > netSalary) {
+      // Scale down locked targets proportionally to fit netSalary
+      needsTargetTotal = totalLocked > 0 ? Math.round(netSalary * (lockedNeeds / totalLocked)) : 0;
+      wantsTargetTotal = totalLocked > 0 ? Math.round(netSalary * (lockedWants / totalLocked)) : 0;
+      savingsTargetTotal = netSalary - needsTargetTotal - wantsTargetTotal;
+    } else {
+      const remainingNet = netSalary - totalLocked;
+      const idealNeeds = Math.round(netSalary * 0.5);
+      const idealWants = Math.round(netSalary * 0.3);
+      const idealSavings = netSalary - idealNeeds - idealWants;
+
+      const desiredNeeds = Math.max(0, idealNeeds - lockedNeeds);
+      const desiredWants = Math.max(0, idealWants - lockedWants);
+      const desiredSavings = Math.max(0, idealSavings - lockedSavings);
+      const totalDesired = desiredNeeds + desiredWants + desiredSavings;
+
+      if (totalDesired > 0) {
+        const addNeeds = Math.round(remainingNet * (desiredNeeds / totalDesired));
+        const addWants = Math.round(remainingNet * (desiredWants / totalDesired));
+        const addSavings = remainingNet - addNeeds - addWants;
+
+        needsTargetTotal = lockedNeeds + addNeeds;
+        wantsTargetTotal = lockedWants + addWants;
+        savingsTargetTotal = lockedSavings + addSavings;
+      } else {
+        const addNeeds = Math.round(remainingNet * 0.5);
+        const addWants = Math.round(remainingNet * 0.3);
+        const addSavings = remainingNet - addNeeds - addWants;
+
+        needsTargetTotal = lockedNeeds + addNeeds;
+        wantsTargetTotal = lockedWants + addWants;
+        savingsTargetTotal = lockedSavings + addSavings;
+      }
+    }
 
     // Function to distribute target total among categories of a type
     const distributeToCategories = (type: "needs" | "wants" | "savings", targetTotal: number) => {
       const catsOfType = categories.filter(c => c.type === type);
       if (catsOfType.length === 0) return;
 
-      const currentSum = catsOfType.reduce((sum, c) => sum + c.amount, 0) || 1;
-      let allocated = 0;
-      
-      catsOfType.forEach((c, idx) => {
-        const weight = c.amount / currentSum;
-        const amt = idx === catsOfType.length - 1 ? (targetTotal - allocated) : Math.round(targetTotal * weight);
-        c.amount = Math.max(0, amt);
-        c.percentage = salaryNum > 0 ? (c.amount / salaryNum) * 100 : 0;
-        allocated += c.amount;
+      const catsWithLocks = catsOfType.map(c => {
+        const lockedItems = c.items.filter((i: any) => isItemLocked(i.name));
+        const lockedSum = lockedItems.reduce((sum: number, i: any) => sum + i.amount, 0);
+        return {
+          category: c,
+          lockedSum,
+          unlockedRaw: Math.max(0, c.amount - lockedSum)
+        };
+      });
 
-        // Adjust items within this category to match category amount
-        if (c.items.length > 0) {
-          // Enforce/lock the amount of synced decisions so they don't get diluted
-          const lockedItems = c.items.filter((i: any) => i.name.startsWith("Target:") || i.name.startsWith("Cicilan:"));
-          const lockedSum = lockedItems.reduce((sum: number, i: any) => sum + i.amount, 0);
-          const unlockedItems = c.items.filter((i: any) => !i.name.startsWith("Target:") && !i.name.startsWith("Cicilan:"));
+      const totalLockedSum = catsWithLocks.reduce((sum, item) => sum + item.lockedSum, 0);
 
-          // Make sure the category amount is at least the sum of locked items
-          c.amount = Math.max(c.amount, lockedSum);
+      if (totalLockedSum > targetTotal) {
+        let allocated = 0;
+        catsWithLocks.forEach((item, idx) => {
+          const c = item.category;
+          const share = item.lockedSum / (totalLockedSum || 1);
+          const catAmt = idx === catsWithLocks.length - 1 ? (targetTotal - allocated) : Math.round(targetTotal * share);
+          c.amount = Math.max(0, catAmt);
           c.percentage = salaryNum > 0 ? (c.amount / salaryNum) * 100 : 0;
+          allocated += c.amount;
+
+          const lockedItems = c.items.filter((i: any) => isItemLocked(i.name));
+          const unlockedItems = c.items.filter((i: any) => !isItemLocked(i.name));
+          
+          let allocatedItems = 0;
+          lockedItems.forEach((i: any, lIdx: number) => {
+            const itemShare = i.amount / (item.lockedSum || 1);
+            const itemAmt = lIdx === lockedItems.length - 1 ? (c.amount - allocatedItems) : Math.round(c.amount * itemShare);
+            i.amount = Math.max(0, itemAmt);
+            allocatedItems += i.amount;
+          });
+          unlockedItems.forEach((i: any) => {
+            i.amount = 0;
+          });
+        });
+      } else {
+        const remainingTarget = targetTotal - totalLockedSum;
+        const totalUnlockedRaw = catsWithLocks.reduce((sum, item) => sum + item.unlockedRaw, 0);
+        
+        let allocated = 0;
+        catsWithLocks.forEach((item, idx) => {
+          const c = item.category;
+          let addedAmt = 0;
+          if (totalUnlockedRaw > 0) {
+            const share = item.unlockedRaw / totalUnlockedRaw;
+            addedAmt = idx === catsWithLocks.length - 1 ? (remainingTarget - allocated) : Math.round(remainingTarget * share);
+          } else {
+            const share = Math.round(remainingTarget / catsWithLocks.length);
+            addedAmt = idx === catsWithLocks.length - 1 ? (remainingTarget - allocated) : share;
+          }
+          c.amount = item.lockedSum + addedAmt;
+          c.percentage = salaryNum > 0 ? (c.amount / salaryNum) * 100 : 0;
+          allocated += addedAmt;
+
+          const lockedItems = c.items.filter((i: any) => isItemLocked(i.name));
+          const unlockedItems = c.items.filter((i: any) => !isItemLocked(i.name));
+
+          lockedItems.forEach((i: any) => {
+            // Keep original amount (already correct)
+          });
 
           if (unlockedItems.length > 0) {
-            const remainingForUnlocked = Math.max(0, c.amount - lockedSum);
-            const share = Math.round(remainingForUnlocked / unlockedItems.length);
             let allocatedUnlocked = 0;
+            const share = Math.round(addedAmt / unlockedItems.length);
             unlockedItems.forEach((i: any, uIdx: number) => {
-              const itemAmt = uIdx === unlockedItems.length - 1 ? (remainingForUnlocked - allocatedUnlocked) : share;
-              i.amount = itemAmt;
+              const itemAmt = uIdx === unlockedItems.length - 1 ? (addedAmt - allocatedUnlocked) : share;
+              i.amount = Math.max(0, itemAmt);
               allocatedUnlocked += itemAmt;
             });
           } else {
-            const itemsSum = c.items.reduce((sum: number, item: any) => sum + item.amount, 0);
-            if (itemsSum !== c.amount) {
-              c.items[c.items.length - 1].amount = Math.max(0, c.items[c.items.length - 1].amount + (c.amount - itemsSum));
+            if (lockedItems.length > 0 && addedAmt > 0) {
+              lockedItems[lockedItems.length - 1].amount += addedAmt;
             }
           }
-        }
-      });
+        });
+      }
     };
 
     distributeToCategories("needs", needsTargetTotal);

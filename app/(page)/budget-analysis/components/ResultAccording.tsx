@@ -100,6 +100,8 @@ export function ResultComments({
           plans={plans}
           targetValue={targetValue}
           consequencesNote={aiData.paylaterSimulation.consequencesNote}
+          remainingBudget={remainingBudget}
+          monthlyBudget={monthlyBudget}
         />
       )}
 

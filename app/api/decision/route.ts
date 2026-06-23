@@ -136,7 +136,7 @@ PENTING - PANDUAN BAHASA & NADA BICARA (WAJIB DIIKUTI SECARA KETAT):
   * "Insight Psikologis & Tips Emosional" (untuk Psychological Insight)
   * "Taktik Keuangan Biar Dompet Sehat" (untuk Emergency Mode / Strategy)
   * "Rekomendasi Pemangkasan Jajan / Pos Belanja" (untuk Sacrifice Transparency)
-- **JANGAN PERNAH MENGGUNAKAN DESIMAL (koma seperti .0, .5)** dalam menentukan atau menampilkan jumlah bulan di seluruh teks analisis Anda. Selalu bulatkan jumlah bulan ke bilangan bulat terdekat (misalnya: tulis '10 bulan', bukan '10.0 bulan' atau '10.3 bulan').
+- **JANGAN PERNAH MENGGUNAKAN DESIMAL (koma seperti .0, .5, atau angka berkoma)** dalam menentukan atau menampilkan jumlah bulan, persentase, rasio kelayakan, maupun nominal uang di seluruh teks analisis Anda. Selalu bulatkan jumlah bulan (misalnya: tulis '10 bulan', bukan '10.0 bulan' atau '10.3 bulan'), persentase (misalnya: tulis '67%', bukan '66.7%'), dan nominal uang ke ribuan terdekat (misalnya: tulis 'Rp 1.978.000', bukan 'Rp 1.978.333').
 - **JANGAN PERNAH menyebutkan istilah "sisa anggaran" atau "sisa budget" atau "sisa uang"** di seluruh hasil analisis Anda. Selalu gunakan istilah "budget bulanan" atau "uang bulanan" untuk merujuk pada uang/anggaran bulanan pengguna. Jangan menulis kalimat redundan seperti "kamu punya tabungan awal Rp X dan sisa anggaran Rp X" atau mengulang nominal budget bulanan sebagai sisa anggaran secara redundan.
 - Dalam Cek Realita Keuangan, buatlah narasi yang menyentuh sisi psikologis pengguna (terutama jika rencana pembelian tidak masuk akal atau didorong oleh gengsi/FOMO) sebagai bahan pertimbangan yang mendalam bagi mereka. Gunakan pendekatan yang peduli, seperti: "Membeli barang ini dengan menyisihkan uang bulananmu saat ini butuh waktu sekitar Z bulan. Memaksakan diri memilikinya terlalu cepat hanya akan memicu kecemasan mental dan membuatmu tergiur utang instan yang merusak ketenangan pikiranmu."
 - **PENTING - STRATEGI RESPONS BERDASARKAN KATEGORI TARGET ("jenisTarget"):**
@@ -171,7 +171,7 @@ Data Keuangan Nyata (Hari ini: ${currentDateStr}):
 7. Rencana Sumber Dana Pembelian: "${sumberDana || "Nabung Cash"}"
 8. Kebutuhan Tabungan Bulanan Ideal (Target / Durasi Bulan): Rp ${Math.round(requiredMonthlySavings).toLocaleString("id-ID")} per bulan
 9. Sisa Uang Buffer Kamu (Setelah Pengeluaran Rutin): Rp ${remainingBudget.toLocaleString("id-ID")}
-10. Rasio Kelayakan Tabungan (Sisa Uang Buffer / Kebutuhan Tabungan Ideal): ${(feasibilityRatio * 100).toFixed(1)}%
+10. Rasio Kelayakan Tabungan (Sisa Uang Buffer / Kebutuhan Tabungan Ideal): ${Math.round(feasibilityRatio * 100)}%
 11. Keterangan Tambahan / Curhatan Pengguna: "${keteranganTambahan || "(Tidak ada)"}"
 12. Total Pengeluaran Bulanan Kamu Saat Ini: Rp ${totalExpenses.toLocaleString("id-ID")}
 13. Daftar Rincian Pengeluaran Bulanan Saat Ini (yang di-input oleh user): [${parsedExpenses.map(exp => `{"name": "${exp.name}", "amount": ${exp.amount}}`).join(", ")}]
@@ -308,6 +308,41 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
 
       const cleanedText = responseText.replace(/^\s*```json\s*|```\s*$/g, "").trim();
       aiAnalysis = JSON.parse(cleanedText);
+
+      // Clean up decimals in AI response
+      if (aiAnalysis) {
+        if (typeof aiAnalysis.score === "number") {
+          aiAnalysis.score = Math.round(aiAnalysis.score);
+        }
+        if (aiAnalysis.paylaterSimulation) {
+          const sim = aiAnalysis.paylaterSimulation;
+          if (typeof sim.cashPrice === "number") sim.cashPrice = Math.round(sim.cashPrice);
+          if (typeof sim.paylaterPrice === "number") sim.paylaterPrice = Math.round(sim.paylaterPrice);
+          if (typeof sim.adminFee === "number") sim.adminFee = Math.round(sim.adminFee);
+          if (typeof sim.interestExpense === "number") sim.interestExpense = Math.round(sim.interestExpense);
+          if (typeof sim.moneyWasted === "number") sim.moneyWasted = Math.round(sim.moneyWasted);
+          if (Array.isArray(sim.plans)) {
+            sim.plans = sim.plans.map((plan: any) => {
+              if (plan) {
+                if (typeof plan.monthlyInstallment === "number") plan.monthlyInstallment = Math.round(plan.monthlyInstallment);
+                if (typeof plan.totalPrice === "number") plan.totalPrice = Math.round(plan.totalPrice);
+                if (typeof plan.interestAmount === "number") plan.interestAmount = Math.round(plan.interestAmount);
+                if (typeof plan.adminFee === "number") plan.adminFee = Math.round(plan.adminFee);
+                if (typeof plan.moneyWasted === "number") plan.moneyWasted = Math.round(plan.moneyWasted);
+              }
+              return plan;
+            });
+          }
+        }
+        if (Array.isArray(aiAnalysis.sacrificeTransparency)) {
+          aiAnalysis.sacrificeTransparency = aiAnalysis.sacrificeTransparency.map((item: any) => {
+            if (item && typeof item.nominalToCut === "number") {
+              item.nominalToCut = Math.round(item.nominalToCut);
+            }
+            return item;
+          });
+        }
+      }
     } catch (apiError) {
       console.error("Gemini API error, falling back to local analysis:", apiError);
       
@@ -607,8 +642,8 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
         priceComparisonNote: `Menggunakan nilai target Rp ${targetValNum.toLocaleString("id-ID")} yang diajukan sebagai estimasi harga dasar barang di pasar saat ini.`,
         alternativeSuggestions: fallbackAlternatives,
         budgetEvolution: [
-          `Pengeluaran bulanan menyerap sekitar ${((totalExpenses / monthlyBudget) * 100).toFixed(1)}% dari total budget bulananmu.`,
-          `Sisa dana bulanan hanya mampu menutupi ${(feasibilityRatio * 100).toFixed(1)}% dari porsi tabungan ideal bulanan yang dibutuhkan.`
+          `Pengeluaran bulanan menyerap sekitar ${Math.round((totalExpenses / monthlyBudget) * 100)}% dari total budget bulananmu.`,
+          `Sisa dana bulanan hanya mampu menutupi ${Math.round(feasibilityRatio * 100)}% dari porsi tabungan ideal bulanan yang dibutuhkan.`
         ],
         emergencyMode: {
           isActive: isDeficit || isUnrealistic,
@@ -643,6 +678,7 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
     if (aiAnalysis) {
       aiAnalysis.sumberDana = sumberDana;
       aiAnalysis.jenisTarget = jenisTarget;
+      aiAnalysis = recursiveSanitizeStrings(aiAnalysis);
     }
 
     // Save decision analysis and its nested expenses inside a transaction
@@ -688,6 +724,35 @@ Pastikan respon Anda adalah JSON valid tanpa dibungkus markdown codeblock. Gunak
       { status: 500 }
     );
   }
+}
+
+function cleanRupiahInText(text: string): string {
+  if (typeof text !== "string") return text;
+  return text.replace(/(Rp\.?\s*)(\d{1,3}(?:\.\d{3})+)(,\d+)?/gi, (match, prefix, numStr) => {
+    const numberValue = parseInt(numStr.replace(/\./g, ""), 10);
+    if (isNaN(numberValue)) return match;
+    const roundedValue = Math.round(numberValue / 1000) * 1000;
+    return `${prefix}${roundedValue.toLocaleString("id-ID")}`;
+  });
+}
+
+function recursiveSanitizeStrings(obj: any): any {
+  if (typeof obj === "string") {
+    return cleanRupiahInText(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(recursiveSanitizeStrings);
+  }
+  if (obj !== null && typeof obj === "object") {
+    const sanitizedObj: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        sanitizedObj[key] = recursiveSanitizeStrings(obj[key]);
+      }
+    }
+    return sanitizedObj;
+  }
+  return obj;
 }
 
 

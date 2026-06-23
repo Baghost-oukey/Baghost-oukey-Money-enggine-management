@@ -231,6 +231,7 @@ export function ResultAnalisis({
               if (isSynced || isSyncing) return;
               setIsSyncing(true);
               try {
+                const targetSavings = Math.round(Number(targetValue || 0) / (monthsDiff || 1) / 1000) * 1000;
                 const response = await fetch("/api/decision/sync", {
                   method: "POST",
                   headers: {
@@ -240,7 +241,7 @@ export function ResultAnalisis({
                     userId: analysisResult.userId,
                     decisionId: analysisResult.id,
                     targetName: target,
-                    monthlySavingsRequired: Math.round(Number(targetValue || 0) / (monthsDiff || 1)),
+                    monthlySavingsRequired: targetSavings,
                     sumberDana: aiData.sumberDana || (aiData.paylaterSimulation ? "Paylater/Kredit" : "Nabung Cash"),
                   }),
                 });
@@ -251,24 +252,15 @@ export function ResultAnalisis({
                   // Pre-fill localStorage
                   if (typeof window !== "undefined") {
                     localStorage.setItem("imported_budget_salary", String(monthlyBudget || 0));
+                    localStorage.setItem("imported_budget_sync_target", JSON.stringify({ target, amount: targetSavings }));
                     
                     const expensesList = (expenses || [])
                       .map((exp: any) => `${exp.name} Rp ${Number(exp.amount || 0).toLocaleString("id-ID")}`)
                       .join(", ");
                       
-                    const targetSavings = Math.round(Number(targetValue || 0) / (monthsDiff || 1));
-                    const isDebt = (aiData.sumberDana || (aiData.paylaterSimulation ? "Paylater/Kredit" : "Nabung Cash")) === "Paylater/Kredit" || (aiData.sumberDana || (aiData.paylaterSimulation ? "Paylater/Kredit" : "Nabung Cash")) === "Pinjaman Online";
-                    const syncedText = `Sync target "${target}" sebesar Rp ${targetSavings.toLocaleString("id-ID")}/bulan.`;
-                    
-                    let notesText = expensesList 
+                    const notesText = expensesList 
                       ? `Pengeluaran bulanan saat ini: ${expensesList}.` 
                       : "";
-                    
-                    if (notesText) {
-                      notesText += ` ${syncedText}`;
-                    } else {
-                      notesText = syncedText;
-                    }
                     
                     localStorage.setItem("imported_budget_notes", notesText);
                   }

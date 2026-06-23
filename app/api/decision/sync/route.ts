@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     // Add new item
     categoryObj.items.push({ name: itemName, amount: savingsRequired });
     categoryObj.amount = categoryObj.items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
-    categoryObj.percentage = monthlyBudget > 0 ? (categoryObj.amount / monthlyBudget) * 100 : 0;
+    categoryObj.percentage = monthlyBudget > 0 ? Math.round((categoryObj.amount / monthlyBudget) * 100) : 0;
 
     // 2. Update the categories array
     if (Array.isArray(recommendation.categories)) {
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         cat.items = Array.isArray(cat.items) ? cat.items : [];
         cat.items.push({ name: itemName, amount: savingsRequired });
         cat.amount = cat.items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
-        cat.percentage = monthlyBudget > 0 ? (cat.amount / monthlyBudget) * 100 : 0;
+        cat.percentage = monthlyBudget > 0 ? Math.round((cat.amount / monthlyBudget) * 100) : 0;
       }
     }
 

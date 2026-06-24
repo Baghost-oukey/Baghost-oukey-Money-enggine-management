@@ -1,0 +1,14 @@
+[DEBUG] Auth start. Input Email: demo@test.com, Input Password: 1234567890
+[DEBUG] Error: (ENOTFOUND) tenant/user postgres.rjkzynipcxlwtfrcghjq not found
+DriverAdapterError: (ENOTFOUND) tenant/user postgres.rjkzynipcxlwtfrcghjq not found
+    at PrismaPgAdapter.onError (D:\Project\next\project_enggine\.next\dev\server\chunks\[root-of-the-server]__1kgtf1q._.js:7979:15)
+    at PrismaPgAdapter.performIO (D:\Project\next\project_enggine\.next\dev\server\chunks\[root-of-the-server]__1kgtf1q._.js:7974:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async PrismaPgAdapter.queryRaw (D:\Project\next\project_enggine\.next\dev\server\chunks\[root-of-the-server]__1kgtf1q._.js:7910:34)
+    at async e.interpretNode (D:\Project\next\project_enggine\.next\dev\server\chunks\lib_generated_prisma_runtime_client_1mcxc83.js:4751:60)
+    at async e.interpretNode (D:\Project\next\project_enggine\.next\dev\server\chunks\lib_generated_prisma_runtime_client_1mcxc83.js:4769:57)
+    at async e.interpretNode (D:\Project\next\project_enggine\.next\dev\server\chunks\lib_generated_prisma_runtime_client_1mcxc83.js:4829:57)
+    at async e.run (D:\Project\next\project_enggine\.next\dev\server\chunks\lib_generated_prisma_runtime_client_1mcxc83.js:4671:28)
+    at async e.execute (D:\Project\next\project_enggine\.next\dev\server\chunks\lib_generated_prisma_runtime_client_1mcxc83.js:6081:16)
+    at async jt.request (D:\Project\next\project_enggine\.next\dev\server\chunks\lib_generated_prisma_runtime_client_1mcxc83.js:6812:21)
+    at async Object.singleLoader (D:\Project\next\project_enggine\.next\dev\server\chunks\lib_generated_prisma_runtime_client_1mcxc83.js:7443:89)

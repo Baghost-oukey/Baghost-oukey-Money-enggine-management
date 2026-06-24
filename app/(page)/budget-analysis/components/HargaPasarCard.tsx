@@ -21,14 +21,14 @@ export function KabarHargaPasar({
     <AccordionItem value="market-price" className="px-4">
       <AccordionTrigger className="text-sm font-semibold hover:no-underline py-4 focus-visible:underline focus-visible:ring-0">
         <div className="flex items-center gap-2">
-          <span>Estimasi Harga</span>
+          <span>Berapa sih Harga Pasaran Aslinya? 🏷️</span>
         </div>
       </AccordionTrigger>
       <AccordionContent className="pb-4 space-y-3 text-xs leading-relaxed">
         <div className="p-3.5 border rounded-xl space-y-1">
           <div className="text-xs font-semibold text-foreground flex flex-col gap-1">
             <span className="font-medium">
-              Estimasi Harga Pasar untuk "{target}":
+              Harga pasaran asli untuk "{target}":
             </span>
             <span className="font-medium text-sm text-justify mx-1">
               {realMarketPrice}
@@ -44,7 +44,7 @@ export function KabarHargaPasar({
         {alternativeSuggestions && alternativeSuggestions.length > 0 && (
           <div className="p-3.5 border rounded-xl space-y-2">
             <div className="text-md font-semibold uppercase flex items-center gap-1">
-              Kamu Bisa Coba Ini sebagai Alternatif
+              Coba lirik alternatif yang lebih hemat ini:
             </div>
             <ul className="space-y-1.5 pl-4 list-disc text-[10px] text-justify mx-2">
               {alternativeSuggestions.map((item, index) => (

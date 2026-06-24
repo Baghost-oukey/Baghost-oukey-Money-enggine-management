@@ -80,8 +80,8 @@ export function ResultAnalisis({
   }
 
   const verdictOpinion = aiData.verdictOpinion || {
-    title: "Keputusan Keuangan",
-    explanation: aiData.healthScoreExplanation || "Silakan evaluasi detail budget bulanan Anda."
+    title: "Saran Sahabat Keuanganmu",
+    explanation: aiData.healthScoreExplanation || "Yuk, coba cek kembali rincian anggaran bulananmu."
   };
 
   const score = aiData.score ?? 70;
@@ -90,17 +90,17 @@ export function ResultAnalisis({
     switch (verdict) {
       case "BOLEH_BELI":
       case "RECOMMENDED_CASH":
-        return "Boleh Beli";
+        return "Boleh Beli 🎉";
       case "BELI_DENGAN_MENABUNG":
-        return "Beli dengan Menabung";
+        return "Bisa Beli Tapi Nabung Dulu 💪";
       case "TUNDA":
       case "WARNING_REPLAN":
-        return "Tunda Rencana";
+        return "Tunda Dulu Ya 🥺";
       case "JANGAN_BELI":
       case "BLOCKED_DANGER":
-        return "Jangan Beli";
+        return "Mending Jangan Beli Deh ❌";
       default:
-        return "Tinjau Kembali";
+        return "Cek Ulang Yuk 🤔";
     }
   };
 
@@ -177,7 +177,7 @@ export function ResultAnalisis({
         <div className="md:col-span-8 p-4.5 rounded-xl bg-violet-600/[0.02] border border-violet-500/15 flex flex-col justify-between space-y-2">
           <div className="space-y-1">
             <div className="text-[14px] font-extrabold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1">
-              {verdictOpinion.title || "Komentar Asisten Finansial"}
+              {verdictOpinion.title || "Pendapat Jujur Sahabat Finansialmu"}
             </div>
             <p className="text-[13px] leading-relaxed font-medium text-gray-700 pl-0.5 mt-1 text-justify">
               {verdictOpinion.explanation}
@@ -215,7 +215,7 @@ export function ResultAnalisis({
       {/* Final recommendation text */}
       <div className="p-4 rounded-xl bg-violet-500/[0.02] border border-violet-500/15 space-y-1">
         <h4 className="text-xs font-bold uppercase flex items-center gap-2 mb-2">
-          Saran Akhir
+          Pesan Singkat Sahabat Keuanganmu
         </h4>
         <p className="text-xs text-muted-foreground italic font-semibold leading-relaxed">
           "{aiData.aiRecommendationText}"
@@ -288,7 +288,7 @@ export function ResultAnalisis({
                 : "bg-violet-600 hover:bg-violet-700 text-white"
             )}
           >
-            {isSynced ? "Tersinkron" : isSyncing ? "Syncing..." : "Sync"}
+            {isSynced ? "Tersinkron" : isSyncing ? "Menyimpan..." : "Masukkan Anggaran"}
           </Button>
 
           {/* Import to Budgeting Button */}
@@ -311,7 +311,7 @@ export function ResultAnalisis({
             }}
             className="w-full flex items-center justify-center text-[10px] font-bold h-9 rounded-xl shadow-sm cursor-pointer bg-violet-600 hover:bg-violet-700 text-white"
           >
-            Buat Budget
+            Susun Anggaran
           </Button>
 
           {/* Reset Button */}
@@ -320,7 +320,7 @@ export function ResultAnalisis({
             className="w-full flex items-center justify-center gap-1 hover:bg-muted border-muted/50 rounded-xl text-[10px] font-bold h-9 shadow-sm cursor-pointer"
             onClick={onReset}
           >
-            Reset
+            Mulai Baru
           </Button>
         </div>
       </div>
@@ -328,8 +328,8 @@ export function ResultAnalisis({
       <ModalSync
         isOpen={isSyncing}
         onClose={() => setIsSyncing(false)}
-        title="Menyinkronkan Data..."
-        description="Harap tunggu sebentar, sedang menyinkronkan data belanja ke rencana anggaran bulanan Anda."
+        title="Lagi Menyimpan ke Anggaran..."
+        description="Tunggu sebentar ya, kami sedang memasukkan rencana belanja ini ke dalam daftar anggaran bulananmu."
         showCancel={false}
       />
     </div>

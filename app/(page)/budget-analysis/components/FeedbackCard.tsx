@@ -72,7 +72,7 @@ export function SaranStrategiMengelolaUang({
     <AccordionItem value="money-management-strategy" className="px-4">
       <AccordionTrigger className="text-sm font-semibold hover:no-underline py-4 focus-visible:underline focus-visible:ring-0">
         <div className="flex items-center gap-2">
-          <span>Strategi Ngatur Uang (Analisis AI Temanmu)</span>
+          <span>Taktik Nabung & Atur Uang 💡</span>
         </div>
       </AccordionTrigger>
       <AccordionContent className="space-y-4 text-xs leading-relaxed">

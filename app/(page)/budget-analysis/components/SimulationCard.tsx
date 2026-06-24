@@ -42,7 +42,7 @@ export function SimulasiNabungVsPaylater({
     <AccordionItem value="paylater-simulation" className="px-4">
       <AccordionTrigger className="text-sm font-semibold hover:no-underline focus-visible:underline focus-visible:ring-0">
         <div className="flex items-center">
-          <span>Perbandingan Jika Kamu Nabung atau Beli Pakai Cicilan </span>
+          <span>Simulasi: Nabung vs Nyicil (Paylater) 📊</span>
         </div>
       </AccordionTrigger>
       <AccordionContent className="space-y-5">

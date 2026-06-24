@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
   output   = "../lib/generated/prisma"
@@ -10,146 +5,216 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  // url = env("DATABASE_URL")
+}
+
+enum KategoriBelanja {
+  KEBUTUHAN
+  KEINGINAN
 }
 
 model User {
-  id     String @id @default(cuid())
-  authId String @unique
+  id              String             @id @default(cuid())
+  authId          String             @unique
+  name            String?
+  email           String?            @unique
+  imageUrl        String?
+  password        String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  name     String?
-  email    String? @unique
-  imageUrl String?
-  password String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  goals           Goal[]
-  decisions       DecisionAnalysis[]
-  budgets         BudgetPlan[]
+  decisions       KeputusanBudget[]
+  budgets         RencanaBudget[]
+  targetBudgets   TargetBudget[]
+  goalAnalysis    Goal[]
   sessions        ChatSession[]
   exportHistories ExportHistory[]
+
+  @@map("user")
 }
 
 model Goal {
-  id String @id @default(cuid())
+  id              String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id])
+  title           String
+  targetAmount    Decimal
+  targetDate      DateTime?
+  description     String?
+  isCompleted     Boolean            @default(false)
+  currentAmount   Decimal            @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  title        String
-  targetAmount Decimal
-
-  targetDate DateTime?
-
-  description String?
-
-  isCompleted Boolean @default(false)
-
-  currentAmount Decimal @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@map("goal_analysis_placeholder")
 }
 
-model DecisionAnalysis {
-  id String @id @default(cuid())
+model KeputusanBudget {
+  id_keputusan    String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id])
+  keuanganmu      Decimal
+  tujuan_membeli  String
+  hargaTarget     Decimal
+  kategori_belanja KategoriBelanja
+  target_budget   Decimal
+  tanggal_target  DateTime?
+  keterangan      String?            @db.Text
+  createdAt       DateTime           @default(now())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  expenses        DecisionExpense[]
+  riwayat         RiwayatKeputusan[]
+  budgetItems     BudgetItem[]
 
-  monthlyBudget Decimal
-
-  targetName  String
-  targetValue Decimal
-
-  targetDate DateTime?
-
-  decisionName String?
-
-  decisionCost Decimal?
-
-  decisionReason String?
-
-  status String?
-
-  score Int?
-
-  riskLevel String?
-
-  recommendation String?
-
-  createdAt DateTime @default(now())
-
-  expenses DecisionExpense[]
+  @@map("keputusan_budget")
 }
 
 model DecisionExpense {
-  id String @id @default(cuid())
+  id              String             @id @default(cuid())
+  id_keputusan    String
+  keputusan       KeputusanBudget    @relation(fields: [id_keputusan], references: [id_keputusan], onDelete: Cascade)
+  name            String
+  amount          Decimal
+  createdAt       DateTime           @default(now())
 
-  decisionId String
-
-  decision DecisionAnalysis @relation(fields: [decisionId], references: [id])
-
-  name String
-
-  amount Decimal
-
-  createdAt DateTime @default(now())
+  @@map("keputusan_expense")
 }
 
-model BudgetPlan {
-  id String @id @default(cuid())
+model RencanaBudget {
+  id_rencana      String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id])
+  bulanan         Decimal
+  keterangan      String?            @db.Text
+  createdAt       DateTime           @default(now())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  riwayat         RiwayatBudgeting[]
 
-  monthlyBudget Decimal
+  @@map("rencana_budget")
+}
 
-  recommendation Json?
+model RiwayatKeputusan {
+  id                          String             @id @default(cuid())
+  id_keputusan                String
+  keputusan                   KeputusanBudget    @relation(fields: [id_keputusan], references: [id_keputusan], onDelete: Cascade)
+  status                      String?            @default("SELESAI")
+  score                       Int?
+  risk_level                  String?
+  decision_verdict            String?
+  reality_check_is_realistic  Boolean?
+  reality_check_impact        String?            @db.Text
+  verdict_opinion_title       String?
+  verdict_opinion_explanation String?            @db.Text
+  financial_trap_warning      String?            @db.Text
+  paylater_simulation         Json?
+  opportunity_cost_investment String?            @db.Text
+  opportunity_cost_saving     String?            @db.Text
+  psychological_insight       Json?
+  real_market_price           String?            @db.Text
+  price_comparison_note       String?            @db.Text
+  alternative_suggestions     Json?
+  budget_evolution            Json?
+  emergency_mode_active       Boolean?
+  emergency_mode_strategy     String?            @db.Text
+  sacrifice_transparency      Json?
+  ai_recommendation_text      String?            @db.Text
+  sumber_dana                 String?
+  jenis_target                String?
+  createdAt                   DateTime           @default(now())
 
-  aiSummary String?
+  @@map("riwayat_keputusan")
+}
 
-  createdAt DateTime @default(now())
+model RiwayatBudgeting {
+  id              String             @id @default(cuid())
+  id_rencana      String
+  rencana         RencanaBudget      @relation(fields: [id_rencana], references: [id_rencana], onDelete: Cascade)
+  ai_summary      String?            @db.Text
+  framework_used  String             @default("Rasio 50:30:20 setelah Cicilan")
+  sources         String[]           @default(["Survei Biaya Hidup BPS", "Rasio Kemampuan Membayar OJK"])
+  createdAt       DateTime           @default(now())
+
+  categories      BudgetCategory[]
+
+  @@map("riwayat_budgeting")
+}
+
+model BudgetCategory {
+  id              String             @id @default(cuid())
+  riwayat_id      String
+  riwayat         RiwayatBudgeting   @relation(fields: [riwayat_id], references: [id], onDelete: Cascade)
+  name            String
+  type            String
+  percentage      Decimal
+  amount          Decimal
+  description     String?            @db.Text
+
+  items           BudgetItem[]
+
+  @@map("budget_category")
+}
+
+model BudgetItem {
+  id              String             @id @default(cuid())
+  category_id     String
+  category        BudgetCategory     @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  name            String
+  amount          Decimal
+
+  id_keputusan    String?
+  decision        KeputusanBudget?   @relation(fields: [id_keputusan], references: [id_keputusan], onDelete: SetNull)
+  id_target       String?
+  goal            TargetBudget?      @relation(fields: [id_target], references: [id_target], onDelete: SetNull)
+
+  @@map("budget_item")
+}
+
+model TargetBudget {
+  id_target       String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id])
+  title           String
+  targetAmount    Decimal
+  targetDate      DateTime?
+  description     String?            @db.Text
+  isCompleted     Boolean            @default(false)
+  currentAmount   Decimal            @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  budgetItems     BudgetItem[]
+
+  @@map("target_budget")
 }
 
 model ChatSession {
-  id String @id @default(cuid())
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  title     String?
+  createdAt DateTime      @default(now())
+  messages  ChatMessage[]
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  title String?
-
-  createdAt DateTime @default(now())
-
-  messages ChatMessage[]
+  @@map("chat_session")
 }
 
 model ChatMessage {
-  id String @id @default(cuid())
-
+  id        String      @id @default(cuid())
   sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String
+  content   String      @db.Text
+  createdAt DateTime    @default(now())
 
-  session ChatSession @relation(fields: [sessionId], references: [id])
-
-  role String
-
-  content String @db.Text
-
-  createdAt DateTime @default(now())
+  @@map("chat_message")
 }
 
 model ExportHistory {
-  id String @id @default(cuid())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  type String
-
-  fileUrl String?
-
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  fileUrl   String?
   createdAt DateTime @default(now())
+
+  @@map("export_history")
 }

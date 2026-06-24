@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { formatDecisionResponse } from "../decision/utils";
 
 interface BudgetItem {
   name: string;
@@ -155,7 +156,7 @@ function getStandardBaseline(salary: number, notes: string, syncedDecisions: any
         const rec = typeof d.recommendation === "string" ? JSON.parse(d.recommendation) : d.recommendation;
         isDebt = rec?.sumberDana === "Paylater/Kredit" || rec?.sumberDana === "Pinjaman Online";
       }
-    } catch (_) {}
+    } catch (_) { }
     if (isDebt) {
       const name = `Cicilan: ${d.targetName}`;
       // Avoid duplicate
@@ -309,7 +310,7 @@ function getStandardBaseline(salary: number, notes: string, syncedDecisions: any
         const rec = typeof d.recommendation === "string" ? JSON.parse(d.recommendation) : d.recommendation;
         isDebt = rec?.sumberDana === "Paylater/Kredit" || rec?.sumberDana === "Pinjaman Online";
       }
-    } catch (_) {}
+    } catch (_) { }
     if (!isDebt) {
       savingsItems.push({ name: `Target: ${d.targetName}`, amount: Number(d.decisionCost || 0) });
     }
@@ -369,7 +370,7 @@ function getStandardBaseline(salary: number, notes: string, syncedDecisions: any
 
         const lockedItems = c.items.filter(i => isItemLocked(i.name));
         const unlockedItems = c.items.filter(i => !isItemLocked(i.name));
-        
+
         let allocatedItems = 0;
         lockedItems.forEach((i, lIdx) => {
           const itemShare = i.amount / (item.lockedSum || 1);
@@ -402,7 +403,7 @@ function getStandardBaseline(salary: number, notes: string, syncedDecisions: any
         const c = item.category;
         const weight = rawWeights[idx];
         const addedAmt = idx === catsWithLocks.length - 1 ? (remainingAmount - allocated) : Math.round(remainingAmount * (weight / totalWeight));
-        
+
         c.amount = item.lockedSum + addedAmt;
         c.percentage = salary > 0 ? (c.amount / salary) * 100 : 0;
         allocated += addedAmt;
@@ -463,7 +464,7 @@ function getStandardBaseline(salary: number, notes: string, syncedDecisions: any
 
     // Cap savings to protect a basic wants floor (e.g. 10% of netSalary)
     const wantsFloor = Math.round(netSalary * 0.1);
-    
+
     maxSavingsAllowed = Math.max(idealSavings, remaining - wantsFloor);
     maxSavingsAllowed = Math.min(remaining, maxSavingsAllowed);
 
@@ -475,7 +476,7 @@ function getStandardBaseline(salary: number, notes: string, syncedDecisions: any
 
     // Wants target is whatever is left
     finalWantsAmount = remaining - finalSavingsAmount;
-    
+
     // If wants target is less than wantsFloor, and we have excess savings beyond lockedSavings, we adjust:
     if (finalWantsAmount < wantsFloor && finalSavingsAmount > lockedSavings) {
       const adjustment = Math.min(wantsFloor - finalWantsAmount, finalSavingsAmount - lockedSavings);
@@ -597,16 +598,30 @@ export async function POST(request: Request) {
     }
 
     // Fetch user's active synchronized target decisions from database
-    const syncedDecisions = await prisma.decisionAnalysis.findMany({
+    const keputusanList = await prisma.keputusanBudget.findMany({
       where: {
         userId,
-        status: "TERSINKRONISASI",
+        riwayat: {
+          some: {
+            status: "TERSINKRONISASI"
+          }
+        }
       },
+      include: {
+        expenses: true,
+        riwayat: {
+          orderBy: {
+            createdAt: "desc"
+          },
+          take: 1
+        }
+      }
     });
+    const syncedDecisions = keputusanList.map(k => formatDecisionResponse(k)).filter(Boolean) as any[];
 
     let syncedDecisionsText = "";
     if (syncedDecisions.length > 0) {
-      syncedDecisionsText = "\n\n[SINKRONISASI TARGET BELANJA WAJIB]:\n" + 
+      syncedDecisionsText = "\n\n[SINKRONISASI TARGET BELANJA WAJIB]:\n" +
         syncedDecisions.map(d => {
           let isDebt = false;
           try {
@@ -619,7 +634,7 @@ export async function POST(request: Request) {
                 isDebt = recStr.includes("paylater") || recStr.includes("pinjaman online");
               }
             }
-          } catch (_) {}
+          } catch (_) { }
           return `- ${isDebt ? "Cicilan" : "Target"}: ${d.targetName} Rp ${Number(d.decisionCost || 0).toLocaleString("id-ID")}/bulan (Pos: ${isDebt ? "debts" : "savings"})`;
         }).join("\n");
     }
@@ -681,10 +696,10 @@ Sebagai asisten AI, Anda wajib bertindak kritis:
    - Kategori-kategori tersebut harus memiliki tipe ("type") salah satu dari: "needs", "wants", "savings", atau "debts".
    - Contoh nama kategori dinamis: "Makanan & Dapur", "Transportasi & Bensin", "Pendidikan Anak", "Utilitas & Tagihan", "Konsumsi Rokok", "Dana Darurat", "Investasi Masa Depan", "Cicilan Bank", dll.
 4. **Aturan Penyeimbangan Anggaran**:
-   ${forceBool 
-     ? `Karena Force Continue = YA, Anda harus mengikuti aturan penyeimbangan dengan prioritas pemangkasan kategori lain (wants -> savings -> needs) agar total jumlah seluruh kategori sama dengan gaji bulanan (Rp ${salaryNum}).`
-     : `Rasio Paten (50:30:20 dari sisa gaji bersih setelah cicilan) wajib dipenuhi. Total debts = D. Sisa gaji bersih = Gaji - D. Total needs = 0.5 * (Gaji - D). Total wants = 0.3 * (Gaji - D). Total savings = 0.2 * (Gaji - D). Jumlah total persentase seluruh kategori harus tepat 100.`
-   }
+   ${forceBool
+            ? `Karena Force Continue = YA, Anda harus mengikuti aturan penyeimbangan dengan prioritas pemangkasan kategori lain (wants -> savings -> needs) agar total jumlah seluruh kategori sama dengan gaji bulanan (Rp ${salaryNum}).`
+            : `Rasio Paten (50:30:20 dari sisa gaji bersih setelah cicilan) wajib dipenuhi. Total debts = D. Sisa gaji bersih = Gaji - D. Total needs = 0.5 * (Gaji - D). Total wants = 0.3 * (Gaji - D). Total savings = 0.2 * (Gaji - D). Jumlah total persentase seluruh kategori harus tepat 100.`
+          }
 5. **Keputusan & Tindakan**:
    ${forceInstructions}
 6. **Sumber & Referensi**:
@@ -868,21 +883,120 @@ Karena Anda berjalan dalam mode efisiensi tinggi (Gemini 3.1 Flash-Lite), harap 
       );
     }
 
-    // Save budgeting analysis results to Database using Prisma client
-    const budgetPlan = await prisma.budgetPlan.create({
+    // Save budgeting analysis results to Database using Prisma client relatioanlly
+    const rencanaBudget = await prisma.rencanaBudget.create({
       data: {
         userId,
-        monthlyBudget: salaryNum,
-        recommendation: sanitizedResult as any,
-        aiSummary: sanitizedResult.aiSummary,
+        bulanan: salaryNum,
+        keterangan: notes || "",
+        riwayat: {
+          create: {
+            ai_summary: sanitizedResult.aiSummary,
+            framework_used: sanitizedResult.frameworkUsed || "Rasio 50:30:20 setelah Cicilan",
+            sources: sanitizedResult.sources || [],
+            categories: {
+              create: (sanitizedResult.categories || []).map((cat: any) => ({
+                name: cat.name,
+                type: cat.type,
+                percentage: cat.percentage,
+                amount: cat.amount,
+                description: cat.description,
+                items: {
+                  create: (cat.items || []).map((item: any) => ({
+                    name: item.name,
+                    amount: item.amount,
+                  }))
+                }
+              }))
+            }
+          }
+        }
       },
+      include: {
+        riwayat: {
+          include: {
+            categories: {
+              include: {
+                items: true
+              }
+            }
+          }
+        }
+      }
     });
+
+    const riwayatBudgeting = rencanaBudget.riwayat?.[0] || null;
+
+    // Link synced decisions
+    for (const decision of syncedDecisions) {
+      let isDebt = false;
+      try {
+        if (decision.recommendation) {
+          const rec = typeof decision.recommendation === "string" ? JSON.parse(decision.recommendation) : decision.recommendation;
+          isDebt = rec?.sumberDana === "Paylater/Kredit" || rec?.sumberDana === "Pinjaman Online";
+        }
+      } catch (_) {}
+      
+      const expectedItemName = isDebt ? `Cicilan: ${decision.targetName}` : `Target: ${decision.targetName}`;
+      
+      if (riwayatBudgeting) {
+        // Find the BudgetItem under this riwayat
+        const matchingItem = await prisma.budgetItem.findFirst({
+          where: {
+            category: {
+              riwayat_id: riwayatBudgeting.id
+            },
+            name: expectedItemName
+          }
+        });
+        
+        if (matchingItem) {
+          await prisma.budgetItem.update({
+            where: { id: matchingItem.id },
+            data: { id_keputusan: decision.id }
+          });
+          
+          // Find the latest RiwayatKeputusan for this decision and set status to TERINTEGRASI
+          const latestRiwayat = await prisma.riwayatKeputusan.findFirst({
+            where: { id_keputusan: decision.id },
+            orderBy: { createdAt: "desc" }
+          });
+          
+          if (latestRiwayat) {
+            await prisma.riwayatKeputusan.update({
+              where: { id: latestRiwayat.id },
+              data: { status: "TERINTEGRASI" }
+            });
+          }
+        }
+      }
+    }
+
+    // Refetch the complete plan
+    const finalRencana = await prisma.rencanaBudget.findUnique({
+      where: { id_rencana: rencanaBudget.id_rencana },
+      include: {
+        riwayat: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: {
+            categories: {
+              include: {
+                items: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const responseData = formatBudgetPlanResponse(finalRencana);
 
     return NextResponse.json(
       {
         success: true,
         message: action === "negotiate" ? "Negosiasi anggaran bulanan berhasil diproses." : "Alokasi anggaran bulanan berhasil dibuat.",
-        data: budgetPlan,
+        data: responseData,
       },
       { status: 201 }
     );
@@ -899,6 +1013,55 @@ Karena Anda berjalan dalam mode efisiensi tinggi (Gemini 3.1 Flash-Lite), harap 
   }
 }
 
+export function formatBudgetPlanResponse(plan: any) {
+  if (!plan) return null;
+  const latestRiwayat = plan.riwayat?.[0] || null;
+  
+  const categories = (latestRiwayat?.categories || []).map((cat: any) => ({
+    name: cat.name,
+    type: cat.type,
+    percentage: Number(cat.percentage),
+    amount: Number(cat.amount),
+    description: cat.description,
+    items: (cat.items || []).map((item: any) => ({
+      name: item.name,
+      amount: Number(item.amount),
+      decisionId: item.id_keputusan,
+      goalId: item.id_target
+    }))
+  }));
+
+  const buildGroupedCategory = (type: string, defaultDesc: string) => {
+    const cats = categories.filter((c: any) => c.type === type);
+    const amount = cats.reduce((sum: number, c: any) => sum + c.amount, 0);
+    const percentage = Number(plan.bulanan) > 0 ? (amount / Number(plan.bulanan)) * 100 : 0;
+    const items = cats.reduce((list: any[], c: any) => [...list, ...c.items], [] as any[]);
+    const description = cats.map((c: any) => c.description).filter(Boolean).join(" | ") || defaultDesc;
+
+    return { percentage, amount, description, items };
+  };
+
+  const recommendation = {
+    categories,
+    needs: buildGroupedCategory("needs", "Kebutuhan Pokok"),
+    wants: buildGroupedCategory("wants", "Keinginan & Gaya Hidup"),
+    savings: buildGroupedCategory("savings", "Tabungan & Investasi"),
+    debts: buildGroupedCategory("debts", "Cicilan & Utang"),
+    sources: latestRiwayat?.sources || [],
+    aiSummary: latestRiwayat?.ai_summary || "",
+    frameworkUsed: latestRiwayat?.framework_used || "Rasio 50:30:20 setelah Cicilan"
+  };
+
+  return {
+    id: plan.id_rencana,
+    userId: plan.userId,
+    monthlyBudget: Number(plan.bulanan),
+    aiSummary: latestRiwayat?.ai_summary || "",
+    createdAt: plan.createdAt,
+    recommendation
+  };
+}
+
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
@@ -906,24 +1069,89 @@ export async function PUT(request: Request) {
 
     if (!id) {
       return NextResponse.json(
-        { success: false, message: "Budget Plan ID is required." },
+        { success: false, message: "Rencana Budget ID is required." },
         { status: 400 }
       );
     }
 
-    const updatedPlan = await prisma.budgetPlan.update({
-      where: { id },
+    // 1. Update plans
+    await prisma.rencanaBudget.update({
+      where: { id_rencana: id },
       data: {
-        monthlyBudget: monthlyBudget ? Number(monthlyBudget) : undefined,
-        recommendation: recommendation ? recommendation : undefined,
-        aiSummary: aiSummary ? aiSummary : undefined,
+        bulanan: monthlyBudget ? Number(monthlyBudget) : undefined,
       },
     });
+
+    // Find latest riwayat
+    const latestRiwayat = await prisma.riwayatBudgeting.findFirst({
+      where: { id_rencana: id },
+      orderBy: { createdAt: "desc" }
+    });
+
+    if (latestRiwayat) {
+      await prisma.riwayatBudgeting.update({
+        where: { id: latestRiwayat.id },
+        data: {
+          ai_summary: aiSummary || (recommendation?.aiSummary ? recommendation.aiSummary : undefined),
+          framework_used: recommendation?.frameworkUsed ? recommendation.frameworkUsed : undefined,
+          sources: recommendation?.sources ? recommendation.sources : undefined,
+        }
+      });
+
+      // Clear categories & items
+      await prisma.budgetCategory.deleteMany({
+        where: { riwayat_id: latestRiwayat.id }
+      });
+
+      // Recreate them
+      if (recommendation && Array.isArray(recommendation.categories)) {
+        for (const cat of recommendation.categories) {
+          await prisma.budgetCategory.create({
+            data: {
+              riwayat_id: latestRiwayat.id,
+              name: cat.name,
+              type: cat.type,
+              percentage: cat.percentage,
+              amount: cat.amount,
+              description: cat.description,
+              items: {
+                create: (cat.items || []).map((item: any) => ({
+                  name: item.name,
+                  amount: item.amount,
+                  id_keputusan: item.decisionId || null,
+                  id_target: item.goalId || null
+                }))
+              }
+            }
+          });
+        }
+      }
+    }
+
+    // Query full plan
+    const finalPlan = await prisma.rencanaBudget.findUnique({
+      where: { id_rencana: id },
+      include: {
+        riwayat: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: {
+            categories: {
+              include: {
+                items: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const responseData = formatBudgetPlanResponse(finalPlan);
 
     return NextResponse.json({
       success: true,
       message: "Anggaran berhasil diperbarui.",
-      data: updatedPlan,
+      data: responseData,
     });
   } catch (error) {
     console.error("Error updating budget plan:", error);
@@ -1149,8 +1377,8 @@ export function sanitizeAiResult(
         const rec = typeof d.recommendation === "string" ? JSON.parse(d.recommendation) : d.recommendation;
         isDebt = rec?.sumberDana === "Paylater/Kredit" || rec?.sumberDana === "Pinjaman Online";
       }
-    } catch (_) {}
-    
+    } catch (_) { }
+
     const categoryType = isDebt ? "debts" : "savings";
     const itemName = isDebt ? `Cicilan: ${d.targetName}` : `Target: ${d.targetName}`;
     const itemAmt = Number(d.decisionCost || 0);
@@ -1187,7 +1415,7 @@ export function sanitizeAiResult(
   // Separate dynamic categories by type
   const debtsCats = categories.filter(c => c.type === "debts");
   const totalDebtsAmount = debtsCats.reduce((sum, c) => sum + c.items.reduce((s: number, i: any) => s + i.amount, 0), 0);
-  
+
   // Set debts category amounts and percentages
   debtsCats.forEach(c => {
     c.amount = c.items.reduce((sum: number, i: any) => sum + i.amount, 0);
@@ -1236,7 +1464,7 @@ export function sanitizeAiResult(
 
       // Cap savings to protect a basic wants floor (e.g. 10% of netSalary)
       const wantsFloor = Math.round(netSalary * 0.1);
-      
+
       maxSavingsAllowed = Math.max(idealSavings, remaining - wantsFloor);
       maxSavingsAllowed = Math.min(remaining, maxSavingsAllowed);
 
@@ -1248,7 +1476,7 @@ export function sanitizeAiResult(
 
       // Wants target is whatever is left
       wantsTargetTotal = remaining - savingsTargetTotal;
-      
+
       // If wants target is less than wantsFloor, and we have excess savings beyond lockedSavings, we adjust:
       if (wantsTargetTotal < wantsFloor && savingsTargetTotal > lockedSavings) {
         const adjustment = Math.min(wantsFloor - wantsTargetTotal, savingsTargetTotal - lockedSavings);
@@ -1286,7 +1514,7 @@ export function sanitizeAiResult(
 
           const lockedItems = c.items.filter((i: any) => isItemLocked(i.name));
           const unlockedItems = c.items.filter((i: any) => !isItemLocked(i.name));
-          
+
           let allocatedItems = 0;
           lockedItems.forEach((i: any, lIdx: number) => {
             const itemShare = i.amount / (item.lockedSum || 1);
@@ -1301,7 +1529,7 @@ export function sanitizeAiResult(
       } else {
         const remainingTarget = targetTotal - totalLockedSum;
         const totalUnlockedRaw = catsWithLocks.reduce((sum, item) => sum + item.unlockedRaw, 0);
-        
+
         let allocated = 0;
         catsWithLocks.forEach((item, idx) => {
           const c = item.category;

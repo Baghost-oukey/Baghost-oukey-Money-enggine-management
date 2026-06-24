@@ -23,7 +23,7 @@ export function TaktikKeuangan({
     <AccordionItem value="tactics-sacrifice" className="px-4">
       <AccordionTrigger className="text-sm font-semibold hover:no-underline py-4 focus-visible:underline focus-visible:ring-0">
         <div className="flex items-center gap-2">
-          <span>Taktik Keuangan</span>
+          <span>Taktik Hemat & Kurangi Pengeluaran 🎯</span>
         </div>
       </AccordionTrigger>
       <AccordionContent className="pb-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs  leading-relaxed">
@@ -41,7 +41,7 @@ export function TaktikKeuangan({
         {sacrificeTransparency && sacrificeTransparency.length > 0 && (
           <div className="p-3 rounded-xl bg-background/55 border border-muted/20 space-y-2">
             <h5 className="text-[9px] font-bold text-foreground flex items-center gap-1 uppercase tracking-widest">
-              Rekomendasi Pemangkasan Jajan / Pos Belanja
+              Pengeluaran Jajan yang Bisa Dikurangi:
             </h5>
             {sacrificeTransparency.slice(0, 2).map((sacrifice, index) => (
               <div
@@ -50,14 +50,14 @@ export function TaktikKeuangan({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-foreground">
-                    Pos:{" "}
+                    Pos Jajan:{" "}
                     <span className="text-amber-600 dark:text-amber-400 font-bold">
                       {sacrifice.item}
                     </span>
                   </span>
                   {sacrifice.nominalToCut && (
                     <span className="font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 text-[9px]">
-                      Potong Rp {sacrifice.nominalToCut.toLocaleString("id-ID")}
+                      Kurangi Rp {sacrifice.nominalToCut.toLocaleString("id-ID")}
                     </span>
                   )}
                 </div>

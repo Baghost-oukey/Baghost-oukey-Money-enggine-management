@@ -15,26 +15,37 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            return null;
+          }
+
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email,
+            },
+          });
+
+          if (!user) {
+            console.warn(`[NextAuth] Login failed: User not found for email: ${credentials.email}`);
+            return null;
+          }
+
+          if (user.password !== credentials.password) {
+            console.warn(`[NextAuth] Login failed: Password mismatch for email: ${credentials.email}`);
+            return null;
+          }
+
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.imageUrl,
+          };
+        } catch (error) {
+          console.error("[NextAuth] Error during authorize:", error);
           return null;
         }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
-
-        if (!user || user.password !== credentials.password) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          image: user.imageUrl,
-        };
       },
     }),
     GoogleProvider({

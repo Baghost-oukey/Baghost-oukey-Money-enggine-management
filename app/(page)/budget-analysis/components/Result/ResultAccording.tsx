@@ -70,6 +70,7 @@ export function ResultComments({
       <KabarHargaPasar
         decisionId={decisionId}
         target={target}
+        targetValue={targetValue}
       />
 
       {/* 8. Taktik Keuangan & Rencana Aksi */}

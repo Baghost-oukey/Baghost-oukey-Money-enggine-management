@@ -39,6 +39,10 @@ export function SimulasiNabungVsPaylater({
   const [plans, setPlans] = useState<PaylaterPlan[]>([]);
   const [consequencesNote, setConsequencesNote] = useState("");
   const [savingOptions, setSavingOptions] = useState<SavingOption[]>([]);
+  const [isTargetUnrealistic, setIsTargetUnrealistic] = useState(false);
+  const [alternativeTargetPrice, setAlternativeTargetPrice] = useState(0);
+  const [alternativeCategory, setAlternativeCategory] = useState("barang");
+  const [alternativeReason, setAlternativeReason] = useState("");
 
   const targetValNum = Number(targetValue || 0);
 
@@ -53,6 +57,10 @@ export function SimulasiNabungVsPaylater({
           setPlans(json.data.plans || []);
           setConsequencesNote(json.data.consequencesNote || "");
           setSavingOptions(json.data.savingOptions || calculateSavingOptions(remainingBudget, targetValue));
+          setIsTargetUnrealistic(!!json.data.isTargetUnrealistic);
+          setAlternativeTargetPrice(json.data.alternativeTargetPrice || 0);
+          setAlternativeCategory(json.data.alternativeCategory || "barang");
+          setAlternativeReason(json.data.alternativeReason || "");
         }
       } catch (err) {
         console.error("Failed to load paylater simulation:", err);
@@ -97,12 +105,22 @@ export function SimulasiNabungVsPaylater({
                     Hemat 100%
                   </span>
                 </div>
-                
+                {isTargetUnrealistic && (
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-800 dark:text-amber-300 leading-relaxed space-y-1">
+                    <span className="font-bold block">⚠️ Rencana Nabung Disesuaikan (Lebih Realistis)</span>
+                    <p>
+                      Target aslimu (<strong>Rp {targetValNum.toLocaleString("id-ID")}</strong>) terlalu tinggi untuk diselesaikan dalam waktu wajar. 
+                      Biar kamu lekas punya barang penunjang tugas/kerjaan, kami menyarankan target alternatif <strong>{alternativeCategory}</strong> seharga <strong>Rp {alternativeTargetPrice.toLocaleString("id-ID")}</strong> di bawah ini.
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-1">
                   {savingOptions.map((opt, idx) => {
                     const monthlySavingNeeded = opt.dailySaving * 30;
                     const remB = remainingBudget ?? 0;
                     const monB = monthlyBudget ?? 0;
+                    const displayTargetPrice = isTargetUnrealistic ? alternativeTargetPrice : targetValNum;
                     return (
                       <div
                         key={idx}
@@ -135,7 +153,7 @@ export function SimulasiNabungVsPaylater({
                         </div>
                         <div className="text-right">
                           <span className="text-[12px] text-gray-600 block font-bold">
-                            Total: Rp {targetValNum.toLocaleString("id-ID")}
+                            Total: Rp {displayTargetPrice.toLocaleString("id-ID")}
                           </span>
                           <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold">
                             Bebas Bunga & Admin: Hemat 100%
@@ -146,7 +164,7 @@ export function SimulasiNabungVsPaylater({
                   })}
                 </div>
 
-                {remainingBudget !== undefined && remainingBudget > 0 && targetValNum / remainingBudget > 12 && (
+                {!isTargetUnrealistic && remainingBudget !== undefined && remainingBudget > 0 && targetValNum / remainingBudget > 12 && (
                   <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-800 dark:text-amber-300 leading-relaxed">
                     💡 <strong>Tips Sahabat:</strong> Target barang ini terlalu besar dibanding budget-mu sekarang. Nabung dengan sisa uangmu saat ini (Rp {Math.round((remainingBudget ?? 0)/30).toLocaleString("id-ID")}/hari) butuh waktu <strong>{Math.ceil(targetValNum / (remainingBudget || 1))} bulan</strong>. 
                     Yuk, coba cek tab <strong>Berapa sih Harga Pasaran Aslinya?</strong> di atas untuk cari alternatif yang lebih ramah kantong!
@@ -159,11 +177,18 @@ export function SimulasiNabungVsPaylater({
                 )}
 
                 <div className="space-y-1 text-xs text-gray-600 border-t pt-2">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span>Target Barang:</span>
-                    <span className="font-semibold text-foreground">
-                      Rp {targetValNum.toLocaleString("id-ID")}
-                    </span>
+                    <div className="text-right">
+                      {isTargetUnrealistic && (
+                        <span className="text-[10px] line-through text-muted-foreground mr-1.5 leading-none block">
+                          Rp {targetValNum.toLocaleString("id-ID")}
+                        </span>
+                      )}
+                      <span className="font-semibold text-foreground">
+                        Rp {(isTargetUnrealistic ? alternativeTargetPrice : targetValNum).toLocaleString("id-ID")}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

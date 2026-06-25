@@ -303,7 +303,12 @@ Format JSON respon yang wajib Anda berikan:
 {
   "realMarketPrice": string,
   "priceComparisonNote": string,
-  "alternativeSuggestions": string[]
+  "alternativeSuggestions": [
+    {
+      "name": string, // Nama barang/produk alternatif spesifik tanpa rentang harga (misal: "ASUS Vivobook Go 14")
+      "estimatedPrice": number // Estimasi harga barang tersebut (dibulatkan ke ribuan terdekat, tanpa desimal/Rp)
+    }
+  ]
 }
 
 Respon harus berupa JSON murni tanpa dibungkus markdown codeblock.

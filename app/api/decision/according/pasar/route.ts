@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { callGemini, recursiveSanitizeStrings } from "../../utils";
+import { callGemini, recursiveSanitizeStrings, cleanTargetName } from "../../utils";
 import { getDecisionBaseContext, buildPasarPrompt } from "../../prompt";
 
 export async function GET(request: Request) {
@@ -27,14 +27,34 @@ export async function GET(request: Request) {
     }
 
     const riwayat = decision.riwayat[0];
+    const cleanedTarget = cleanTargetName(decision.tujuan_membeli || "");
 
+    // Check DB cache
     if (riwayat.real_market_price) {
+      let suggestions = riwayat.alternative_suggestions as any;
+      if (Array.isArray(suggestions)) {
+        // Map old string suggestions to structured suggestions if they are strings
+        suggestions = suggestions.map((item: any) => {
+          if (typeof item === "string") {
+            const match = item.match(/^(.*?)\s*\(Rp\s*([\d.]+)\)/i);
+            if (match) {
+              const name = match[1].trim();
+              const price = Number(match[2].replace(/\./g, "")) || null;
+              return { name, estimatedPrice: price };
+            }
+            return { name: item, estimatedPrice: null };
+          }
+          return item;
+        });
+      }
+
       return NextResponse.json({
         success: true,
         data: {
+          cleanedTarget,
           realMarketPrice: riwayat.real_market_price,
           priceComparisonNote: riwayat.price_comparison_note,
-          alternativeSuggestions: riwayat.alternative_suggestions
+          alternativeSuggestions: suggestions
         }
       });
     }
@@ -51,16 +71,27 @@ export async function GET(request: Request) {
     } catch (e) {
       console.error("Gemini failed for market price comparison, using fallback:", e);
       aiData = {
-        realMarketPrice: `Harga pasar untuk "${decision.tujuan_membeli}" bervariasi bergantung pada merek dan spesifikasi.`,
+        realMarketPrice: `Harga pasar untuk "${cleanedTarget}" bervariasi bergantung pada merek dan spesifikasi.`,
         priceComparisonNote: `Ekspektasi harga Rp ${Number(decision.hargaTarget).toLocaleString("id-ID")} ini sebaiknya dibandingkan kembali dengan harga di e-commerce terpercaya untuk menghindari pemborosan.`,
         alternativeSuggestions: [
-          "Cari versi second/bekas berkualitas untuk menghemat anggaran hingga 30-50%",
-          "Pilih alternatif merk lain dengan spesifikasi mirip yang harganya lebih ramah di kantong"
+          { name: "ASUS Vivobook Go 14", estimatedPrice: 5800000 },
+          { name: "Lenovo IdeaPad Slim 1", estimatedPrice: 4900000 },
+          { name: "Acer Aspire Lite 14", estimatedPrice: 4500000 }
         ]
       };
     }
 
     aiData = recursiveSanitizeStrings(aiData);
+
+    // Validate structured suggestions
+    if (Array.isArray(aiData.alternativeSuggestions)) {
+      aiData.alternativeSuggestions = aiData.alternativeSuggestions.map((item: any) => {
+        if (item && typeof item.estimatedPrice === "number") {
+          item.estimatedPrice = Math.round(item.estimatedPrice);
+        }
+        return item;
+      });
+    }
 
     await prisma.riwayatKeputusan.update({
       where: { id: riwayat.id },
@@ -74,6 +105,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       data: {
+        cleanedTarget,
         realMarketPrice: aiData.realMarketPrice,
         priceComparisonNote: aiData.priceComparisonNote,
         alternativeSuggestions: aiData.alternativeSuggestions

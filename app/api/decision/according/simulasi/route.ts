@@ -3,10 +3,61 @@ import { prisma } from "@/lib/prisma";
 import { callGemini, recursiveSanitizeStrings } from "../../utils";
 import { getDecisionBaseContext, buildSimulasiPrompt } from "../../prompt";
 
+function getRecommendedAlternativePrice(
+  targetName: string,
+  monthlyBudget: number,
+  isStudent: boolean,
+  originalPrice: number
+): { price: number; category: string } {
+  const nameLower = (targetName || "").toLowerCase();
+  let category = "barang alternatif";
+  let price = monthlyBudget * 3;
+
+  if (
+    nameLower.includes("laptop") ||
+    nameLower.includes("komputer") ||
+    nameLower.includes("pc") ||
+    nameLower.includes("macbook") ||
+    nameLower.includes("asus") ||
+    nameLower.includes("lenovo")
+  ) {
+    category = "laptop";
+    price = isStudent ? 5000000 : 8000000;
+  } else if (
+    nameLower.includes("hp") ||
+    nameLower.includes("phone") ||
+    nameLower.includes("samsung") ||
+    nameLower.includes("iphone") ||
+    nameLower.includes("android") ||
+    nameLower.includes("xiaomi") ||
+    nameLower.includes("oppo")
+  ) {
+    category = "HP/smartphone";
+    price = isStudent ? 2500000 : 4000000;
+  } else if (
+    nameLower.includes("motor") ||
+    nameLower.includes("honda") ||
+    nameLower.includes("yamaha") ||
+    nameLower.includes("kendaraan") ||
+    nameLower.includes("vespa")
+  ) {
+    category = "sepeda motor";
+    price = isStudent ? 8000000 : 15000000;
+  }
+
+  // Ensure alternative price is indeed cheaper than original price
+  if (price >= originalPrice) {
+    price = Math.round((originalPrice * 0.4) / 100000) * 100000 || 1000000;
+  }
+
+  return { price, category };
+}
+
 function calculateDynamicSavingOptions(
   targetPrice: number,
   monthlyBudget: number,
-  keterangan: string
+  keterangan: string,
+  targetName: string
 ) {
   const targetValNum = targetPrice;
   const noteLower = (keterangan || "").toLowerCase();
@@ -28,12 +79,10 @@ function calculateDynamicSavingOptions(
   let dailyAgresif = 60000;
 
   if (isStudent) {
-    // Pelajar: targets are small, pocket-money scale
     dailySantai = 5000;
     dailyKonsisten = 10000;
     dailyAgresif = 20000;
   } else {
-    // Worker: scale targets up based on monthly salary
     if (monthlyBudget >= 10000000) {
       dailySantai = 30000;
       dailyKonsisten = 60000;
@@ -45,11 +94,28 @@ function calculateDynamicSavingOptions(
     }
   }
 
-  // Scale down if target price is very cheap
-  if (targetValNum < dailyAgresif) {
-    dailyAgresif = Math.min(dailyAgresif, targetValNum);
-    dailyKonsisten = Math.min(dailyKonsisten, Math.round((targetValNum * 0.5) / 1000) * 1000 || 1000);
-    dailySantai = Math.min(dailySantai, Math.round((targetValNum * 0.25) / 1000) * 1000 || 1000);
+  // Check if original saving plan is unrealistic (exceeds 24 months under Opsi Agresif)
+  const originalMonthsAgresif = Math.ceil(Math.ceil(targetValNum / dailyAgresif) / 30);
+  const isTargetUnrealistic = originalMonthsAgresif > 24;
+
+  let finalTargetPrice = targetValNum;
+  let alternativeTargetPrice = 0;
+  let alternativeCategory = "barang";
+  let alternativeReason = "";
+
+  if (isTargetUnrealistic) {
+    const alt = getRecommendedAlternativePrice(targetName, monthlyBudget, isStudent, targetValNum);
+    alternativeTargetPrice = alt.price;
+    alternativeCategory = alt.category;
+    finalTargetPrice = alt.price;
+    alternativeReason = `Menabung untuk barang seharga Rp ${targetValNum.toLocaleString("id-ID")} dengan budget-mu saat ini memerlukan waktu menabung yang tidak realistis (lebih dari 2 tahun). Lebih baik lirik alternatif ${alt.category} seharga Rp ${alt.price.toLocaleString("id-ID")} yang bisa kamu capai dalam waktu wajar.`;
+  }
+
+  // Scale down if final target price is very cheap
+  if (finalTargetPrice < dailyAgresif) {
+    dailyAgresif = Math.min(dailyAgresif, finalTargetPrice);
+    dailyKonsisten = Math.min(dailyKonsisten, Math.round((finalTargetPrice * 0.5) / 1000) * 1000 || 1000);
+    dailySantai = Math.min(dailySantai, Math.round((finalTargetPrice * 0.25) / 1000) * 1000 || 1000);
 
     if (dailyKonsisten >= dailyAgresif) {
       dailyKonsisten = Math.max(1000, Math.round(dailyAgresif * 0.6 / 1000) * 1000);
@@ -61,12 +127,12 @@ function calculateDynamicSavingOptions(
 
   const options = [
     { label: isStudent ? "Opsi Santai (Uang Jajan)" : "Opsi Santai", dailySaving: dailySantai },
-    { label: isStudent ? "Opsi Konsisten (Nabung Ortus)" : "Opsi Konsisten", dailySaving: dailyKonsisten },
+    { label: isStudent ? "Opsi Konsisten (Nabung Biasa)" : "Opsi Konsisten", dailySaving: dailyKonsisten },
     { label: isStudent ? "Opsi Agresif (Uang Saku Ketat)" : "Opsi Agresif", dailySaving: dailyAgresif },
   ];
 
-  return options.map((opt) => {
-    const daysNeeded = Math.ceil(targetValNum / opt.dailySaving);
+  const savingOptions = options.map((opt) => {
+    const daysNeeded = Math.ceil(finalTargetPrice / opt.dailySaving);
     const monthsNeeded = Math.ceil(daysNeeded / 30);
     return {
       label: opt.label,
@@ -75,6 +141,14 @@ function calculateDynamicSavingOptions(
       monthsNeeded,
     };
   });
+
+  return {
+    savingOptions,
+    isTargetUnrealistic,
+    alternativeTargetPrice,
+    alternativeCategory,
+    alternativeReason
+  };
 }
 
 export async function GET(request: Request) {
@@ -105,13 +179,20 @@ export async function GET(request: Request) {
     // Check DB cache
     if (riwayat.paylater_simulation) {
       const cachedSim = riwayat.paylater_simulation as any;
-      if (!cachedSim.savingOptions) {
-        // Backfill savingOptions dynamically for old cached records
-        cachedSim.savingOptions = calculateDynamicSavingOptions(
+      if (!cachedSim.savingOptions || cachedSim.isTargetUnrealistic === undefined) {
+        // Backfill dynamic savingOptions & alternative options for old cached records
+        const computedSavings = calculateDynamicSavingOptions(
           Number(decision.hargaTarget),
           Number(decision.keuanganmu),
-          decision.keterangan || ""
+          decision.keterangan || "",
+          decision.tujuan_membeli || ""
         );
+        cachedSim.savingOptions = computedSavings.savingOptions;
+        cachedSim.isTargetUnrealistic = computedSavings.isTargetUnrealistic;
+        cachedSim.alternativeTargetPrice = computedSavings.alternativeTargetPrice;
+        cachedSim.alternativeCategory = computedSavings.alternativeCategory;
+        cachedSim.alternativeReason = computedSavings.alternativeReason;
+
         // Update DB cache
         await prisma.riwayatKeputusan.update({
           where: { id: riwayat.id },
@@ -152,23 +233,18 @@ export async function GET(request: Request) {
           });
         }
 
-        // Validate or compute savingOptions if Gemini did not return it
-        if (!Array.isArray(sim.savingOptions) || sim.savingOptions.length === 0) {
-          sim.savingOptions = calculateDynamicSavingOptions(
-            Number(decision.hargaTarget),
-            Number(decision.keuanganmu),
-            decision.keterangan || ""
-          );
-        } else {
-          sim.savingOptions = sim.savingOptions.map((opt: any) => {
-            if (opt) {
-              if (typeof opt.dailySaving === "number") opt.dailySaving = Math.round(opt.dailySaving);
-              if (typeof opt.daysNeeded === "number") opt.daysNeeded = Math.round(opt.daysNeeded);
-              if (typeof opt.monthsNeeded === "number") opt.monthsNeeded = Math.round(opt.monthsNeeded);
-            }
-            return opt;
-          });
-        }
+        // Programmatically compute dynamic saving options to guarantee mathematical accuracy & custom limits
+        const computedSavings = calculateDynamicSavingOptions(
+          Number(decision.hargaTarget),
+          Number(decision.keuanganmu),
+          decision.keterangan || "",
+          decision.tujuan_membeli || ""
+        );
+        sim.savingOptions = computedSavings.savingOptions;
+        sim.isTargetUnrealistic = computedSavings.isTargetUnrealistic;
+        sim.alternativeTargetPrice = computedSavings.alternativeTargetPrice;
+        sim.alternativeCategory = computedSavings.alternativeCategory;
+        sim.alternativeReason = computedSavings.alternativeReason;
       } else {
         throw new Error("Invalid structure from Gemini");
       }
@@ -198,10 +274,11 @@ export async function GET(request: Request) {
         };
       });
 
-      const fallbackSavingOptions = calculateDynamicSavingOptions(
+      const computedSavings = calculateDynamicSavingOptions(
         cashPrice,
         Number(decision.keuanganmu),
-        decision.keterangan || ""
+        decision.keterangan || "",
+        decision.tujuan_membeli || ""
       );
 
       aiData = {
@@ -214,7 +291,11 @@ export async function GET(request: Request) {
           adminRatePct,
           interestRatePct,
           plans,
-          savingOptions: fallbackSavingOptions,
+          savingOptions: computedSavings.savingOptions,
+          isTargetUnrealistic: computedSavings.isTargetUnrealistic,
+          alternativeTargetPrice: computedSavings.alternativeTargetPrice,
+          alternativeCategory: computedSavings.alternativeCategory,
+          alternativeReason: computedSavings.alternativeReason,
           consequencesNote: `Membeli cicilan paylater "${decision.tujuan_membeli}" ini bakal menyedot sebagian dari budget bulananmu secara konsisten, jadi pertimbangkan baik-baik ya!`
         }
       };

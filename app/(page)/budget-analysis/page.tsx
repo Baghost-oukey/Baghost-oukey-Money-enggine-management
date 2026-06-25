@@ -4,7 +4,7 @@ import React from "react";
 import { useBudgetAnalysis } from "./hooks/useBudgetAnalysis";
 import { BudgetForm } from "./components/BudgetForm";
 import { BudgetSummaryPreview } from "./components/BudgetPreview";
-import { ResultAnalisis } from "./components/ResultAnalisis";
+import { ResultAnalisis } from "./components/Result/ResultAnalisis";
 import { ModalSync } from "./components/modal-sync";
 import { motion, AnimatePresence } from "framer-motion";
 

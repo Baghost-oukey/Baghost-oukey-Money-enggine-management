@@ -154,3 +154,63 @@ export function formatDecisionResponse(decision: any) {
     }))
   };
 }
+
+export async function callGemini(prompt: string): Promise<any> {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API_KEY environment variable is not defined");
+  }
+  const apiResponse = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
+      }),
+    }
+  );
+
+  if (!apiResponse.ok) {
+    throw new Error(`Gemini API returned status ${apiResponse.status}`);
+  }
+
+  const apiData = await apiResponse.json();
+  const responseText = apiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!responseText) {
+    throw new Error("Empty response from Gemini API");
+  }
+
+  const cleanedText = responseText.replace(/^\s*```json\s*|```\s*$/g, "").trim();
+  return JSON.parse(cleanedText);
+}
+
+export function cleanTargetName(name: string): string {
+  if (!name) return "";
+  let cleaned = name.trim();
+  
+  // Strip common Indonesian prefix phrases for buying items
+  cleaned = cleaned.replace(/^(?:saya|aku|kami|kita)\s+(?:pengen|mau|ingin|butuh|perlu)\s+(?:beli|membeli|belanja)\s+/gi, "");
+  cleaned = cleaned.replace(/^(?:saya|aku|kami|kita)\s+(?:pengen|mau|ingin|butuh|perlu)\s+/gi, "");
+  cleaned = cleaned.replace(/^(?:pengen|mau|ingin|butuh|perlu)\s+(?:beli|membeli|belanja)\s+/gi, "");
+  cleaned = cleaned.replace(/^(?:beli|membeli|belanja|butuh|perlu)\s+/gi, "");
+  cleaned = cleaned.replace(/^(?:untuk|buat)\s+(?:beli|membeli|belanja)\s+/gi, "");
+  cleaned = cleaned.trim();
+  
+  // Strip surrounding quotes if any
+  cleaned = cleaned.replace(/^['"“‘](.*)['"”’]$/, "$1").trim();
+
+  return cleaned || name.trim();
+}
+
+

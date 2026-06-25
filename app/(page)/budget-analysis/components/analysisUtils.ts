@@ -18,63 +18,46 @@ export function calculateSavingOptions(
   targetValue: string
 ): SavingOption[] {
   const targetValNum = Number(targetValue || 0);
-  const savingOptions: SavingOption[] = [];
-  const maxDailyCapacity = remainingBudget > 0 ? remainingBudget / 30 : 0;
-
-  if (maxDailyCapacity > 0) {
-    // 1. Opsi Ringan (20% of capacity)
-    const daily1 = roundToCleanNumber(maxDailyCapacity * 0.2);
-    const days1 = Math.ceil(targetValNum / daily1);
-    const months1 = Math.ceil(days1 / 30);
-    savingOptions.push({
-      label: "Opsi Ringan (Santai)",
-      dailySaving: daily1,
-      daysNeeded: days1,
-      monthsNeeded: months1,
-    });
-
-    // 2. Opsi Sedang (50% of capacity)
-    const daily2 = roundToCleanNumber(maxDailyCapacity * 0.5);
-    const days2 = Math.ceil(targetValNum / daily2);
-    const months2 = Math.ceil(days2 / 30);
-    savingOptions.push({
-      label: "Opsi Sedang (Konsisten)",
-      dailySaving: daily2,
-      daysNeeded: days2,
-      monthsNeeded: months2,
-    });
-
-    // 3. Opsi Cepat (85% of capacity)
-    const daily3 = roundToCleanNumber(maxDailyCapacity * 0.85);
-    const days3 = Math.ceil(targetValNum / daily3);
-    const months3 = Math.ceil(days3 / 30);
-    savingOptions.push({
-      label: "Opsi Cepat (Agresif)",
-      dailySaving: daily3,
-      daysNeeded: days3,
-      monthsNeeded: months3,
-    });
-  } else {
-    // Deficit / zero budget options (rely on small cuts)
-    const fallbackOptions = [
-      { label: "Opsi Hemat Boba/Kopi ☕", dailySaving: 10000 },
-      { label: "Opsi Hemat Makan Siang 🍱", dailySaving: 20000 },
-      { label: "Opsi Hemat Gaya Hidup 🛍️", dailySaving: 50000 },
-    ];
+  
+  // Set realistic daily savings options (in IDR)
+  // Santai: Rp 15.000/hari
+  // Konsisten: Rp 30.000/hari
+  // Agresif: Rp 60.000/hari (max limit)
+  let dailySantai = 15000;
+  let dailyKonsisten = 30000;
+  let dailyAgresif = 60000;
+  
+  // If target price is very cheap, scale down so they don't complete it in less than a few days
+  if (targetValNum < dailyAgresif) {
+    dailyAgresif = Math.min(60000, targetValNum);
+    dailyKonsisten = Math.min(30000, Math.round((targetValNum * 0.5) / 1000) * 1000 || 1000);
+    dailySantai = Math.min(15000, Math.round((targetValNum * 0.25) / 1000) * 1000 || 1000);
     
-    fallbackOptions.forEach((fOpt) => {
-      const days = Math.ceil(targetValNum / fOpt.dailySaving);
-      const months = Math.ceil(days / 30);
-      savingOptions.push({
-        label: fOpt.label,
-        dailySaving: fOpt.dailySaving,
-        daysNeeded: days,
-        monthsNeeded: months,
-      });
-    });
+    // Ensure unique and non-zero
+    if (dailyKonsisten >= dailyAgresif) {
+      dailyKonsisten = Math.max(1000, Math.round(dailyAgresif * 0.6 / 1000) * 1000);
+    }
+    if (dailySantai >= dailyKonsisten) {
+      dailySantai = Math.max(1000, Math.round(dailyKonsisten * 0.5 / 1000) * 1000);
+    }
   }
 
-  return savingOptions;
+  const options = [
+    { label: "Opsi Santai", dailySaving: dailySantai },
+    { label: "Opsi Konsisten", dailySaving: dailyKonsisten },
+    { label: "Opsi Agresif", dailySaving: dailyAgresif },
+  ];
+  
+  return options.map((opt) => {
+    const daysNeeded = Math.ceil(targetValNum / opt.dailySaving);
+    const monthsNeeded = Math.ceil(daysNeeded / 30);
+    return {
+      label: opt.label,
+      dailySaving: opt.dailySaving,
+      daysNeeded,
+      monthsNeeded,
+    };
+  });
 }
 
 export interface TimelineStep {

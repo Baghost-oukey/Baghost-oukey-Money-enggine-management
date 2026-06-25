@@ -1,29 +1,21 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { ShieldAlert, Lightbulb } from "lucide-react";
-import { 
-  analyzeDailySavings, 
-  analyzeMonthlySavings 
-} from "./analysisUtils";
+import { ShieldAlert, Lightbulb, Loader2 } from "lucide-react";
+import {
+  analyzeDailySavings,
+  analyzeMonthlySavings,
+  generateSavingsTimelines,
+  calculateSavingOptions
+} from "../analysisUtils";
 import { SavingStrategyCard } from "./SavingStrategyCard";
 import { TimelineStep } from "./MinimalTimelineList";
 
 interface SaranStrategiMengelolaUangProps {
+  decisionId: string;
   targetValue: string;
-  suggestedDailySaving: number;
-  suggestedDaysNeeded: number;
-  suggestedMonthlySaving: number;
-  suggestedMonthsNeeded: number;
-  monthStep: number;
-  dailyTimeline: TimelineStep[];
-  monthlyTimeline: TimelineStep[];
   remainingBudget: number;
-  opportunityCost: {
-    investmentAlternative: string;
-    savingAlternative: string;
-  };
   totalExpenses?: number;
   monthlyBudget?: number;
   jenisTarget?: string;
@@ -31,16 +23,9 @@ interface SaranStrategiMengelolaUangProps {
 }
 
 export function SaranStrategiMengelolaUang({
+  decisionId,
   targetValue,
-  suggestedDailySaving,
-  suggestedDaysNeeded,
-  suggestedMonthlySaving,
-  suggestedMonthsNeeded,
-  monthStep,
-  dailyTimeline,
-  monthlyTimeline,
   remainingBudget,
-  opportunityCost,
   totalExpenses = 0,
   monthlyBudget,
   jenisTarget = "Keinginan",
@@ -50,6 +35,35 @@ export function SaranStrategiMengelolaUang({
   const surplus = remainingBudget;
   const income = monthlyBudget || (surplus + totalExpenses);
   const canBuyImmediately = surplus > 0 && targetValNum <= surplus * 0.3;
+
+  // Suggested dynamic saving target and months calculation
+  let suggestedMonthlySaving = 0;
+  let suggestedMonthsNeeded = 12;
+
+  if (surplus > 0) {
+    suggestedMonthlySaving = Math.round(surplus * 0.6);
+    if (suggestedMonthlySaving > 0) {
+      suggestedMonthsNeeded = Math.ceil(targetValNum / suggestedMonthlySaving);
+    }
+    if (suggestedMonthsNeeded <= 0) suggestedMonthsNeeded = 1;
+  } else {
+    suggestedMonthlySaving = 300000;
+    suggestedMonthsNeeded = Math.ceil(targetValNum / suggestedMonthlySaving);
+  }
+
+  // Calculate saving options dynamically
+  const savingOptions = calculateSavingOptions(surplus, targetValue);
+
+  // Calculate timelines
+  const suggestedDailySaving = Math.round(suggestedMonthlySaving / 30);
+  const suggestedDaysNeeded = Math.ceil(targetValNum / (suggestedDailySaving || 1000));
+  const { monthlyTimeline, dailyTimeline, monthStep } = generateSavingsTimelines(
+    targetValNum,
+    suggestedDailySaving,
+    suggestedMonthlySaving,
+    suggestedMonthsNeeded,
+    suggestedDaysNeeded
+  );
 
   // Run AI analysis logic (defined in analysisUtils.ts)
   const daily = analyzeDailySavings(
@@ -68,11 +82,40 @@ export function SaranStrategiMengelolaUang({
     income
   );
 
+  // Lazy load opportunity cost from backend
+  const [loading, setLoading] = useState(true);
+  const [opportunityCost, setOpportunityCost] = useState({
+    investmentAlternative: "",
+    savingAlternative: ""
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadOpportunityCost() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/decision/according/saving?decisionId=${decisionId}`);
+        const json = await res.json();
+        if (isMounted && json.success && json.data) {
+          setOpportunityCost(json.data);
+        }
+      } catch (err) {
+        console.error("Failed to load opportunity cost:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadOpportunityCost();
+    return () => {
+      isMounted = false;
+    };
+  }, [decisionId]);
+
   return (
     <AccordionItem value="money-management-strategy" className="px-4">
       <AccordionTrigger className="text-sm font-semibold hover:no-underline py-4 focus-visible:underline focus-visible:ring-0">
         <div className="flex items-center gap-2">
-          <span>Taktik Nabung & Atur Uang 💡</span>
+          <span>Saran Ku untuk mu jika kamu milih menabung</span>
         </div>
       </AccordionTrigger>
       <AccordionContent className="space-y-4 text-xs leading-relaxed">
@@ -163,7 +206,7 @@ export function SaranStrategiMengelolaUang({
             </div>
 
             <p className="text-[10px] text-muted-foreground leading-normal italic text-center">
-             Strategi ini dihitung secara realistis mengambil {surplus > 0 ? "60% dari sisa uang bulananmu" : "standar aman kelayakan tabungan"} agar pengeluaran pokok harianmu tetap aman berjalan.
+              Strategi ini dihitung secara realistis mengambil {surplus > 0 ? "60% dari sisa uang bulananmu" : "standar aman kelayakan tabungan"} agar pengeluaran pokok harianmu tetap aman berjalan.
             </p>
           </div>
         )}
@@ -173,12 +216,19 @@ export function SaranStrategiMengelolaUang({
           <span className="text-[9px] text-violet-600 dark:text-violet-400 font-extrabold uppercase tracking-widest block">
             {canBuyImmediately ? "Rencana Alokasi Uang Biar Dompet Sehat 📈" : "Cara Nabung yang Masuk Akal"}
           </span>
-          <p className="text-foreground leading-relaxed font-semibold">
-            {canBuyImmediately 
-              ? `Karena barangnya bisa langsung dibeli tunai, sisa uang peganganmu bulan ini sebesar Rp ${(surplus - targetValNum).toLocaleString("id-ID")} bisa kamu alokasikan langsung buat memperkuat tabungan atau investasi biar makin berkembang!`
-              : opportunityCost.investmentAlternative
-            }
-          </p>
+          {loading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Membuat rencana menabung yang sehat...</span>
+            </div>
+          ) : (
+            <p className="text-foreground leading-relaxed font-semibold">
+              {canBuyImmediately
+                ? `Karena barangnya bisa langsung dibeli tunai, sisa uang peganganmu bulan ini sebesar Rp ${(surplus - targetValNum).toLocaleString("id-ID")} bisa kamu alokasikan langsung buat memperkuat tabungan atau investasi biar makin berkembang!`
+                : opportunityCost.investmentAlternative
+              }
+            </p>
+          )}
         </div>
 
         {/* Dynamic Saving Action Step Block */}
@@ -186,9 +236,16 @@ export function SaranStrategiMengelolaUang({
           <span className="text-[8px] text-muted-foreground font-extrabold uppercase tracking-wider block">
             Langkah Taktis Ngatur Uang Bulanan
           </span>
-          <p className="text-foreground leading-relaxed font-medium">
-            {opportunityCost.savingAlternative}
-          </p>
+          {loading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Membuat saran pengelolaan uang...</span>
+            </div>
+          ) : (
+            <p className="text-foreground leading-relaxed font-medium">
+              {opportunityCost.savingAlternative}
+            </p>
+          )}
         </div>
       </AccordionContent>
     </AccordionItem>

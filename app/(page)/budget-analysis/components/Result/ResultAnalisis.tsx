@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ResultComments } from "./ResultAccording";
 import { ScoreRing } from "./ScoreChart";
-import { ModalSync } from "./modal-sync";
-import { getFallbackAIData } from "./analysisUtils";
+import { ModalSync } from "../modal-sync";
+import { getFallbackAIData } from "../analysisUtils";
+import { SaranCard } from "../According/SaranCard";
 
 interface ResultAnalisisProps {
   analysisResult: any;
@@ -90,17 +91,17 @@ export function ResultAnalisis({
     switch (verdict) {
       case "BOLEH_BELI":
       case "RECOMMENDED_CASH":
-        return "Boleh Beli 🎉";
+        return "Boleh Beli";
       case "BELI_DENGAN_MENABUNG":
-        return "Bisa Beli Tapi Nabung Dulu 💪";
+        return "Bisa Beli Tapi Nabung Dulu";
       case "TUNDA":
       case "WARNING_REPLAN":
-        return "Tunda Dulu Ya 🥺";
+        return "Tunda Dulu Ya";
       case "JANGAN_BELI":
       case "BLOCKED_DANGER":
-        return "Mending Jangan Beli Deh ❌";
+        return "Mending Jangan Beli Deh";
       default:
-        return "Cek Ulang Yuk 🤔";
+        return "Cek Ulang Yuk";
     }
   };
 
@@ -153,7 +154,7 @@ export function ResultAnalisis({
             Hasil Analisis <span className="text-violet-600 font-bold">Keuangan mu nih</span>
           </h2>
           <p className="text-xs mt-0.5 font-semibold text-gray-500">
-            Yuk Pertimbangkan Lagi apa yang mau kamu beli, Tabung dulu atau langsung beli
+            Yuk cek hasil analisis bersahabat dari kami untuk membantumu mengambil keputusan terbaik!
           </p>
         </div>
 
@@ -176,8 +177,8 @@ export function ResultAnalisis({
         {/* AI Professional Opinion Card */}
         <div className="md:col-span-8 p-4.5 rounded-xl bg-violet-600/[0.02] border border-violet-500/15 flex flex-col justify-between space-y-2">
           <div className="space-y-1">
-            <div className="text-[14px] font-extrabold text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1">
-              {verdictOpinion.title || "Pendapat Jujur Sahabat Finansialmu"}
+            <div className="text-[14px] font-extrabold text-violet-600 dark:text-violet-400 flex items-center gap-1">
+              {verdictOpinion.title || "Pendapat Sahabat Finansialmu"}
             </div>
             <p className="text-[13px] leading-relaxed font-medium text-gray-700 pl-0.5 mt-1 text-justify">
               {verdictOpinion.explanation}
@@ -201,9 +202,8 @@ export function ResultAnalisis({
 
       {/* Detailed Analysis Collapsible Comments Drawer */}
       <ResultComments
-        aiData={aiData}
+        decisionId={analysisResult.id}
         targetValue={targetValue}
-        monthsDiff={monthsDiff}
         remainingBudget={remainingBudget}
         totalExpenses={totalExpenses || 0}
         target={target}
@@ -213,14 +213,7 @@ export function ResultAnalisis({
       />
 
       {/* Final recommendation text */}
-      <div className="p-4 rounded-xl bg-violet-500/[0.02] border border-violet-500/15 space-y-1">
-        <h4 className="text-xs font-bold uppercase flex items-center gap-2 mb-2">
-          Pesan Singkat Sahabat Keuanganmu
-        </h4>
-        <p className="text-xs text-muted-foreground italic font-semibold leading-relaxed">
-          "{aiData.aiRecommendationText}"
-        </p>
-      </div>
+      <SaranCard decisionId={analysisResult.id} />
 
       {/* Action Buttons */}
       <div className="flex justify-end border-t pt-4 w-full">
@@ -250,23 +243,23 @@ export function ResultAnalisis({
                 const res = await response.json();
                 if (res.success) {
                   setIsSynced(true);
-                  
+
                   // Pre-fill localStorage
                   if (typeof window !== "undefined") {
                     localStorage.setItem("imported_budget_salary", String(monthlyBudget || 0));
                     localStorage.setItem("imported_budget_sync_target", JSON.stringify({ target, amount: targetSavings }));
-                    
+
                     const expensesList = (expenses || [])
                       .map((exp: any) => `${exp.name} Rp ${Number(exp.amount || 0).toLocaleString("id-ID")}`)
                       .join(", ");
-                      
-                    const notesText = expensesList 
-                      ? `Pengeluaran bulanan saat ini: ${expensesList}.` 
+
+                    const notesText = expensesList
+                      ? `Pengeluaran bulanan saat ini: ${expensesList}.`
                       : "";
-                    
+
                     localStorage.setItem("imported_budget_notes", notesText);
                   }
-                  
+
                   // Instantly navigate to budgeting system
                   router.push("/budgeting-system");
                 } else {
@@ -284,8 +277,8 @@ export function ResultAnalisis({
               isSynced
                 ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                 : (aiData.decisionVerdict === "JANGAN_BELI" || aiData.decisionVerdict === "BLOCKED_DANGER")
-                ? "bg-muted text-muted-foreground border cursor-not-allowed"
-                : "bg-violet-600 hover:bg-violet-700 text-white"
+                  ? "bg-muted text-muted-foreground border cursor-not-allowed"
+                  : "bg-violet-600 hover:bg-violet-700 text-white"
             )}
           >
             {isSynced ? "Tersinkron" : isSyncing ? "Menyimpan..." : "Masukkan Anggaran"}
@@ -296,15 +289,15 @@ export function ResultAnalisis({
             onClick={() => {
               if (typeof window !== "undefined") {
                 localStorage.setItem("imported_budget_salary", String(monthlyBudget || 0));
-                
+
                 const expensesList = (expenses || [])
                   .map((exp: any) => `${exp.name} Rp ${Number(exp.amount || 0).toLocaleString("id-ID")}`)
                   .join(", ");
-                  
-                const notesText = expensesList 
-                  ? `Pengeluaran bulanan saat ini: ${expensesList}.` 
+
+                const notesText = expensesList
+                  ? `Pengeluaran bulanan saat ini: ${expensesList}.`
                   : "";
-                  
+
                 localStorage.setItem("imported_budget_notes", notesText);
                 router.push("/budgeting-system");
               }

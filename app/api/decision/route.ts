@@ -4,6 +4,7 @@ import {
   detectSumberDana,
   recursiveSanitizeStrings,
   formatDecisionResponse,
+  cleanTargetName,
 } from "./utils";
 import { buildSystemPrompt } from "./prompt";
 import { runLocalFallbackAnalysis } from "./fallback";
@@ -100,6 +101,8 @@ export async function POST(request: Request) {
       keteranganTambahan,
       expenses,
     } = body;
+    const rawTargetName = targetName || "";
+    const cleanedTargetName = cleanTargetName(rawTargetName);
     const sumberDana = detectSumberDana(keteranganTambahan || "");
 
     if (!userId) {
@@ -114,7 +117,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    if (!targetName) {
+    if (!cleanedTargetName) {
       return NextResponse.json(
         { success: false, message: "Target Goals name is required." },
         { status: 400 }
@@ -128,7 +131,6 @@ export async function POST(request: Request) {
     );
     const remainingBudget = Number(monthlyBudget) - totalExpenses;
 
-    // Calculate metrics programmatically in Node to enforce mathematical accuracy in AI prompt
     const currentDate = new Date();
     const currentDateStr = currentDate.toLocaleDateString("id-ID", {
       year: "numeric",
@@ -142,7 +144,7 @@ export async function POST(request: Request) {
       const tDate = new Date(targetDate);
       const diffTime = tDate.getTime() - currentDate.getTime();
       daysDiff = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-      monthsDiff = Math.max(1, Math.ceil(daysDiff / 30.44)); // Using average month length
+      monthsDiff = Math.max(1, Math.ceil(daysDiff / 30.44));
     }
 
     const targetValNum = Number(targetValue || 0);
@@ -163,11 +165,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Build the AI Prompt modularly
     const systemPrompt = buildSystemPrompt({
       currentDateStr,
       monthlyBudget: Number(monthlyBudget),
-      targetName,
+      targetName: cleanedTargetName,
       jenisTarget: jenisTarget || "Keinginan",
       targetValNum,
       targetDate,
@@ -223,47 +224,8 @@ export async function POST(request: Request) {
       const cleanedText = responseText.replace(/^\s*```json\s*|```\s*$/g, "").trim();
       aiAnalysis = JSON.parse(cleanedText);
 
-      // Clean up decimals in AI response
-      if (aiAnalysis) {
-        if (typeof aiAnalysis.score === "number") {
-          aiAnalysis.score = Math.round(aiAnalysis.score);
-        }
-        if (aiAnalysis.paylaterSimulation) {
-          const sim = aiAnalysis.paylaterSimulation;
-          if (typeof sim.cashPrice === "number") sim.cashPrice = Math.round(sim.cashPrice);
-          if (typeof sim.paylaterPrice === "number")
-            sim.paylaterPrice = Math.round(sim.paylaterPrice);
-          if (typeof sim.adminFee === "number") sim.adminFee = Math.round(sim.adminFee);
-          if (typeof sim.interestExpense === "number")
-            sim.interestExpense = Math.round(sim.interestExpense);
-          if (typeof sim.moneyWasted === "number") sim.moneyWasted = Math.round(sim.moneyWasted);
-          if (Array.isArray(sim.plans)) {
-            sim.plans = sim.plans.map((plan: any) => {
-              if (plan) {
-                if (typeof plan.monthlyInstallment === "number")
-                  plan.monthlyInstallment = Math.round(plan.monthlyInstallment);
-                if (typeof plan.totalPrice === "number")
-                  plan.totalPrice = Math.round(plan.totalPrice);
-                if (typeof plan.interestAmount === "number")
-                  plan.interestAmount = Math.round(plan.interestAmount);
-                if (typeof plan.adminFee === "number") plan.adminFee = Math.round(plan.adminFee);
-                if (typeof plan.moneyWasted === "number")
-                  plan.moneyWasted = Math.round(plan.moneyWasted);
-              }
-              return plan;
-            });
-          }
-        }
-        if (Array.isArray(aiAnalysis.sacrificeTransparency)) {
-          aiAnalysis.sacrificeTransparency = aiAnalysis.sacrificeTransparency.map(
-            (item: any) => {
-              if (item && typeof item.nominalToCut === "number") {
-                item.nominalToCut = Math.round(item.nominalToCut);
-              }
-              return item;
-            }
-          );
-        }
+      if (aiAnalysis && typeof aiAnalysis.score === "number") {
+        aiAnalysis.score = Math.round(aiAnalysis.score);
       }
     } catch (apiError) {
       console.error("Gemini API error, falling back to local analysis:", apiError);
@@ -291,17 +253,14 @@ export async function POST(request: Request) {
       aiAnalysis = recursiveSanitizeStrings(aiAnalysis);
     }
 
-    // Save decision analysis and its nested expenses inside a transaction using the new relational schema
     const decision = await prisma.keputusanBudget.create({
       data: {
         userId,
         keuanganmu: Number(monthlyBudget),
-        tujuan_membeli: targetName,
+        tujuan_membeli: cleanedTargetName,
         hargaTarget: Number(targetValue || 0),
         kategori_belanja: jenisTarget === "Kebutuhan" ? "KEBUTUHAN" : "KEINGINAN",
-        target_budget: aiAnalysis.targetSavingsPerMonth
-          ? Number(aiAnalysis.targetSavingsPerMonth)
-          : 0,
+        target_budget: Number(requiredMonthlySavings),
         tanggal_target: targetDate ? new Date(targetDate) : null,
         keterangan: keteranganTambahan || "",
         expenses: {
@@ -321,18 +280,6 @@ export async function POST(request: Request) {
             verdict_opinion_title: aiAnalysis.verdictOpinion?.title,
             verdict_opinion_explanation: aiAnalysis.verdictOpinion?.explanation,
             financial_trap_warning: aiAnalysis.financialTrapWarning,
-            paylater_simulation: aiAnalysis.paylaterSimulation || null,
-            opportunity_cost_investment: aiAnalysis.opportunityCost?.investmentAlternative,
-            opportunity_cost_saving: aiAnalysis.opportunityCost?.savingAlternative,
-            psychological_insight: aiAnalysis.psychologicalInsight || null,
-            real_market_price: aiAnalysis.realMarketPrice,
-            price_comparison_note: aiAnalysis.priceComparisonNote,
-            alternative_suggestions: aiAnalysis.alternativeSuggestions || null,
-            budget_evolution: aiAnalysis.budgetEvolution || null,
-            emergency_mode_active: aiAnalysis.emergencyMode?.isActive,
-            emergency_mode_strategy: aiAnalysis.emergencyMode?.strategy,
-            sacrifice_transparency: aiAnalysis.sacrificeTransparency || null,
-            ai_recommendation_text: aiAnalysis.aiRecommendationText,
             sumber_dana: aiAnalysis.sumberDana || sumberDana,
             jenis_target: aiAnalysis.jenisTarget || jenisTarget,
           },

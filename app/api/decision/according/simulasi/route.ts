@@ -3,151 +3,334 @@ import { prisma } from "@/lib/prisma";
 import { callGemini, recursiveSanitizeStrings } from "../../utils";
 import { getDecisionBaseContext, buildSimulasiPrompt } from "../../prompt";
 
-function getRecommendedAlternativePrice(
-  targetName: string,
-  monthlyBudget: number,
-  isStudent: boolean,
-  originalPrice: number
-): { price: number; category: string } {
-  const nameLower = (targetName || "").toLowerCase();
-  let category = "barang alternatif";
-  let price = monthlyBudget * 3;
-
-  if (
-    nameLower.includes("laptop") ||
-    nameLower.includes("komputer") ||
-    nameLower.includes("pc") ||
-    nameLower.includes("macbook") ||
-    nameLower.includes("asus") ||
-    nameLower.includes("lenovo")
-  ) {
-    category = "laptop";
-    price = isStudent ? 5000000 : 8000000;
-  } else if (
-    nameLower.includes("hp") ||
-    nameLower.includes("phone") ||
-    nameLower.includes("samsung") ||
-    nameLower.includes("iphone") ||
-    nameLower.includes("android") ||
-    nameLower.includes("xiaomi") ||
-    nameLower.includes("oppo")
-  ) {
-    category = "HP/smartphone";
-    price = isStudent ? 2500000 : 4000000;
-  } else if (
-    nameLower.includes("motor") ||
-    nameLower.includes("honda") ||
-    nameLower.includes("yamaha") ||
-    nameLower.includes("kendaraan") ||
-    nameLower.includes("vespa")
-  ) {
-    category = "sepeda motor";
-    price = isStudent ? 8000000 : 15000000;
+interface FinancingProvider {
+  id: string;
+  category: "KREDIT_BANK" | "PAYLATER" | "KREDIT_TOKO";
+  name: string;
+  monthlyInterestRate: number; // e.g. 2.95 (for 2.95%)
+  adminFeeRate: number;        // e.g. 1.0 (for 1.0%)
+  fixedAdminFee: number;       // e.g. 15000 (Rp 15.000)
+  supportedTenors: number[];
+}
+const PROVIDERS_CONFIG: FinancingProvider[] = [
+  // Kredit Bank
+  {
+    id: "bank-bca",
+    category: "KREDIT_BANK",
+    name: "Kredit Bank BCA",
+    monthlyInterestRate: 0.95,
+    adminFeeRate: 1.0,
+    fixedAdminFee: 50000,
+    supportedTenors: [6, 12]
+  },
+  // PayLater
+  {
+    id: "paylater-kredivo",
+    category: "PAYLATER",
+    name: "Kredivo PayLater",
+    monthlyInterestRate: 2.95,
+    adminFeeRate: 1.0,
+    fixedAdminFee: 0,
+    supportedTenors: [3, 6, 12]
+  },
+  {
+    id: "paylater-shopee",
+    category: "PAYLATER",
+    name: "SPayLater",
+    monthlyInterestRate: 2.95,
+    adminFeeRate: 1.0,
+    fixedAdminFee: 15000,
+    supportedTenors: [3, 6, 12]
+  },
+  // Kredit Toko
+  {
+    id: "toko-homecredit",
+    category: "KREDIT_TOKO",
+    name: "Home Credit",
+    monthlyInterestRate: 1.99,
+    adminFeeRate: 2.0,
+    fixedAdminFee: 199000,
+    supportedTenors: [6, 12]
   }
+];
 
-  // Ensure alternative price is indeed cheaper than original price
-  if (price >= originalPrice) {
-    price = Math.round((originalPrice * 0.4) / 100000) * 100000 || 1000000;
-  }
-
-  return { price, category };
+interface SimulationResult {
+  category: string;
+  name: string;
+  tenor: number;
+  monthlyInstallment: number;
+  totalPayment: number;
+  totalInterest: number;
+  totalExtraFees: number;
+  costVariance: number;
+  costVariancePct: number;
+  installmentRatio: number;
+  riskLevel: string;
+  capacityClass: string;
+  pros: string[];
+  cons: string[];
 }
 
-function calculateDynamicSavingOptions(
+function calculateFinancingOptions(
+  targetPrice: number,
+  monthlyIncome: number,
+  kategoriBarang: "KEBUTUHAN" | "KEINGINAN"
+): SimulationResult[] {
+  const results: SimulationResult[] = [];
+  const income = monthlyIncome || 100000;
+
+  for (const prov of PROVIDERS_CONFIG) {
+    for (const tenor of prov.supportedTenors) {
+      const interestRate = prov.monthlyInterestRate / 100;
+      const adminRate = prov.adminFeeRate / 100;
+
+      const adminPct = Math.round(targetPrice * adminRate);
+      const totalExtraFees = adminPct + prov.fixedAdminFee;
+      const monthlyInterest = Math.round(targetPrice * interestRate);
+      const totalInterest = monthlyInterest * tenor;
+
+      const totalPayment = targetPrice + totalInterest + totalExtraFees;
+      const monthlyInstallment = Math.round(totalPayment / tenor);
+
+      const installmentRatio = Math.round((monthlyInstallment / income) * 100);
+
+      // Capacity class evaluation
+      let capacityClass = "Aman";
+      if (installmentRatio < 15) capacityClass = "Sangat Aman";
+      else if (installmentRatio <= 30) capacityClass = "Aman";
+      else if (installmentRatio <= 40) capacityClass = "Perlu Pertimbangan";
+      else if (installmentRatio <= 50) capacityClass = "Berisiko";
+      else capacityClass = "Tidak Direkomendasikan";
+
+      // Risk Assessment
+      let riskLevel = "Sedang";
+      if (installmentRatio > 45) {
+        riskLevel = "Tinggi";
+      } else if (installmentRatio > 30) {
+        if (kategoriBarang === "KEINGINAN") {
+          riskLevel = "Tinggi";
+        } else {
+          riskLevel = "Sedang";
+        }
+      } else {
+        if (tenor > 12) {
+          riskLevel = "Sedang";
+        } else {
+          riskLevel = "Rendah";
+        }
+      }
+
+      // Cost Variance
+      const costVariance = totalPayment - targetPrice;
+      const costVariancePct = Math.round((costVariance / targetPrice) * 100);
+
+      // Pros & Cons
+      const pros: string[] = [];
+      const cons: string[] = [];
+
+      pros.push("Barang impianmu bisa langsung kamu bawa pulang hari ini juga!");
+      if (prov.category === "KREDIT_BANK") {
+        pros.push("Bunganya jauh lebih adem dan bersahabat dibanding pakai PayLater.");
+        cons.push("Syarat dan berkasnya lumayan ribet dan butuh waktu buat disetujui.");
+      } else if (prov.category === "PAYLATER") {
+        pros.push("Praktis banget! Pengajuan cepat tanpa jaminan dan langsung aktif.");
+        cons.push("Bunga bulanan dan biaya layanannya lumayan tinggi, bisa bikin kantong boncos kalau gak hati-hati.");
+      } else if (prov.category === "KREDIT_TOKO") {
+        pros.push("Bisa langsung diurus bareng kasir pas kamu lagi belanja.");
+        cons.push("Ada biaya admin awal yang lumayan berasa di dompet.");
+      }
+
+      cons.push(`Kamu harus siap menyisihkan Rp ${monthlyInstallment.toLocaleString("id-ID")}/bulan selama ${tenor} bulan ke depan.`);
+      if (costVariancePct > 15) {
+        cons.push(`Jadinya jauh lebih mahal dibanding beli cash (kena tambahan biaya sekitar Rp ${costVariance.toLocaleString("id-ID")} atau ${costVariancePct}% dari harga asli).`);
+      }
+
+      results.push({
+        category: prov.category,
+        name: prov.name,
+        tenor,
+        monthlyInstallment,
+        totalPayment,
+        totalInterest,
+        totalExtraFees,
+        costVariance,
+        costVariancePct,
+        installmentRatio,
+        riskLevel,
+        capacityClass,
+        pros,
+        cons
+      });
+    }
+  }
+
+  return results;
+}
+
+function roundToRupiah(value: number, unit: "daily" | "weekly" | "monthly"): number {
+  if (value <= 0) return 0;
+  if (unit === "daily") {
+    if (value < 5000) {
+      return Math.round(value / 100) * 100;
+    } else if (value < 15000) {
+      return Math.round(value / 500) * 500;
+    } else {
+      return Math.round(value / 1000) * 1000;
+    }
+  }
+  return Math.round(value / 1000) * 1000;
+}
+
+function runSavingStrategyEngine(
   targetPrice: number,
   monthlyBudget: number,
-  keterangan: string,
-  targetName: string
+  targetDate: Date | null,
+  kategori: "KEBUTUHAN" | "KEINGINAN",
+  createdAt: Date
 ) {
-  const targetValNum = targetPrice;
-  const noteLower = (keterangan || "").toLowerCase();
+  const targetValNum = targetPrice || 0;
+  const monthlyIncome = monthlyBudget || 100000; // avoid 0
 
-  // Detect if student or low income
-  const isStudent =
-    noteLower.includes("sekolah") ||
-    noteLower.includes("pelajar") ||
-    noteLower.includes("ortu") ||
-    noteLower.includes("orang tua") ||
-    noteLower.includes("kuliah") ||
-    noteLower.includes("mahasiswa") ||
-    noteLower.includes("jajan") ||
-    noteLower.includes("saku") ||
-    monthlyBudget < 1500000;
+  // 1. Deadline Analyzer
+  let daysRemaining = 180; // default 6 months
+  if (targetDate) {
+    const start = new Date(createdAt);
+    const end = new Date(targetDate);
+    const diffTime = end.getTime() - start.getTime();
+    daysRemaining = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+  }
+  const weeksRemaining = Math.max(1, Math.ceil(daysRemaining / 7));
+  const monthsRemaining = Math.max(1, Math.ceil(daysRemaining / 30.44));
 
-  let dailySantai = 15000;
-  let dailyKonsisten = 30000;
-  let dailyAgresif = 60000;
+  // 2. Capacity & Feasibility for original target (Agresif)
+  const originalMonthlySaving = Math.round(targetValNum / monthsRemaining);
+  const originalSavingsRatio = Math.round((originalMonthlySaving / monthlyIncome) * 100);
 
-  if (isStudent) {
-    dailySantai = 5000;
-    dailyKonsisten = 10000;
-    dailyAgresif = 20000;
+  let capacityClass = "Ideal";
+  if (originalSavingsRatio <= 15) capacityClass = "Sangat Aman";
+  else if (originalSavingsRatio <= 25) capacityClass = "Ideal";
+  else if (originalSavingsRatio <= 35) capacityClass = "Layak";
+  else if (originalSavingsRatio <= 50) capacityClass = "Agresif";
+  else capacityClass = "Tidak Direkomendasikan";
+
+  let feasibilityStatus = "Layak";
+  let explanationAgresif = "";
+  if (originalSavingsRatio <= 25) {
+    if (kategori === "KEBUTUHAN") {
+      feasibilityStatus = "Sangat Layak";
+      explanationAgresif = "Aman banget kok buat disisihkan dari uang bulananmu!";
+    } else {
+      feasibilityStatus = "Layak";
+      explanationAgresif = "Beban tabungannya tergolong aman buat barang keinginanmu.";
+    }
+  } else if (originalSavingsRatio <= 35) {
+    if (kategori === "KEBUTUHAN") {
+      feasibilityStatus = "Layak";
+      explanationAgresif = "Barang ini memang penting untuk kebutuhanmu, tapi kamu harus sedikit berhemat ya.";
+    } else {
+      feasibilityStatus = "Perlu Penyesuaian";
+      explanationAgresif = "Ini bakal lumayan memotong uang bulananmu, coba deh pertimbangkan buat perpanjang waktu nabungnya.";
+    }
+  } else if (originalSavingsRatio <= 50) {
+    if (kategori === "KEBUTUHAN") {
+      feasibilityStatus = "Perlu Penyesuaian";
+      explanationAgresif = "Bebannya terasa lumayan berat buat uang bulananmu, padahal ini barang kebutuhan.";
+    } else {
+      feasibilityStatus = "Sulit Dicapai";
+      explanationAgresif = "Nabung sebesar ini bakalan menyiksa keuangan jajan harianmu lho!";
+    }
   } else {
-    if (monthlyBudget >= 10000000) {
-      dailySantai = 30000;
-      dailyKonsisten = 60000;
-      dailyAgresif = 120000;
-    } else if (monthlyBudget >= 5000000) {
-      dailySantai = 20000;
-      dailyKonsisten = 40000;
-      dailyAgresif = 80000;
-    }
+    feasibilityStatus = "Tidak Direkomendasikan";
+    explanationAgresif = "Nabungnya udah lewat dari setengah uang bulananmu, bahaya banget buat makan dan ongkos harian!";
   }
 
-  // Check if original saving plan is unrealistic (exceeds 24 months under Opsi Agresif)
-  const originalMonthsAgresif = Math.ceil(Math.ceil(targetValNum / dailyAgresif) / 30);
-  const isTargetUnrealistic = originalMonthsAgresif > 24;
-
-  let finalTargetPrice = targetValNum;
-  let alternativeTargetPrice = 0;
-  let alternativeCategory = "barang";
-  let alternativeReason = "";
-
-  if (isTargetUnrealistic) {
-    const alt = getRecommendedAlternativePrice(targetName, monthlyBudget, isStudent, targetValNum);
-    alternativeTargetPrice = alt.price;
-    alternativeCategory = alt.category;
-    finalTargetPrice = alt.price;
-    alternativeReason = `Menabung untuk barang seharga Rp ${targetValNum.toLocaleString("id-ID")} dengan budget-mu saat ini memerlukan waktu menabung yang tidak realistis (lebih dari 2 tahun). Lebih baik lirik alternatif ${alt.category} seharga Rp ${alt.price.toLocaleString("id-ID")} yang bisa kamu capai dalam waktu wajar.`;
+  // 3. Strategi Seimbang (target rasio ~25% dari pendapatan)
+  let monthsSeimbang = monthsRemaining;
+  if (originalSavingsRatio > 25) {
+    monthsSeimbang = Math.max(monthsRemaining, Math.ceil(targetValNum / (0.25 * monthlyIncome)));
   }
+  monthsSeimbang = Math.min(60, monthsSeimbang); // cap at 5 years
+  const daysSeimbang = Math.max(daysRemaining, Math.round(monthsSeimbang * 30.44));
+  const weeksSeimbang = Math.max(weeksRemaining, Math.ceil(daysSeimbang / 7));
 
-  // Scale down if final target price is very cheap
-  if (finalTargetPrice < dailyAgresif) {
-    dailyAgresif = Math.min(dailyAgresif, finalTargetPrice);
-    dailyKonsisten = Math.min(dailyKonsisten, Math.round((finalTargetPrice * 0.5) / 1000) * 1000 || 1000);
-    dailySantai = Math.min(dailySantai, Math.round((finalTargetPrice * 0.25) / 1000) * 1000 || 1000);
+  const monthlySavingSeimbang = roundToRupiah(targetValNum / monthsSeimbang, "monthly");
+  const weeklySavingSeimbang = roundToRupiah(targetValNum / weeksSeimbang, "weekly");
+  const dailySavingSeimbang = roundToRupiah(targetValNum / daysSeimbang, "daily");
+  const savingsRatioSeimbang = Math.round((monthlySavingSeimbang / monthlyIncome) * 100);
 
-    if (dailyKonsisten >= dailyAgresif) {
-      dailyKonsisten = Math.max(1000, Math.round(dailyAgresif * 0.6 / 1000) * 1000);
-    }
-    if (dailySantai >= dailyKonsisten) {
-      dailySantai = Math.max(1000, Math.round(dailyKonsisten * 0.5 / 1000) * 1000);
-    }
+  // 4. Strategi Aman (target rasio ~15% dari pendapatan)
+  let monthsAman = Math.max(monthsRemaining * 2, Math.ceil(targetValNum / (0.15 * monthlyIncome)));
+  monthsAman = Math.min(60, monthsAman); // cap at 5 years
+  const daysAman = Math.max(daysRemaining * 2, Math.round(monthsAman * 30.44));
+  const weeksAman = Math.max(weeksRemaining * 2, Math.ceil(daysAman / 7));
+
+  const monthlySavingAman = roundToRupiah(targetValNum / monthsAman, "monthly");
+  const weeklySavingAman = roundToRupiah(targetValNum / weeksAman, "weekly");
+  const dailySavingAman = roundToRupiah(targetValNum / daysAman, "daily");
+  const savingsRatioAman = Math.round((monthlySavingAman / monthlyIncome) * 100);
+
+  // 5. Determine recommended strategy
+  let recommendedStrategy = "agresif";
+  let reasoning = "";
+  if (feasibilityStatus === "Sangat Layak" || feasibilityStatus === "Layak") {
+    recommendedStrategy = "agresif";
+    reasoning = "Keuanganmu aman banget buat target ini! Kamu bisa pakai Strategi Agresif biar barangnya cepat kebeli tanpa beban.";
+  } else if (feasibilityStatus === "Perlu Penyesuaian") {
+    recommendedStrategy = "seimbang";
+    reasoning = "Uang tabungan bulanan/hariannya agak berat nih. Coba pakai Strategi Seimbang dengan nambah sedikit waktu biar kamu nggak terlalu ngos-ngosan tiap bulan.";
+  } else {
+    recommendedStrategy = "aman";
+    reasoning = "Target ini kelihatan terlalu berat buat uang bulananmu saat ini. Mendingan pakai Strategi Aman dan perpanjang waktu nabung biar kebutuhan pokokmu tetap aman ya!";
   }
-
-  const options = [
-    { label: isStudent ? "Opsi Santai (Uang Jajan)" : "Opsi Santai", dailySaving: dailySantai },
-    { label: isStudent ? "Opsi Konsisten (Nabung Biasa)" : "Opsi Konsisten", dailySaving: dailyKonsisten },
-    { label: isStudent ? "Opsi Agresif (Uang Saku Ketat)" : "Opsi Agresif", dailySaving: dailyAgresif },
-  ];
-
-  const savingOptions = options.map((opt) => {
-    const daysNeeded = Math.ceil(finalTargetPrice / opt.dailySaving);
-    const monthsNeeded = Math.ceil(daysNeeded / 30);
-    return {
-      label: opt.label,
-      dailySaving: opt.dailySaving,
-      daysNeeded,
-      monthsNeeded,
-    };
-  });
 
   return {
-    savingOptions,
-    isTargetUnrealistic,
-    alternativeTargetPrice,
-    alternativeCategory,
-    alternativeReason
+    savingStrategies: {
+      aman: {
+        key: "aman",
+        label: "Strategi Aman (Minim Risiko)",
+        targetMonths: monthsAman,
+        targetDays: daysAman,
+        dailySaving: dailySavingAman,
+        weeklySaving: weeklySavingAman,
+        monthlySaving: monthlySavingAman,
+        savingsRatio: savingsRatioAman,
+        difficulty: "Rendah",
+        feasibility: "Sangat Layak",
+        explanation: "Paling direkomendasikan untuk keamanan finansial jangka panjang. Beban menabung bulanan sangat kecil sehingga pengeluaran primer tetap terjaga aman."
+      },
+      seimbang: {
+        key: "seimbang",
+        label: "Strategi Seimbang",
+        targetMonths: monthsSeimbang,
+        targetDays: daysSeimbang,
+        dailySaving: dailySavingSeimbang,
+        weeklySaving: weeklySavingSeimbang,
+        monthlySaving: monthlySavingSeimbang,
+        savingsRatio: savingsRatioSeimbang,
+        difficulty: "Sedang",
+        feasibility: originalSavingsRatio <= 25 ? feasibilityStatus : "Layak",
+        explanation: "Strategi jalan tengah yang bersahabat. Sedikit melonggarkan batas waktu menabung agar nominal setoran bulanan tetap terasa ringan dan masuk akal."
+      },
+      agresif: {
+        key: "agresif",
+        label: "Strategi Agresif (Sesuai Target)",
+        targetMonths: monthsRemaining,
+        targetDays: daysRemaining,
+        dailySaving: roundToRupiah(targetValNum / daysRemaining, "daily"),
+        weeklySaving: roundToRupiah(targetValNum / weeksRemaining, "weekly"),
+        monthlySaving: roundToRupiah(targetValNum / monthsRemaining, "monthly"),
+        savingsRatio: originalSavingsRatio,
+        difficulty: originalSavingsRatio > 50 ? "Sangat Tinggi" : originalSavingsRatio > 30 ? "Tinggi" : "Rendah",
+        feasibility: feasibilityStatus,
+        explanation: originalSavingsRatio > 50 
+          ? "Sangat berisiko! Mengikuti tenggat waktu aslimu akan memotong lebih dari separuh pendapatan bulananmu."
+          : explanationAgresif
+      }
+    },
+    recommendation: {
+      recommendedStrategy,
+      reasoning
+    }
   };
 }
 
@@ -179,19 +362,24 @@ export async function GET(request: Request) {
     // Check DB cache
     if (riwayat.paylater_simulation) {
       const cachedSim = riwayat.paylater_simulation as any;
-      if (!cachedSim.savingOptions || cachedSim.isTargetUnrealistic === undefined) {
-        // Backfill dynamic savingOptions & alternative options for old cached records
-        const computedSavings = calculateDynamicSavingOptions(
+      if (!cachedSim.savingStrategies || !cachedSim.recommendation || !cachedSim.financingOptions) {
+        // Backfill dynamic saving strategies & financing options for old cached records
+        const computedSavings = runSavingStrategyEngine(
           Number(decision.hargaTarget),
           Number(decision.keuanganmu),
-          decision.keterangan || "",
-          decision.tujuan_membeli || ""
+          decision.tanggal_target,
+          decision.kategori_belanja || "KEINGINAN",
+          decision.createdAt
         );
-        cachedSim.savingOptions = computedSavings.savingOptions;
-        cachedSim.isTargetUnrealistic = computedSavings.isTargetUnrealistic;
-        cachedSim.alternativeTargetPrice = computedSavings.alternativeTargetPrice;
-        cachedSim.alternativeCategory = computedSavings.alternativeCategory;
-        cachedSim.alternativeReason = computedSavings.alternativeReason;
+        cachedSim.savingStrategies = computedSavings.savingStrategies;
+        cachedSim.recommendation = computedSavings.recommendation;
+
+        const computedFinancing = calculateFinancingOptions(
+          Number(decision.hargaTarget),
+          Number(decision.keuanganmu),
+          decision.kategori_belanja || "KEINGINAN"
+        );
+        cachedSim.financingOptions = computedFinancing;
 
         // Update DB cache
         await prisma.riwayatKeputusan.update({
@@ -233,18 +421,23 @@ export async function GET(request: Request) {
           });
         }
 
-        // Programmatically compute dynamic saving options to guarantee mathematical accuracy & custom limits
-        const computedSavings = calculateDynamicSavingOptions(
+        // Programmatically compute dynamic saving options and financing options
+        const computedSavings = runSavingStrategyEngine(
           Number(decision.hargaTarget),
           Number(decision.keuanganmu),
-          decision.keterangan || "",
-          decision.tujuan_membeli || ""
+          decision.tanggal_target,
+          decision.kategori_belanja || "KEINGINAN",
+          decision.createdAt
         );
-        sim.savingOptions = computedSavings.savingOptions;
-        sim.isTargetUnrealistic = computedSavings.isTargetUnrealistic;
-        sim.alternativeTargetPrice = computedSavings.alternativeTargetPrice;
-        sim.alternativeCategory = computedSavings.alternativeCategory;
-        sim.alternativeReason = computedSavings.alternativeReason;
+        sim.savingStrategies = computedSavings.savingStrategies;
+        sim.recommendation = computedSavings.recommendation;
+
+        const computedFinancing = calculateFinancingOptions(
+          Number(decision.hargaTarget),
+          Number(decision.keuanganmu),
+          decision.kategori_belanja || "KEINGINAN"
+        );
+        sim.financingOptions = computedFinancing;
       } else {
         throw new Error("Invalid structure from Gemini");
       }
@@ -274,11 +467,18 @@ export async function GET(request: Request) {
         };
       });
 
-      const computedSavings = calculateDynamicSavingOptions(
+      const computedSavings = runSavingStrategyEngine(
         cashPrice,
         Number(decision.keuanganmu),
-        decision.keterangan || "",
-        decision.tujuan_membeli || ""
+        decision.tanggal_target,
+        decision.kategori_belanja || "KEINGINAN",
+        decision.createdAt
+      );
+
+      const computedFinancing = calculateFinancingOptions(
+        cashPrice,
+        Number(decision.keuanganmu),
+        decision.kategori_belanja || "KEINGINAN"
       );
 
       aiData = {
@@ -291,12 +491,10 @@ export async function GET(request: Request) {
           adminRatePct,
           interestRatePct,
           plans,
-          savingOptions: computedSavings.savingOptions,
-          isTargetUnrealistic: computedSavings.isTargetUnrealistic,
-          alternativeTargetPrice: computedSavings.alternativeTargetPrice,
-          alternativeCategory: computedSavings.alternativeCategory,
-          alternativeReason: computedSavings.alternativeReason,
-          consequencesNote: `Membeli cicilan paylater "${decision.tujuan_membeli}" ini bakal menyedot sebagian dari budget bulananmu secara konsisten, jadi pertimbangkan baik-baik ya!`
+          savingStrategies: computedSavings.savingStrategies,
+          recommendation: computedSavings.recommendation,
+          financingOptions: computedFinancing,
+          consequencesNote: `Beli pakai cicilan paylater buat "${decision.tujuan_membeli}" ini bakal ngurangin uang jajan/bulananmu secara konsisten tiap bulan. Pikir-pikir lagi ya, jangan sampai nyesel belakangan!`
         }
       };
     }

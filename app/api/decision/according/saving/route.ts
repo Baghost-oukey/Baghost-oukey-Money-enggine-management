@@ -54,7 +54,7 @@ export async function GET(request: Request) {
       aiData = {
         opportunityCost: {
           investmentAlternative: `Jika uang Rp ${cashPrice.toLocaleString("id-ID")} ini dialokasikan ke investasi reksa dana dengan potensi return 8% per tahun, dalam 5 tahun nilainya bisa berkembang menjadi Rp ${futureInvestedVal.toLocaleString("id-ID")}, lho!`,
-          savingAlternative: `Nominal ini juga sangat bagus jika ditabung secara rutin untuk memperkuat dana darurat demi menjaga ketahanan keuanganmu.`
+          savingAlternative: `Daripada langsung dihabiskan, uang sebesar ini juga bisa banget ditabung buat dana darurat biar kamu lebih tenang ke depannya!`
         }
       };
     }

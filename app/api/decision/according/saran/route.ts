@@ -50,11 +50,11 @@ export async function GET(request: Request) {
       console.error("Gemini failed for final recommendation text, using fallback:", e);
       let text = "";
       if (riwayat.decision_verdict === "BOLEH_BELI") {
-        text = `Selamat ya Kak! Keuanganmu terpantau sehat banget buat beli "${decision.tujuan_membeli}". Silakan dibeli secara cash dan nikmati hasil kerja kerasmu dengan bijak!`;
+        text = `Wah, selamat ya! Keuanganmu lagi sehat banget buat beli "${decision.tujuan_membeli}". Langsung dibeli cash aja, nikmati hasil kerja kerasmu dengan tenang!`;
       } else if (riwayat.decision_verdict === "BELI_DENGAN_MENABUNG") {
-        text = `Kamu pasti bisa punya "${decision.tujuan_membeli}" ini secara aman! Yuk, mulai sisihkan tabungan bulananmu secara konsisten, sedikit demi sedikit lama-lama jadi bukit!`;
+        text = `Tenang, kamu pasti bisa kok dapetin "${decision.tujuan_membeli}" ini dengan aman! Yuk, mulai nabung tipis-tipis secara konsisten. Semangat ya, dikit-dikit lama-lama jadi bukit!`;
       } else {
-        text = `Untuk saat ini, saran terbaik dari sahabat finansialmu adalah menunda dulu pembelian "${decision.tujuan_membeli}" ini ya Kak. Fokus dulu sehatin keuangan harianmu biar pikiran lebih tenang.`;
+        text = `Mendingan kita tunda dulu ya rencana beli "${decision.tujuan_membeli}" ini. Yuk, fokus sehatin keuangan jajan dan kebutuhan pokok harianmu dulu biar pikiranmu lebih tenang!`;
       }
       aiData = {
         aiRecommendationText: text

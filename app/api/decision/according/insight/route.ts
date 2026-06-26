@@ -49,8 +49,8 @@ export async function GET(request: Request) {
       aiData = {
         psychologicalInsight: {
           purchaseDriver: decision.kategori_belanja === "KEBUTUHAN" ? "Kebutuhan Nyata" : "FOMO/Gengsi",
-          motivationText: "Fokuslah pada ketenangan finansial jangka panjang daripada kepuasan memiliki barang baru secara instan ya, Kak.",
-          riskText: "Pembelian yang impulsif atau didasari motif gengsi dapat memicu kecemasan dan stres cicilan bulanan yang melelahkan."
+          motivationText: "Yuk, fokus ke ketenangan jangka panjang dulu biar tabunganmu aman, dibanding sekadar senang sesaat punya barang baru.",
+          riskText: "Belanja impulsif karena kepancing gengsi atau FOMO malah bisa bikin kamu pusing dan stres mikirin cicilan tiap bulan lho!"
         }
       };
     }

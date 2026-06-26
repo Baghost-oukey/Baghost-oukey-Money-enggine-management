@@ -66,20 +66,20 @@ export async function GET(request: Request) {
         return {
           item: exp.name,
           nominalToCut,
-          reasons: [`Mengurangi sedikit pos belanja "${exp.name}" untuk dialokasikan menabung secara disiplin.`]
+          reasons: [`Bisa dipotong dikit pos jajan ini buat dimasukin ke celengan targetmu!`]
         };
       });
 
       aiData = {
         emergencyMode: {
           isActive: true,
-          strategy: "Kurangi tipis-tipis pengeluaran jajan harian dan prioritaskan menabung di awal bulan agar target cepat terkumpul secara sehat."
+          strategy: "Yuk, kurangi tipis-tipis pengeluaran jajan harianmu dan langsung sisihkan buat nabung di awal bulan biar celengan cepat gemuk secara sehat!"
         },
         sacrificeTransparency: sacrifice.length > 0 ? sacrifice : [
           {
             item: "Uang Jajan",
             nominalToCut: 50000,
-            reasons: ["Mengurangi frekuensi beli jajan kopi/boba kekinian demi masa depan keuangan yang lebih sehat."]
+            reasons: ["Dikurangin dikit beli kopi atau boba kekiniannya ya, biar celengan targetmu cepat gemuk."]
           }
         ]
       };

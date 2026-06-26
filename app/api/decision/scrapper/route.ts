@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { cleanTargetName } from "../utils";
 
 // File-based cache path to protect Apify $5 limit
 const cacheDirectory = path.join(process.cwd(), "app", "api", "decision", "scrapper");
@@ -51,7 +52,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, message: "Query parameter 'q' is required" }, { status: 400 });
     }
 
-    let cleanQuery = query.trim().toLowerCase();
+    let cleanQuery = cleanTargetName(query).trim().toLowerCase();
+    if (!cleanQuery) {
+      cleanQuery = query.trim().toLowerCase();
+    }
     
     // Map common broad abbreviations to avoid accessories & noise
     if (cleanQuery === "hp") {
@@ -78,17 +82,26 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, message: "Scraper API URL is not configured in .env" }, { status: 500 });
     }
 
-    // Call Apify scraper. Fetch 20 results so we have enough items to apply price filtering
+    const payload: any = {
+      results_wanted: 20,
+      max_pages: 1
+    };
+
+    if (targetPrice > 0) {
+      const minPrice = Math.round(targetPrice * 0.8);
+      const maxPrice = Math.round(targetPrice * 1.2);
+      payload.startUrl = `https://www.tokopedia.com/search?q=${encodeURIComponent(cleanQuery)}&pmin=${minPrice}&pmax=${maxPrice}`;
+    } else {
+      payload.keyword = cleanQuery;
+    }
+
+    // Call Apify scraper.
     const res = await fetch(apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        keyword: cleanQuery,
-        results_wanted: 20,
-        max_pages: 1
-      })
+      body: JSON.stringify(payload)
     });
 
     if (!res.ok) {
@@ -128,8 +141,8 @@ export async function GET(request: Request) {
 
     // Filter items based on targetPrice if present to exclude accessories (cases, screen protectors, etc.)
     if (targetPrice > 0) {
-      const minPrice = targetPrice * 0.25;
-      const maxPrice = targetPrice * 1.75;
+      const minPrice = targetPrice * 0.8;
+      const maxPrice = targetPrice * 1.2;
       const filtered = mapped.filter((item: any) => item.priceNumber >= minPrice && item.priceNumber <= maxPrice);
       
       // Fallback: If price filtering removes all results, bypass filter so we don't return an empty grid

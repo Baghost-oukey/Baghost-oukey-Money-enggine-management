@@ -30,13 +30,26 @@ interface ScraperItem {
 const cleanTargetName = (name: string): string => {
   if (!name) return "";
   let cleaned = name.trim();
-  cleaned = cleaned.replace(/^(?:saya|aku|kami|kita)\s+(?:pengen|mau|ingin|butuh|perlu)\s+(?:beli|membeli|belanja)\s+/gi, "");
-  cleaned = cleaned.replace(/^(?:saya|aku|kami|kita)\s+(?:pengen|mau|ingin|butuh|perlu)\s+/gi, "");
-  cleaned = cleaned.replace(/^(?:pengen|mau|ingin|butuh|perlu)\s+(?:beli|membeli|belanja)\s+/gi, "");
-  cleaned = cleaned.replace(/^(?:beli|membeli|belanja|butuh|perlu)\s+/gi, "");
-  cleaned = cleaned.replace(/^(?:untuk|buat)\s+(?:beli|membeli|belanja)\s+/gi, "");
-  cleaned = cleaned.trim();
+
+  let prev = "";
+  for (let i = 0; i < 10; i++) {
+    prev = cleaned;
+    
+    // 1. Strip leading pronouns, desire words, verbs, modifiers, prepositions
+    cleaned = cleaned.replace(/^(?:saya|aku|kami|kita|gue|gw|gua|lu|kamu|anda|pengen|mau|ingin|butuh|perlu|hendak|tujuan|rencana|berencana|beli|membeli|belanja|order|pesan|memesan|checkout|dapetin|mendapatkan|miliki|memiliki|untuk|buat|guna|ke|bagi|banget|sangat|sekali|bener-bener|bener|coba|mencoba|pengennya|maunya|inginnya|rencananya|rasanya|cari|mencari|nyari)\b\s*/gi, "");
+    
+    // 2. Strip trailing particles, modifiers, etc.
+    cleaned = cleaned.replace(/\s*\b(?:banget|sekali|sih|dong|nih|dulu|aja|saja|ya|deh|kah|pun|tersebut|pengennya|maunya|inginnya)\b$/gi, "");
+    
+    // 3. Strip leading/trailing punctuation and spaces
+    cleaned = cleaned.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "").trim();
+
+    if (cleaned === prev) break;
+  }
+  
+  // Strip surrounding quotes if any
   cleaned = cleaned.replace(/^['"“‘](.*)['"”’]$/, "$1").trim();
+
   return cleaned || name.trim();
 };
 

@@ -231,7 +231,7 @@ export async function POST(request: Request) {
       console.error("Gemini API error, falling back to local analysis:", apiError);
 
       aiAnalysis = runLocalFallbackAnalysis({
-        targetName,
+        targetName: cleanedTargetName,
         targetValNum,
         monthlyBudget: Number(monthlyBudget),
         remainingBudget,

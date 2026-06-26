@@ -298,6 +298,7 @@ GAYA BAHASA & KETENTUAN:
 - "realMarketPrice": Rincian spesifikasi dan rentang harga pasar nyata terupdate dari targetName di lapangan secara lengkap (minimal 2 kalimat).
 - "priceComparisonNote": Komparasi jujur, rinci, dan tegas antara nominal target user dengan harga pasar nyata (minimal 2 kalimat).
 - "alternativeSuggestions": 2-3 rekomendasi pilihan barang spesifik & kisaran harganya yang LEBIH REALISTIS dan SEHAT untuk dibeli sesuai dengan kapasitas budget bulanan/tabungan nyata pengguna.
+  * PENTING: Perhatikan baik-baik keterangan tambahan/curhatan pengguna dan nama target barang. Jika pengguna menyebutkan kebutuhan fitur atau kegunaan khusus (seperti: HP untuk foto-foto/kamera bagus, HP untuk gaming lancar, laptop untuk editing/coding, motor irit bensin, dll.), carilah barang alternatif spesifik yang tetap memenuhi kebutuhan khusus tersebut namun harganya lebih bersahabat dengan kondisi keuangan mereka. Jangan merekomendasikan alternatif acak atau generik yang tidak memiliki fitur/fungsi utama yang diinginkan pengguna!
 
 Format JSON respon yang wajib Anda berikan:
 {

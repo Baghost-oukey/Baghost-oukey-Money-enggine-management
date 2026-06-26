@@ -40,5 +40,131 @@
       "shopName": "Atlantic - Mobile Authorized",
       "location": "Bandung"
     }
+  ],
+  "laptop_15000000": [
+    {
+      "title": "Apple MacBook Neo A18 Pro 13\" Liquid Retina 8GB 256GB/512GB SSD macOS Laptop Resmi",
+      "price": "Rp15.899.000",
+      "priceNumber": 15899000,
+      "url": "https://www.tokopedia.com/tokohapedia-idn/apple-macbook-neo-a18-pro-13-liquid-retina-8gb-256gb-512gb-ssd-macos-laptop-1734536372443579523?extParam=ivf%3Dfalse%26keyword%3Dlaptop%26search_id%3D20260626040206BC6DC48B743DC52F076S%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/1adfdd46c2274521b013f679500fa872~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450126&x-signature=hdSs%2FHzvGC8mRZd%2FUX2UGZzUAJo%3D&x-signature-webp=FCJJ74sSM6Sf62ZadCmZxJ3Kf5U%3D",
+      "rating": 5,
+      "shopName": "Tokohapedia IDN",
+      "location": "Jakarta Barat"
+    },
+    {
+      "title": "Asus Laptop A1404VAP-VIPS5151M INTEL CORE 5-120U 2x8GB 512GB 14\" FHD(1920x1080) W11",
+      "price": "Rp15.769.000",
+      "priceNumber": 15769000,
+      "url": "https://www.tokopedia.com/techzone/asus-laptop-a1404vap-vips5151m-intel-core-5-120u-2x8gb-512gb-14-fhd-1920x1080-w11-1733463023844754691?extParam=ivf%3Dfalse%26keyword%3Dlaptop%26search_id%3D20260626040206BC6DC48B743DC52F076S%26src%3Dsearch%26whid%3D14163420",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/112cfa7d26d144b5b4b7a3572cc8eb8a~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450126&x-signature=rl7ZgjRHG%2B7nwBq80anMUKQSk2Y%3D&x-signature-webp=epp%2FxU%2FcyTS4A2HhsrJMryI3vfk%3D",
+      "rating": 5,
+      "shopName": "MyHartono Tech Zone",
+      "location": "Surabaya"
+    },
+    {
+      "title": "Lenovo Laptop LOQ 15IRX9 Intel Core i5-13450HX 16GB 512GB 15.6\" FHD W11",
+      "price": "Rp17.889.000",
+      "priceNumber": 17889000,
+      "url": "https://www.tokopedia.com/techzone/lenovo-laptop-loq-15irx9-intel-core-i5-13450hx-16gb-512gb-15-6-fhd-w11-1733463087395996931?extParam=ivf%3Dfalse%26keyword%3Dlaptop%26search_id%3D20260626040206BC6DC48B743DC52F076S%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/3e956685cdd345e5a318dfbf898dad12~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450126&x-signature=8sB9zzX1VeBrf%2FUvhkOSyoEH4pU%3D&x-signature-webp=yH0mLZYHO0LDKQcBvCEZKCwG%2B6A%3D",
+      "rating": 5,
+      "shopName": "MyHartono Tech Zone",
+      "location": "Jakarta Selatan"
+    },
+    {
+      "title": "Colorful Laptop EVOL P15-HK55F-W Prosesor Intel Core i5-13420H RAM 16GB SSD 512GB NVIDIA GeForce RTX 5050 8GB Layar 15.6 inci Full HD 144Hz Windows 11 Home Gaming & Produktivitas Tinggi",
+      "price": "Rp17.499.000",
+      "priceNumber": 17499000,
+      "url": "https://www.tokopedia.com/tokobaru-s/colorful-laptop-evol-p15-hk55f-w-prosesor-intel-core-i5-13420h-ram-16gb-ssd-512gb-nvidia-geforce-rtx-5050-8gb-layar-15-6-inci-full-hd-144hz-windows-11-home-gaming-produktivitas-tinggi-1732504640047253288?extParam=ivf%3Dfalse%26keyword%3Dlaptop%26search_id%3D20260626040206BC6DC48B743DC52F076S%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/44640589ec7340fd95f4145d5542c150~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450126&x-signature=lRu2lwUhUbcjucJOdoUq10WLBH8%3D&x-signature-webp=G7rgqMs18TkulIOzbKnHCR1bqA0%3D",
+      "rating": 5,
+      "shopName": "tokobaru Mall",
+      "location": "Jakarta Pusat"
+    }
+  ],
+  "laptop_25000000": [
+    {
+      "title": "Laptop Lenovo Legion 5 15 Intel Core i7 13650HX RTX 5050 8 GB RAM 16 gb SSD 512 GB Windows 11 + Office Home Student 15.3\" WUXGA 165Hz 100Srgb",
+      "price": "Rp27.189.000",
+      "priceNumber": 27189000,
+      "url": "https://www.tokopedia.com/gameridsurabaya/laptop-lenovo-legion-5-15-intel-core-i7-13650hx-rtx-5050-8-gb-ram-16-gb-ssd-512-gb-windows-11-office-home-student-15-3-wuxga-165hz-100srgb-1732195924137248723?extParam=ivf%3Dfalse%26keyword%3Dlaptop%26search_id%3D202606260416050584CE565C824B2C1SIK%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/30306d35f4bf46ef8b518a49bfabc539~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450965&x-signature=U9oUlCAUWkOgTKqlLs6YXtC1MwM%3D&x-signature-webp=r8aG5R4umQPhDS%2BCLh75B8cMosQ%3D",
+      "rating": 5,
+      "shopName": "Gamer ID Surabaya",
+      "location": "Surabaya"
+    },
+    {
+      "title": "HP Laptop Victus 15-fb3151AX Ryzen 7 260 16GB 512GB SSD RTX5050 8GB 15.6″ FHD IPS Win 11 Home OHS 2024 M365 Mica Silver",
+      "price": "Rp20.399.000",
+      "priceNumber": 20399000,
+      "url": "https://www.tokopedia.com/depoklaptop/hp-laptop-victus-15-fb3151ax-ryzen-7-260-16gb-512gb-ssd-rtx5050-8gb-15-6-fhd-ips-win-11-home-ohs-2024-m365-mica-silver-1732868163251242933?extParam=ivf%3Dfalse%26keyword%3Dlaptop%26search_id%3D202606260416050584CE565C824B2C1SIK%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/bdf1e61be0b64ec3a36c474aa6c4311e~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450965&x-signature=lJyO8XKQdjiv2NqjtQfYgEoNcYU%3D&x-signature-webp=K2dWHuurTmdPQZqRi6Xah9S6HPw%3D",
+      "rating": 5,
+      "shopName": "Depok Laptop",
+      "location": "Depok"
+    },
+    {
+      "title": "Laptop HP OmniBook X FLIP 14-FK0888AU - AMD RYZEN AI 7-350/32GB/1TB/TOUCH 14.0 OLED/WIN11+OHS2024+M365/SILVER",
+      "price": "Rp24.199.000",
+      "priceNumber": 24199000,
+      "url": "https://www.tokopedia.com/it-galeri-ratu-plaza/laptop-hp-omnibook-x-flip-14-fk0888au-amd-ryzen-ai-7-350-32gb-1tb-touch-14-0-oled-win11-ohs2024-m365-silver-1733786167072360130?extParam=ivf%3Dfalse%26keyword%3Dlaptop%26search_id%3D202606260416050584CE565C824B2C1SIK%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/5de1393d07bf4602a1e09c8cc7b1fcdd~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450965&x-signature=dbev51KbhxL6LP5H4Pd4DvPsgsw%3D&x-signature-webp=bJJN9sM9lF5%2BnJzIGb1ek2NJ81k%3D",
+      "rating": 5,
+      "shopName": "IT Galeri Ratu Plaza_NEW",
+      "location": "Jakarta Pusat"
+    },
+    {
+      "title": "LAPTOP HP VICTUS 15 AMD RYZEN 7 260 RTX5050 8GB/ 24GB 512GB W11+OHS+M365B 15.6FHD IPS -FB3232AX FB3151AX",
+      "price": "Rp20.399.000",
+      "priceNumber": 20399000,
+      "url": "https://www.tokopedia.com/royalltech/laptop-hp-victus-15-amd-ryzen-7-260-rtx5050-8gb-24gb-512gb-w11-ohs-m365b-15-6fhd-ips-fb3232ax-fb3151ax-1734485809130800631?extParam=ivf%3Dfalse%26keyword%3Dlaptop%26search_id%3D202606260416050584CE565C824B2C1SIK%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/e30076de5a4249c2a670e870a5cd2520~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450965&x-signature=j6VtClOqdHTVB84Ex8sjsjEVV1Y%3D&x-signature-webp=9JybiZB8IBDzfbysFJrs8YEIsDI%3D",
+      "rating": 5,
+      "shopName": "royalltech",
+      "location": "Jakarta Utara"
+    }
+  ],
+  "axioo mybook hype 5_4200000": [
+    {
+      "title": "READYSTOCK AXIOO MYBOOK HYPE 5, Intel Core i5-1035G4, Gen 10Th, Seri Terbaru, 8GB / 512GB SSD, Lengkap, Grey",
+      "price": "Rp4.500.000",
+      "priceNumber": 4500000,
+      "url": "https://www.tokopedia.com/partisi-318/readystock-axioo-mybook-hype-5-intel-core-i5-1035g4-gen-10th-seri-terbaru-8gb-512gb-ssd-lengkap-grey-1733433378993767633?extParam=ivf%3Dfalse%26keyword%3Daxioo+mybook+hype+5%26search_id%3D20260626041626CD00692C3BFE591ADG55%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/483933f807504427b833db9b97964173~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450986&x-signature=e0c%2BZB5uiZUnwLDwtAQxdgJYdfg%3D&x-signature-webp=CyiEzD%2FX3waPCz4V66d1zBPnrnk%3D",
+      "rating": null,
+      "shopName": "PARTISI_NEW",
+      "location": "Jakarta Barat"
+    },
+    {
+      "title": "Laptop Axioo Mybook Hype 5 Intel Core i5-1035G4 Ram 16Gb Ssd 256Gb",
+      "price": "Rp4.920.000",
+      "priceNumber": 4920000,
+      "url": "https://www.tokopedia.com/javasolution/axioo-mybook-hype-5-intel-core-i5-1035g4-ram-8gb-ssd-512gb-1731528619338269831-1735654009026872455?extParam=ivf%3Dfalse%26keyword%3Daxioo+mybook+hype+5%26search_id%3D20260626041626CD00692C3BFE591ADG55%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/f88850281c4e4943842bbe07dae13dfa~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450986&x-signature=XJ6suzVHuW0wdaTcWclvEY27hs4%3D&x-signature-webp=mJfNNa5BsVqxK8CG%2FHa44Hqtkcw%3D",
+      "rating": null,
+      "shopName": "Java solution laptop",
+      "location": "Malang"
+    },
+    {
+      "title": "Laptop Axioo MyBook Hype 5 X3 AMD Ryzen 5 3500U RAM 8GB SSD 256GB Ringan Dibawa Kuliah Second Berkualitas Bergaransi",
+      "price": "Rp4.950.000",
+      "priceNumber": 4950000,
+      "url": "https://www.tokopedia.com/bedak52/laptop-axioo-mybook-hype-5-x3-amd-ryzen-5-3500u-ram-8gb-ssd-256gb-ringan-dibawa-kuliah-second-berkualitas-bergaransi-1736196349301589504?extParam=ivf%3Dfalse%26keyword%3Daxioo+mybook+hype+5%26search_id%3D20260626041626CD00692C3BFE591ADG55%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/d3f86aa3932946dc83303d31a89e741a~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450986&x-signature=iEklkQXw4jsbP7GWSzJCpdfIOXI%3D&x-signature-webp=onuFUEsADqCyv9XL2l1XGsvsBqI%3D",
+      "rating": null,
+      "shopName": "Bedak52",
+      "location": "Malang"
+    },
+    {
+      "title": "Laptop Axioo Mybook Hype 5 AMD Ryzen 5 3500U RAM 8GB SSD 256GB Bodi Kokoh Terawat Second Berkualitas Bergaransi Cocok Untuk Kerja Kantor Kuliah Online",
+      "price": "Rp4.950.000",
+      "priceNumber": 4950000,
+      "url": "https://www.tokopedia.com/javasolution/laptop-axioo-mybook-hype-5-amd-ryzen-5-3500u-ram-8gb-ssd-256gb-bodi-kokoh-terawat-second-berkualitas-bergaransi-cocok-untuk-kerja-kantor-kuliah-online-1736171712948044935?extParam=ivf%3Dfalse%26keyword%3Daxioo+mybook+hype+5%26search_id%3D20260626041626CD00692C3BFE591ADG55%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/ed95a443b2b2471eaf2b21b5caaff222~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782450986&x-signature=fU6eyz5K6xwAO28mNTWYfm%2F8fWA%3D&x-signature-webp=bQ42tG09AZ%2F9j469qJbOX7iPNcg%3D",
+      "rating": null,
+      "shopName": "Java solution laptop",
+      "location": "Malang"
+    }
   ]
 }

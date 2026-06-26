@@ -7,6 +7,7 @@ import { SaranStrategiMengelolaUang } from "../According/FeedbackCard";
 import { InsightPsikologis } from "../According/InsightCard";
 import { KabarHargaPasar } from "../According/HargaPasarCard";
 import { TaktikKeuangan } from "../According/TaktikCard";
+import { ScraperItem } from "../../types";
 
 interface ResultCommentsProps {
   decisionId: string;
@@ -17,6 +18,8 @@ interface ResultCommentsProps {
   monthlyBudget?: number;
   jenisTarget?: string;
   keteranganTambahan?: string;
+  selectedProduct: ScraperItem | null;
+  onSelectProduct: (product: ScraperItem | null) => void;
 }
 
 export function ResultComments({
@@ -28,6 +31,8 @@ export function ResultComments({
   monthlyBudget,
   jenisTarget,
   keteranganTambahan,
+  selectedProduct,
+  onSelectProduct,
 }: ResultCommentsProps) {
   const targetValNum = Number(targetValue || 0);
 
@@ -71,6 +76,8 @@ export function ResultComments({
         decisionId={decisionId}
         target={target}
         targetValue={targetValue}
+        selectedProduct={selectedProduct}
+        onSelectProduct={onSelectProduct}
       />
 
       {/* 8. Taktik Keuangan & Rencana Aksi */}

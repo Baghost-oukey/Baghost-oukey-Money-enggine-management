@@ -17,6 +17,8 @@ import { ScoreRing } from "./ScoreChart";
 import { ModalSync } from "../modal-sync";
 import { getFallbackAIData } from "../analysisUtils";
 import { SaranCard } from "../According/SaranCard";
+import { ScraperItem } from "../../types";
+import { SusunAnggaranModal } from "./SusunAnggaranModal";
 
 interface ResultAnalisisProps {
   analysisResult: any;
@@ -42,11 +44,16 @@ export function ResultAnalisis({
   expenses,
 }: ResultAnalisisProps) {
   const router = useRouter();
+  
   // Syncing states
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSynced, setIsSynced] = useState(
     analysisResult.status === "TERSINKRONISASI" || analysisResult.status === "TERINTEGRASI"
   );
+
+  // Selected Tokopedia Product state
+  const [selectedProduct, setSelectedProduct] = useState<ScraperItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Calculate months difference for savings
   const currentDate = new Date();
@@ -210,6 +217,8 @@ export function ResultAnalisis({
         monthlyBudget={monthlyBudget}
         jenisTarget={analysisResult?.jenisTarget || aiData?.jenisTarget}
         keteranganTambahan={analysisResult?.keteranganTambahan || aiData?.keteranganTambahan}
+        selectedProduct={selectedProduct}
+        onSelectProduct={setSelectedProduct}
       />
 
       {/* Final recommendation text */}
@@ -286,22 +295,7 @@ export function ResultAnalisis({
 
           {/* Import to Budgeting Button */}
           <Button
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                localStorage.setItem("imported_budget_salary", String(monthlyBudget || 0));
-
-                const expensesList = (expenses || [])
-                  .map((exp: any) => `${exp.name} Rp ${Number(exp.amount || 0).toLocaleString("id-ID")}`)
-                  .join(", ");
-
-                const notesText = expensesList
-                  ? `Pengeluaran bulanan saat ini: ${expensesList}.`
-                  : "";
-
-                localStorage.setItem("imported_budget_notes", notesText);
-                router.push("/budgeting-system");
-              }
-            }}
+            onClick={() => setIsModalOpen(true)}
             className="w-full flex items-center justify-center text-[10px] font-bold h-9 rounded-xl shadow-sm cursor-pointer bg-violet-600 hover:bg-violet-700 text-white"
           >
             Susun Anggaran
@@ -325,6 +319,23 @@ export function ResultAnalisis({
         description="Tunggu sebentar ya, kami sedang memasukkan rencana belanja ini ke dalam daftar anggaran bulananmu."
         showCancel={false}
       />
+
+      <SusunAnggaranModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        userId={analysisResult.userId}
+        decisionId={analysisResult.id}
+        initialTargetName={target}
+        initialTargetValue={targetValue}
+        initialMonthlyBudget={monthlyBudget || 0}
+        initialExpenses={(expenses || []).map((exp: any) => ({
+          name: exp.name,
+          amount: Number(exp.amount),
+        }))}
+        targetDate={targetDate}
+        selectedProduct={selectedProduct}
+      />
     </div>
   );
 }
+

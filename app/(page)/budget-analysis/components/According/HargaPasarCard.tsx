@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import { Loader2, ShoppingBag } from "lucide-react";
+import { Loader2, ShoppingBag, Check, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ScraperItem } from "../../types";
 
 interface AlternativeSuggestion {
   name: string;
@@ -14,17 +15,8 @@ interface KabarHargaPasarProps {
   decisionId: string;
   target?: string;
   targetValue?: string;
-}
-
-interface ScraperItem {
-  title: string;
-  price: string;
-  priceNumber: number;
-  url: string;
-  imageUrl: string;
-  rating: number | null;
-  shopName: string;
-  location: string;
+  selectedProduct?: ScraperItem | null;
+  onSelectProduct?: (product: ScraperItem | null) => void;
 }
 
 const cleanTargetName = (name: string): string => {
@@ -53,7 +45,17 @@ const cleanTargetName = (name: string): string => {
   return cleaned || name.trim();
 };
 
-function ProductGrid({ items, loading }: { items: ScraperItem[]; loading: boolean }) {
+function ProductGrid({
+  items,
+  loading,
+  selectedProduct,
+  onSelectProduct,
+}: {
+  items: ScraperItem[];
+  loading: boolean;
+  selectedProduct?: ScraperItem | null;
+  onSelectProduct?: (product: ScraperItem | null) => void;
+}) {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-6 space-x-2 bg-muted/10 border border-muted/20 rounded-lg">
@@ -67,50 +69,77 @@ function ProductGrid({ items, loading }: { items: ScraperItem[]; loading: boolea
   }
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-      {items.map((item, idx) => (
-        <a
-          key={idx}
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group block p-2 border rounded-lg bg-background/50 hover:bg-background/80 hover:border-violet-300 transition-all flex flex-col justify-between h-full hover:shadow-sm"
-        >
-          <div className="space-y-1.5 flex-1 flex flex-col">
-            {item.imageUrl ? (
-              <div className="aspect-square w-full rounded overflow-hidden bg-muted flex items-center justify-center relative">
-                <img
-                  src={item.imageUrl}
-                  alt={item.title}
-                  className="object-cover h-full w-full group-hover:scale-105 transition-transform"
-                />
-              </div>
-            ) : (
-              <div className="aspect-square w-full rounded bg-muted flex items-center justify-center text-muted-foreground text-[10px]">
-                No Image
+      {items.map((item, idx) => {
+        const isSelected = selectedProduct?.url === item.url;
+        return (
+          <div
+            key={idx}
+            onClick={() => {
+              if (onSelectProduct) {
+                onSelectProduct(isSelected ? null : item);
+              }
+            }}
+            className={cn(
+              "group relative block p-2 border rounded-xl bg-card/25 backdrop-blur-md transition-all flex flex-col justify-between h-full hover:shadow-sm cursor-pointer select-none",
+              isSelected
+                ? "border-violet-600 bg-violet-600/10 shadow-[0_0_12px_rgba(109,40,217,0.25)]"
+                : "border-muted/50 hover:bg-background/80 hover:border-violet-300/60"
+            )}
+          >
+            {/* Checkmark overlay for selected item */}
+            {isSelected && (
+              <div className="absolute top-1.5 right-1.5 bg-violet-600 text-white rounded-full p-0.5 shadow-md z-10 animate-in zoom-in-50 duration-200">
+                <Check className="h-3 w-3 stroke-[3]" />
               </div>
             )}
-            <div className="flex-1 flex flex-col justify-between">
-              <span className="text-[10px] font-medium text-foreground line-clamp-2 leading-tight group-hover:text-violet-600 transition-colors">
-                {item.title}
-              </span>
-              <div className="mt-1">
-                <span className="text-[11px] font-extrabold text-foreground block">
-                  {item.price}
+
+            <div className="space-y-1.5 flex-1 flex flex-col">
+              {item.imageUrl ? (
+                <div className="aspect-square w-full rounded-lg overflow-hidden bg-muted flex items-center justify-center relative">
+                  <img
+                    src={item.imageUrl}
+                    alt={item.title}
+                    className="object-cover h-full w-full group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              ) : (
+                <div className="aspect-square w-full rounded bg-muted flex items-center justify-center text-muted-foreground text-[10px]">
+                  No Image
+                </div>
+              )}
+              <div className="flex-1 flex flex-col justify-between">
+                <span className="text-[10px] font-medium text-foreground line-clamp-2 leading-tight group-hover:text-violet-600 transition-colors">
+                  {item.title}
                 </span>
-                {item.rating && (
-                  <span className="text-[9px] text-amber-500 font-bold block mt-0.5">
-                    ⭐ {item.rating}
+                <div className="mt-1">
+                  <span className="text-[11px] font-extrabold text-foreground block">
+                    {item.price}
                   </span>
-                )}
+                  {item.rating && (
+                    <span className="text-[9px] text-amber-500 font-bold block mt-0.5">
+                      ⭐ {item.rating}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+            <div className="mt-2 pt-1 border-t border-muted/10 text-[9px] text-muted-foreground flex justify-between items-center leading-none">
+              <span className="truncate max-w-[50px]">{item.shopName}</span>
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.stopPropagation(); // prevent selecting card when opening link
+                }}
+                className="inline-flex items-center gap-0.5 text-violet-600 hover:text-violet-700 hover:underline font-bold"
+              >
+                Buka <ExternalLink className="h-2 w-2" />
+              </a>
+            </div>
           </div>
-          <div className="mt-2 pt-1 border-t border-muted/10 text-[9px] text-muted-foreground flex justify-between items-center leading-none">
-            <span className="truncate max-w-[50px]">{item.shopName}</span>
-            <span className="truncate max-w-[50px]">{item.location}</span>
-          </div>
-        </a>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -119,6 +148,8 @@ export function KabarHargaPasar({
   decisionId,
   target,
   targetValue,
+  selectedProduct,
+  onSelectProduct,
 }: KabarHargaPasarProps) {
   const [loading, setLoading] = useState(true);
   const [cleanedTarget, setCleanedTarget] = useState("");
@@ -250,7 +281,12 @@ export function KabarHargaPasar({
                 <ShoppingBag className="h-3.5 w-3.5 text-violet-500" />
                 Live Produk Tokopedia untuk "{cleanedTarget}":
               </span>
-              <ProductGrid items={targetProducts} loading={loadingTargetProducts} />
+              <ProductGrid
+                items={targetProducts}
+                loading={loadingTargetProducts}
+                selectedProduct={selectedProduct}
+                onSelectProduct={onSelectProduct}
+              />
             </div>
 
             {/* Live alternatives lists */}
@@ -289,7 +325,12 @@ export function KabarHargaPasar({
                             <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest block">
                               Hasil Pencarian Tokopedia untuk "{item.name}":
                             </span>
-                            <ProductGrid items={items} loading={isLoadingAlt} />
+                            <ProductGrid
+                              items={items}
+                              loading={isLoadingAlt}
+                              selectedProduct={selectedProduct}
+                              onSelectProduct={onSelectProduct}
+                            />
                           </div>
                         )}
                       </div>
@@ -304,3 +345,4 @@ export function KabarHargaPasar({
     </AccordionItem>
   );
 }
+

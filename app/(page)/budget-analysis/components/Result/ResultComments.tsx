@@ -8,6 +8,7 @@ import { KabarHargaPasar } from "../According/HargaPasarCard";
 import { TaktikKeuangan } from "../According/TaktikCard";
 import { ScraperItem } from "../../types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface ResultCommentsProps {
   decisionId: string;
@@ -110,7 +111,7 @@ export function ResultComments({
   return (
     <div className="w-full flex flex-col space-y-0">
       {/* Premium Folder-style Tabs Navigation */}
-      <div className="flex items-end gap-1 px-3 sm:px-4 overflow-x-auto scrollbar-none border-b border-muted-foreground/15 -mb-[1px] relative z-10 shrink-0">
+      <div className="flex items-end gap-1 px-3 sm:px-4 overflow-x-auto scrollbar-none border-b relative z-10 shrink-0">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -119,10 +120,10 @@ export function ResultComments({
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2 px-5 py-3 text-xs font-bold transition-all duration-300 whitespace-nowrap cursor-pointer select-none relative border-b-2 border-transparent",
+                "flex items-center gap-2 px-5 py-2.5 text-xs font-bold whitespace-nowrap cursor-pointer select-none relative rounded-t-[16px] transition-colors duration-150 border border-b-0",
                 isActive
-                  ? "bg-card/35 backdrop-blur-md border border-muted-foreground/15 border-b-0 rounded-t-[16px] text-foreground font-black px-6 z-20"
-                  : "text-muted-foreground hover:bg-muted/30 hover:text-foreground rounded-t-xl py-2 mb-1"
+                  ? "bg-card/35 backdrop-blur-md border-muted-foreground/15 text-foreground font-black z-20"
+                  : "border-transparent text-muted-foreground hover:bg-muted/30 hover:text-foreground"
               )}
             >
               <Icon size={13} className={isActive ? "animate-pulse text-violet-500" : ""} />
@@ -134,110 +135,166 @@ export function ResultComments({
 
       {/* Modern Card Body for Active Tab */}
       <div className={cn(
-        "bg-card/25 backdrop-blur-md border border-muted-foreground/15 rounded-b-[20px] rounded-tr-[20px] p-5 sm:p-6 shadow-sm min-h-[380px] relative z-0",
+        "bg-card/25 border rounded-b-[20px] rounded-tr-[20px] p-5 sm:p-6 shadow-sm min-h-[380px] relative z-0",
         activeTab === tabs[0]?.id ? "rounded-tl-none" : "rounded-tl-[20px]"
       )}>
         {/* Tab 1: Timeline Nabung Mandiri */}
         {activeTab === "timeline" && (
           <div className="space-y-5">
-            <div className="border-b pb-3 mb-4 flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">
-                  Timeline Rencana Kegiatan Menabung Mandiri
-                </h3>
-                <p className="text-[10px] text-muted-foreground font-light mt-0.5 leading-relaxed">
-                  Pilihan jalur aktivitas menabung mandiri bebas biaya bunga dan administrasi.
-                </p>
-              </div>
-              <span className="text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded border border-emerald-500/20">
-                Hemat 100%
-              </span>
-            </div>
-
             {simLoading ? (
               <div className="flex flex-col items-center justify-center py-20 space-y-2">
                 <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
                 <p className="text-xs text-muted-foreground">Menyusun rencana aktivitas nabung...</p>
               </div>
             ) : (
-              <div className="relative pl-6 border-l border-muted-foreground/15 space-y-6 py-2 ml-2 max-w-4xl">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch w-full">
                 {strategyList.map((strat: any, idx: number) => {
                   const isRecommended = recommendation?.recommendedStrategy === parseInt(strat.key) || recommendation?.recommendedStrategy === strat.key;
 
-                  // Color mapping for connectors and badges
+                  // Pricing plan card configurations
                   const colors = strat.key === "aman"
-                    ? { dot: "bg-emerald-500/10 border-emerald-500/30 text-emerald-600", card: "border-emerald-500/15 bg-emerald-500/[0.01]" }
+                    ? { border: "border-emerald-500/25", badge: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", btn: "bg-emerald-600 hover:bg-emerald-700 text-white" }
                     : strat.key === "seimbang"
-                    ? { dot: "bg-violet-500/10 border-violet-500/30 text-violet-600", card: "border-violet-500/20 bg-violet-500/[0.01]" }
-                    : { dot: "bg-rose-500/10 border-rose-500/30 text-rose-600", card: "border-rose-500/15 bg-rose-500/[0.01]" };
+                    ? { border: "border-violet-500/40 ring-2 ring-violet-500/20 bg-violet-600/[0.01]", badge: "bg-violet-600 text-white", btn: "bg-violet-600 hover:bg-violet-700 text-white" }
+                    : { border: "border-rose-500/25", badge: "bg-rose-500/10 text-rose-600 border-rose-500/20", btn: "bg-rose-600 hover:bg-rose-700 text-white" };
+
+                  // Detect Daily/Monthly context
+                  const isHarian = keteranganTambahan?.includes("[Harian]") || false;
+                  const mainSavingRate = isHarian ? strat.dailySaving : strat.monthlySaving;
+                  const mainPeriodLabel = isHarian ? "hari" : "bulan";
+
+                  const strategyBenefits = strat.key === "aman"
+                    ? [
+                        "Nabungnya super ringan & bebas beban pikiran",
+                        "Gak mengganggu uang jajan harian utamamu",
+                        "Uang bulananmu tetap aman dan stabil"
+                      ]
+                    : strat.key === "seimbang"
+                    ? [
+                        "Barang impian kebeli pas sesuai target",
+                        "Nabung dan jajan harian tetap seimbang",
+                        "Sesuai target tanggal rencana awalmu"
+                      ]
+                    : [
+                        "Barang impian kebeli 2x lebih cepat",
+                        "Memakai sisa uang jajan dengan maksimal",
+                        "Melatih disiplin dan fokus mengelola uang"
+                      ];
 
                   return (
-                    <div key={idx} className="relative space-y-2">
-                      {/* Timeline Bullet indicator */}
-                      <span className={cn(
-                        "absolute -left-[31px] top-1.5 h-5 w-5 rounded-full border flex items-center justify-center text-[9px] font-black shadow-sm bg-background select-none",
-                        colors.dot
-                      )}>
-                        {idx + 1}
-                      </span>
-
-                      {/* Timeline Activity card */}
-                      <div className={cn(
-                        "p-4 rounded-2xl border transition-all duration-300 relative overflow-hidden",
+                    <div
+                      key={idx}
+                      className={cn(
+                        "p-5 rounded-3xl border flex flex-col justify-between space-y-6 relative overflow-hidden bg-card/15 backdrop-blur-sm transition-all duration-300",
                         isRecommended
-                          ? "ring-2 ring-violet-500/20 shadow-md " + colors.card
-                          : "bg-background/40 hover:bg-background/80"
-                      )}>
-                        {isRecommended && (
-                          <span className="absolute top-0 right-0 bg-violet-600 text-white text-[8px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-bl-lg shadow-sm">
-                            ⭐ Rekomendasi
-                          </span>
-                        )}
-
-                        <div className="space-y-2">
-                          {/* Header Details */}
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-extrabold text-[12px] text-foreground leading-tight">
-                                {strat.label}
-                              </span>
-                              <span className={cn(
-                                "text-[8px] font-black uppercase px-1.5 py-0.5 rounded border leading-none",
-                                strat.difficulty === "Rendah"
-                                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                  : strat.difficulty === "Sedang"
-                                  ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                  : "bg-rose-500/10 text-rose-600 border-rose-500/20"
-                              )}>
-                                Beban: {strat.difficulty}
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                              Target Waktu Nabung: <strong className="text-foreground">{strat.targetMonths} bulan</strong> ({strat.targetDays} hari)
-                            </p>
-                          </div>
-
-                          {/* Visual checklist showing daily, weekly, monthly targets */}
-                          <div className="grid grid-cols-3 gap-3 pt-2 border-t border-muted-foreground/10 text-[10px] font-bold text-center max-w-lg">
-                            <div className="bg-card/45 border rounded-xl p-2">
-                              <span className="text-[8px] text-muted-foreground block font-medium">Harian</span>
-                              <span className="text-foreground font-black text-[11px] sm:text-xs">Rp {strat.dailySaving.toLocaleString("id-ID")}</span>
-                            </div>
-                            <div className="bg-card/45 border rounded-xl p-2">
-                              <span className="text-[8px] text-muted-foreground block font-medium">Mingguan</span>
-                              <span className="text-foreground font-black text-[11px] sm:text-xs">Rp {strat.weeklySaving.toLocaleString("id-ID")}</span>
-                            </div>
-                            <div className="bg-card/45 border rounded-xl p-2">
-                              <span className="text-[8px] text-muted-foreground block font-medium">Bulanan</span>
-                              <span className="text-foreground font-black text-[11px] sm:text-xs">Rp {strat.monthlySaving.toLocaleString("id-ID")}</span>
-                            </div>
-                          </div>
-
-                          <p className="text-[11px] text-muted-foreground leading-relaxed mt-1 text-justify font-medium">
-                            {strat.explanation}
-                          </p>
+                          ? "shadow-lg shadow-violet-500/5 " + colors.border
+                          : "border-muted-foreground/15 hover:border-muted-foreground/30 bg-card/5"
+                      )}
+                    >
+                      {/* Top badge */}
+                      {isRecommended && (
+                        <div className="absolute top-0 right-0 bg-violet-600 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-bl-xl shadow-sm">
+                          Rekomedasi Ku
                         </div>
+                      )}
+
+                      <div className="space-y-4">
+                        {/* Plan Header Title */}
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-extrabold text-muted-foreground uppercase tracking-widest block">
+                            {strat.key === "aman" ? "Santai Plan" : strat.key === "seimbang" ? "Normal Plan" : "Agresif Plan"}
+                          </span>
+                          <h4 className="font-extrabold text-foreground text-sm leading-tight">
+                            {strat.label}
+                          </h4>
+                        </div>
+
+                        {/* Price Block */}
+                        <div className="py-3 border-y border-dashed border-muted-foreground/10">
+                          <span className="text-[9px] block font-bold uppercase tracking-wider mb-1">
+                            {isHarian ? "Nabung Harian" : "Nabung Bulanan"}
+                          </span>
+                          <div className="flex items-baseline text-foreground">
+                            <span className="text-xl sm:text-2xl font-black tracking-tight">
+                              Rp {mainSavingRate.toLocaleString("id-ID")}
+                            </span>
+                            <span className="text-[10px] text-violet-700 font-extrabold ml-1">
+                              /{mainPeriodLabel}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Checklist Details */}
+                        <div className="space-y-2">
+                          <span className="text-[9px] block font-bold uppercase">
+                            Rincian Nabung:
+                          </span>
+                          <div className="space-y-1.5 text-[10px] font-bold text-foreground">
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-500">✓</span>
+                              <span>Harian: Rp {strat.dailySaving.toLocaleString("id-ID")}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-500">✓</span>
+                              <span>Mingguan: Rp {strat.weeklySaving.toLocaleString("id-ID")}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-500">✓</span>
+                              <span>Bulanan: Rp {strat.monthlySaving.toLocaleString("id-ID")}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-500">✓</span>
+                              <span>Beban Keuangan: {strat.difficulty}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-500">✓</span>
+                              <span>Waktu: {strat.targetMonths} bln ({strat.targetDays} hari)</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Keuntungan Jalur Ini */}
+                        <div className="space-y-1.5 pt-2.5 border-t border-dashed border-muted-foreground/10">
+                          <span className="text-xs text-violet-600 font-semibold uppercase block">
+                            Keuntungan Rencana Ini:
+                          </span>
+                          <div className="space-y-1 text-[10px] font-semibold text-muted-foreground">
+                            {strategyBenefits.map((benefit, bIdx) => (
+                              <div key={bIdx} className="flex items-start gap-1.5">
+                                <span className="leading-normal text-justify">{benefit}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-xs text-justify">
+                          {strat.explanation}
+                        </p>
                       </div>
+
+                      {/* Action Button at bottom */}
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="default"
+                        onClick={() => {
+                          if (typeof window !== "undefined") {
+                            localStorage.setItem("selected_saving_strategy", JSON.stringify(strat));
+                            
+                            // Try calling setup budget dialog from DOM elements
+                            const btnList = document.querySelectorAll("button");
+                            btnList.forEach((b) => {
+                              if (b.textContent?.includes("Susun Anggaran")) {
+                                b.click();
+                              }
+                            });
+                          }
+                        }}
+                        className="w-full rounded-xl text-[10px] font-black uppercase tracking-wider text-center cursor-pointer shadow-sm transition-all duration-200 select-none bg-violet-700 hover:bg-violet-800 text-white shadow-md shadow-violet-700/10"
+                      >
+                        Buat Rencana Menabung
+                      </Button>
                     </div>
                   );
                 })}

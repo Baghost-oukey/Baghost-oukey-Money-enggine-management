@@ -633,5 +633,47 @@
       "location": "Surabaya"
     }
   ],
-  "belu laptop_10000000": []
+  "belu laptop_10000000": [],
+  "hot toys_5000000": [
+    {
+      "title": "Hot Toys TMS-009 / TMS09 The Flash (TV Series) - The Flash",
+      "price": "Rp4.475.000",
+      "priceNumber": 4475000,
+      "url": "https://www.tokopedia.com/toyzcorner/hot-toys-tms-009-tms09-the-flash-tv-series-the-flash?extParam=ivf%3Dfalse%26keyword%3Dhot+toys%26search_id%3D2026062914151113F9896DF61279266K57%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/img/VqbcmM/2024/6/20/ab67e1cf-4ec1-4826-836f-ae67fe881cd0.jpg~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782746112&x-signature=zhGJxzKFtyfCzZ6gn6XaPvUi3q8%3D&x-signature-webp=cxoju8tcg6LU4tTMrHGDSyWHGb4%3D",
+      "rating": 5,
+      "shopName": "Toyz Corner",
+      "location": "Jakarta Selatan"
+    },
+    {
+      "title": "Hot Toys - Spider Man PS4 - Spiderman Scarlet Spider VGM34 Hottoys 1/6",
+      "price": "Rp5.400.000",
+      "priceNumber": 5400000,
+      "url": "https://www.tokopedia.com/funko-popcionardes/hot-toys-spider-man-ps4-spiderman-scarlet-spider-vgm34-hottoys-1-6?extParam=ivf%3Dfalse%26keyword%3Dhot+toys%26search_id%3D2026062914151113F9896DF61279266K57%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/img/hDjmkQ/2020/8/24/231502a0-9dc2-4361-a91c-5707e616b6cf.jpg~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782746112&x-signature=qhRQ2RwaOYwAL0HWZVsSU%2Bm2OUE%3D&x-signature-webp=%2B663rDTerlChz8raLgXQbIQfAbk%3D",
+      "rating": 5,
+      "shopName": "Funko POPCionardes",
+      "location": "Jakarta Utara"
+    },
+    {
+      "title": "Hot Toys MMS-534 / MMS534 Nebula (Avengers Endgame)",
+      "price": "Rp4.260.000",
+      "priceNumber": 4260000,
+      "url": "https://www.tokopedia.com/toyzcorner/hot-toys-mms-534-mms534-nebula-avengers-endgame?extParam=ivf%3Dfalse%26keyword%3Dhot+toys%26search_id%3D2026062914151113F9896DF61279266K57%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/img/VqbcmM/2024/6/13/e9c9ad01-728f-4742-aced-800e74bd66ce.jpg~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782746112&x-signature=s3wrD8hD2xvcIjC%2FaqvXAWrIhSI%3D&x-signature-webp=ijIegel5hhebc2Nt5qXcouAffQE%3D",
+      "rating": 5,
+      "shopName": "Toyz Corner",
+      "location": "Jakarta Selatan"
+    },
+    {
+      "title": "Hot Toys MMS-346 / MMS346 Finn & Riot Control Stormtrooper",
+      "price": "Rp5.175.000",
+      "priceNumber": 5175000,
+      "url": "https://www.tokopedia.com/toyzcorner/hot-toys-mms-346-mms346-finn-riot-control-stormtrooper?extParam=ivf%3Dfalse%26keyword%3Dhot+toys%26search_id%3D2026062914151113F9896DF61279266K57%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/img/VqbcmM/2024/6/10/4f538722-b178-4827-9949-4a979a2dbb7b.jpg~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782746112&x-signature=lhbQWqsd8M7HSyrJlizwneTvjpE%3D&x-signature-webp=G38fTH7svpbduu0u8zKTNqeLtAY%3D",
+      "rating": 5,
+      "shopName": "Toyz Corner",
+      "location": "Jakarta Selatan"
+    }
+  ]
 }

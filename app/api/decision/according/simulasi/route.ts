@@ -244,50 +244,56 @@ function runSavingStrategyEngine(
     explanationAgresif = "Nabungnya udah lewat dari setengah uang bulananmu, bahaya banget buat makan dan ongkos harian!";
   }
 
-  // 3. Strategi Seimbang (target rasio ~25% dari pendapatan)
-  let monthsSeimbang = monthsRemaining;
-  if (originalSavingsRatio > 25) {
-    monthsSeimbang = Math.max(monthsRemaining, Math.ceil(targetValNum / (0.25 * monthlyIncome)));
-  }
-  monthsSeimbang = Math.min(60, monthsSeimbang); // cap at 5 years
-  const daysSeimbang = Math.max(daysRemaining, Math.round(monthsSeimbang * 30.44));
-  const weeksSeimbang = Math.max(weeksRemaining, Math.ceil(daysSeimbang / 7));
+  // 3. Strategi Normal (Sesuai Target)
+  const monthsSeimbang = monthsRemaining;
+  const daysSeimbang = daysRemaining;
+  const weeksSeimbang = weeksRemaining;
 
   const monthlySavingSeimbang = roundToRupiah(targetValNum / monthsSeimbang, "monthly");
   const weeklySavingSeimbang = roundToRupiah(targetValNum / weeksSeimbang, "weekly");
   const dailySavingSeimbang = roundToRupiah(targetValNum / daysSeimbang, "daily");
   const savingsRatioSeimbang = Math.round((monthlySavingSeimbang / monthlyIncome) * 100);
 
-  // 4. Strategi Aman (target rasio ~15% dari pendapatan)
-  let monthsAman = Math.max(monthsRemaining * 2, Math.ceil(targetValNum / (0.15 * monthlyIncome)));
+  // 4. Strategi Santai (Minim Risiko - Tenggat waktu dilonggarkan 50%)
+  let monthsAman = Math.max(monthsRemaining + 2, Math.ceil(monthsRemaining * 1.5));
   monthsAman = Math.min(60, monthsAman); // cap at 5 years
-  const daysAman = Math.max(daysRemaining * 2, Math.round(monthsAman * 30.44));
-  const weeksAman = Math.max(weeksRemaining * 2, Math.ceil(daysAman / 7));
+  const daysAman = Math.max(daysRemaining + 60, Math.round(monthsAman * 30.44));
+  const weeksAman = Math.max(weeksRemaining + 8, Math.ceil(daysAman / 7));
 
   const monthlySavingAman = roundToRupiah(targetValNum / monthsAman, "monthly");
   const weeklySavingAman = roundToRupiah(targetValNum / weeksAman, "weekly");
   const dailySavingAman = roundToRupiah(targetValNum / daysAman, "daily");
   const savingsRatioAman = Math.round((monthlySavingAman / monthlyIncome) * 100);
 
-  // 5. Determine recommended strategy
-  let recommendedStrategy = "agresif";
+  // 5. Strategi Agresif (Target Cepat - Waktu dipotong setengahnya)
+  const monthsAgresif = Math.max(1, Math.floor(monthsRemaining * 0.5));
+  const daysAgresif = Math.max(15, Math.floor(daysRemaining * 0.5));
+  const weeksAgresif = Math.max(2, Math.floor(weeksRemaining * 0.5));
+
+  const monthlySavingAgresif = roundToRupiah(targetValNum / monthsAgresif, "monthly");
+  const weeklySavingAgresif = roundToRupiah(targetValNum / weeksAgresif, "weekly");
+  const dailySavingAgresif = roundToRupiah(targetValNum / daysAgresif, "daily");
+  const savingsRatioAgresif = Math.round((monthlySavingAgresif / monthlyIncome) * 100);
+
+  // 6. Determine recommended strategy
+  let recommendedStrategy = "seimbang";
   let reasoning = "";
-  if (feasibilityStatus === "Sangat Layak" || feasibilityStatus === "Layak") {
-    recommendedStrategy = "agresif";
-    reasoning = "Keuanganmu aman banget buat target ini! Kamu bisa pakai Strategi Agresif biar barangnya cepat kebeli tanpa beban.";
-  } else if (feasibilityStatus === "Perlu Penyesuaian") {
+  if (originalSavingsRatio <= 25) {
     recommendedStrategy = "seimbang";
-    reasoning = "Uang tabungan bulanan/hariannya agak berat nih. Coba pakai Strategi Seimbang dengan nambah sedikit waktu biar kamu nggak terlalu ngos-ngosan tiap bulan.";
+    reasoning = "Keuanganmu aman banget buat target ini! Kamu bisa pakai Strategi Normal (Sesuai Target) untuk mencapai target tepat waktu tanpa membebani jajan harian/bulananmu.";
+  } else if (originalSavingsRatio <= 45) {
+    recommendedStrategy = "seimbang";
+    reasoning = "Uang tabungan harian/bulanan untuk mencapai target tepat waktu agak ketat. Strategi Normal (Sesuai Target) bisa dicoba dengan sedikit penghematan, atau beralih ke Strategi Santai agar lebih rileks.";
   } else {
     recommendedStrategy = "aman";
-    reasoning = "Target ini kelihatan terlalu berat buat uang bulananmu saat ini. Mendingan pakai Strategi Aman dan perpanjang waktu nabung biar kebutuhan pokokmu tetap aman ya!";
+    reasoning = "Waduh Kak, target menabung tepat waktu terlalu berat buat kondisi uangmu saat ini. Sangat disarankan pakai Strategi Santai agar kebutuhan pokok/jajan harianmu tetap aman.";
   }
 
   return {
     savingStrategies: {
       aman: {
         key: "aman",
-        label: "Strategi Aman (Minim Risiko)",
+        label: "Strategi Santai (Minim Risiko)",
         targetMonths: monthsAman,
         targetDays: daysAman,
         dailySaving: dailySavingAman,
@@ -296,35 +302,33 @@ function runSavingStrategyEngine(
         savingsRatio: savingsRatioAman,
         difficulty: "Rendah",
         feasibility: "Sangat Layak",
-        explanation: "Paling direkomendasikan untuk keamanan finansial jangka panjang. Beban menabung bulanan sangat kecil sehingga pengeluaran primer tetap terjaga aman."
+        explanation: "Paling direkomendasikan untuk kestabilan keuangan jangka panjang. Waktu menabung dilonggarkan agar setoran harian/bulanan sangat ringan."
       },
       seimbang: {
         key: "seimbang",
-        label: "Strategi Seimbang",
+        label: "Strategi Normal (Sesuai Target)",
         targetMonths: monthsSeimbang,
         targetDays: daysSeimbang,
         dailySaving: dailySavingSeimbang,
         weeklySaving: weeklySavingSeimbang,
         monthlySaving: monthlySavingSeimbang,
         savingsRatio: savingsRatioSeimbang,
-        difficulty: "Sedang",
-        feasibility: originalSavingsRatio <= 25 ? feasibilityStatus : "Layak",
-        explanation: "Strategi jalan tengah yang bersahabat. Sedikit melonggarkan batas waktu menabung agar nominal setoran bulanan tetap terasa ringan dan masuk akal."
+        difficulty: originalSavingsRatio > 40 ? "Tinggi" : originalSavingsRatio > 25 ? "Sedang" : "Rendah",
+        feasibility: originalSavingsRatio > 50 ? "Perlu Penyesuaian" : "Layak",
+        explanation: "Menabung sesuai tenggat waktu target pilihanmu. Sangat cocok jika ingin mencapai barang impian tepat waktu."
       },
       agresif: {
         key: "agresif",
-        label: "Strategi Agresif (Sesuai Target)",
-        targetMonths: monthsRemaining,
-        targetDays: daysRemaining,
-        dailySaving: roundToRupiah(targetValNum / daysRemaining, "daily"),
-        weeklySaving: roundToRupiah(targetValNum / weeksRemaining, "weekly"),
-        monthlySaving: roundToRupiah(targetValNum / monthsRemaining, "monthly"),
-        savingsRatio: originalSavingsRatio,
-        difficulty: originalSavingsRatio > 50 ? "Sangat Tinggi" : originalSavingsRatio > 30 ? "Tinggi" : "Rendah",
-        feasibility: feasibilityStatus,
-        explanation: originalSavingsRatio > 50 
-          ? "Sangat berisiko! Mengikuti tenggat waktu aslimu akan memotong lebih dari separuh pendapatan bulananmu."
-          : explanationAgresif
+        label: "Strategi Agresif (Target Cepat)",
+        targetMonths: monthsAgresif,
+        targetDays: daysAgresif,
+        dailySaving: dailySavingAgresif,
+        weeklySaving: weeklySavingAgresif,
+        monthlySaving: monthlySavingAgresif,
+        savingsRatio: savingsRatioAgresif,
+        difficulty: savingsRatioAgresif > 50 ? "Sangat Tinggi" : "Tinggi",
+        feasibility: savingsRatioAgresif > 50 ? "Sangat Berat" : "Perlu Penyesuaian",
+        explanation: "Menabung ekstra cepat dengan memotong waktu target menjadi setengahnya. Membutuhkan kedisiplinan dan penghematan ketat."
       }
     },
     recommendation: {

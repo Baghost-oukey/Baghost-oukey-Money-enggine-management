@@ -70,45 +70,39 @@ export function BudgetForm({
 }: BudgetFormProps) {
   return (
     <div className="relative overflow-hidden rounded-2xl border bg-card/25 backdrop-blur-md p-5 sm:p-6 shadow-sm transition-all duration-300">
-      <h2 className="text-lg font-bold text-foreground mb-5 flex items-center gap-2 tracking-tight">
-        Formulir Data <span className="text-violet-600">Finansial</span>
-      </h2>
-
       <form onSubmit={onSubmit} className="space-y-4">
         {/* Tipe Pendapatan Selector */}
-        <LabelInputContainer>
-          <Label className="text-xs font-semibold uppercase tracking-wider">
-            Tipe Pendapatan / Keuangan
+        <div className="flex flex-row items-center justify-between gap-4 py-2 border-b border-muted-foreground/5 pb-4">
+          <Label className="text-xs font-semibold uppercase tracking-wider shrink-0">
+             Tipe Keuangan
           </Label>
-          <div className="grid grid-cols-2 gap-2 h-10">
+          <div className="grid grid-cols-2 gap-2 h-8 w-52 shrink-0">
             <button
               type="button"
               onClick={() => setBudgetPeriod("bulanan")}
               className={cn(
-                "text-[10px] font-bold rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5",
+                "text-[11px] font-bold rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5",
                 budgetPeriod === "bulanan"
                   ? "border-violet-600 bg-violet-600/[0.04] text-violet-600 ring-2 ring-violet-500/10 font-black"
                   : "border-muted-foreground/15 bg-card/50 text-muted-foreground hover:border-violet-500/50"
               )}
             >
-              <Calendar size={13} />
               Bulanan
             </button>
             <button
               type="button"
               onClick={() => setBudgetPeriod("harian")}
               className={cn(
-                "text-[10px] font-bold rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5",
+                "text-[11px] font-bold rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5",
                 budgetPeriod === "harian"
                   ? "border-violet-600 bg-violet-600/[0.04] text-violet-600 ring-2 ring-violet-500/10 font-black"
                   : "border-muted-foreground/15 bg-card/50 text-muted-foreground hover:border-violet-500/50"
               )}
             >
-              <Coins size={13} />
-              Harian (Uang Jajan)
+              Harian
             </button>
           </div>
-        </LabelInputContainer>
+        </div>
 
         {/* Budget Input */}
         <LabelInputContainer>

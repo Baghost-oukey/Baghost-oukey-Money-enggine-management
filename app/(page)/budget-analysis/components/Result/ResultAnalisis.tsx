@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ResultComments } from "./ResultAccording";
+import { ResultComments } from "./ResultComments";
 import { ScoreRing } from "./ScoreChart";
 import { ModalSync } from "../modal-sync";
 import { getFallbackAIData } from "../analysisUtils";
@@ -54,6 +54,7 @@ export function ResultAnalisis({
   // Selected Tokopedia Product state
   const [selectedProduct, setSelectedProduct] = useState<ScraperItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const targetValNum = Number(targetValue || 0);
 
   // Calculate months difference for savings
   const currentDate = new Date();
@@ -154,43 +155,102 @@ export function ResultAnalisis({
       <div className="absolute top-0 right-0 w-48 h-48 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header and Verdict */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">
-            Hasil Analisis <span className="text-violet-600 font-bold">Keuangan mu nih</span>
-          </h2>
-          <p className="text-xs mt-0.5 font-semibold text-gray-500">
-            Yuk cek hasil analisis bersahabat dari kami untuk membantumu mengambil keputusan terbaik!
-          </p>
+      {/* Premium Dashboard Header matching the layout design */}
+      <div className="border-b pb-5 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-[10px] font-black uppercase text-violet-600 tracking-widest block">
+              Target Belanja Impian
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight flex items-baseline gap-2">
+              Rp {targetValNum.toLocaleString("id-ID")}
+            </h1>
+          </div>
+          
+          <div className="flex flex-wrap gap-2.5 items-center md:justify-end">
+            <div className="px-3.5 py-1.5 rounded-xl border bg-card/40 backdrop-blur-md flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground font-semibold">Nama Barang:</span>
+              <span className="text-xs font-black text-foreground">{target}</span>
+            </div>
+            <div className="px-3.5 py-1.5 rounded-xl border bg-card/40 backdrop-blur-md flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground font-semibold">Kategori:</span>
+              <span className={cn(
+                "text-xs font-black px-2 py-0.5 rounded border leading-none",
+                (analysisResult?.jenisTarget || aiData?.jenisTarget) === "Kebutuhan"
+                  ? "bg-sky-500/10 text-sky-600 border-sky-500/20"
+                  : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+              )}>
+                {analysisResult?.jenisTarget || aiData?.jenisTarget || "Kebutuhan"}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className={cn(
-          "inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-extrabold uppercase tracking-wide shadow-sm w-fit",
-          getVerdictBadgeStyles(aiData.decisionVerdict)
-        )}>
-          {getVerdictIcon(aiData.decisionVerdict)}
-          {getVerdictLabel(aiData.decisionVerdict)}
+        {/* Dashboard Cards Row (Pill-shaped condition panels) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          {/* Card 1: Kondisi Keuangan (Daily/Monthly) */}
+          <div className="flex items-center gap-3 p-3 rounded-2xl border bg-emerald-500/[0.03] border-emerald-500/20">
+            <div className="h-10 w-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <span className="text-sm font-black text-emerald-600">💵</span>
+            </div>
+            <div>
+              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">
+                Uang {aiData.budgetPeriod === "harian" ? "Jajan Harian" : "Bulanan Anda"}
+              </span>
+              <span className="text-xs font-black text-foreground block">
+                Rp {((aiData.budgetPeriod === "harian" ? aiData.dailyBudget : monthlyBudget) || 0).toLocaleString("id-ID")}
+                {aiData.budgetPeriod === "harian" ? "/hari" : "/bulan"}
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Tanggal & Tenggat Target */}
+          <div className="flex items-center gap-3 p-3 rounded-2xl border bg-violet-500/[0.03] border-violet-500/20">
+            <div className="h-10 w-10 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+              <span className="text-sm font-black text-violet-600">📅</span>
+            </div>
+            <div>
+              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">
+                Tenggat Target Nabung
+              </span>
+              <span className="text-xs font-black text-foreground block">
+                {targetDate ? new Date(targetDate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-"}
+                <span className="text-[10px] font-medium text-muted-foreground ml-1">
+                  ({monthsDiff} bln)
+                </span>
+              </span>
+            </div>
+          </div>
+
+          {/* Card 3: Kelayakan & Verdict */}
+          <div className="flex items-center gap-3 p-3 rounded-2xl border bg-sky-500/[0.03] border-sky-500/20">
+            <div className="h-10 w-10 rounded-full bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+              <span className="text-sm font-black text-sky-600">🛡️</span>
+            </div>
+            <div>
+              <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider block">
+                Status Kelayakan Belanja
+              </span>
+              <span className="text-xs font-black text-foreground block">
+                {getVerdictLabel(aiData.decisionVerdict)}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Reality Check & Score Panel */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
-        {/* Score Ring Component */}
-        <div className="md:col-span-4 flex items-center justify-center">
+      {/* AI Professional Opinion Card & Score Ring */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch bg-violet-600/[0.01] p-4.5 rounded-2xl border border-violet-500/10">
+        <div className="md:col-span-3 flex items-center justify-center">
           <ScoreRing score={score} />
         </div>
-
-        {/* AI Professional Opinion Card */}
-        <div className="md:col-span-8 p-4.5 rounded-xl bg-violet-600/[0.02] border border-violet-500/15 flex flex-col justify-between space-y-2">
-          <div className="space-y-1">
-            <div className="text-[14px] font-extrabold text-violet-600 dark:text-violet-400 flex items-center gap-1">
-              {verdictOpinion.title || "Pendapat Sahabat Finansialmu"}
-            </div>
-            <p className="text-[13px] leading-relaxed font-medium text-gray-700 pl-0.5 mt-1 text-justify">
-              {verdictOpinion.explanation}
-            </p>
+        <div className="md:col-span-9 flex flex-col justify-center space-y-2">
+          <div className="text-[13px] font-black text-violet-600 dark:text-violet-400 flex items-center gap-1 uppercase tracking-wider">
+            {verdictOpinion.title || "Pendapat Sahabat Finansialmu"}
           </div>
+          <p className="text-[12px] leading-relaxed font-semibold text-muted-foreground text-justify pl-0.5">
+            {verdictOpinion.explanation}
+          </p>
         </div>
       </div>
 

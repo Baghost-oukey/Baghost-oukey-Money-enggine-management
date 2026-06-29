@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Loader2, ShoppingBag, Check, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScraperItem } from "../../types";
@@ -244,20 +243,22 @@ export function KabarHargaPasar({
   }
 
   return (
-    <AccordionItem value="market-price" className="px-4">
-      <AccordionTrigger className="text-sm font-semibold hover:no-underline py-4 focus-visible:underline focus-visible:ring-0">
-        <div className="flex items-center gap-2">
-          <span>Berapa sih Harga Pasaran Aslinya? 🏷️</span>
+    <div className="space-y-4">
+      <div className="border-b pb-3 mb-4">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+          Informasi Harga Pasaran Riil & Produk Alternatif
+        </h3>
+        <p className="text-[10px] text-muted-foreground font-light mt-0.5 leading-relaxed">
+          Ketahui kisaran harga pasar sesungguhnya dari Tokopedia dan temukan alternatif hemat 50% dari harga asli.
+        </p>
+      </div>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-10 space-y-2">
+          <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
+          <p className="text-xs text-muted-foreground">Mengecek harga pasar riil buat kamu...</p>
         </div>
-      </AccordionTrigger>
-      <AccordionContent className="pb-4 space-y-4 text-xs leading-relaxed">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-6 space-y-2">
-            <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
-            <p className="text-xs text-muted-foreground">Mengecek harga pasar riil buat kamu...</p>
-          </div>
-        ) : (
-          <>
+      ) : (
+        <>
             {/* Real Market Price description */}
             <div className="p-3.5 border rounded-xl space-y-2 bg-background/50">
               <div className="text-xs font-semibold text-foreground flex flex-col gap-1">
@@ -341,8 +342,7 @@ export function KabarHargaPasar({
             )}
           </>
         )}
-      </AccordionContent>
-    </AccordionItem>
+    </div>
   );
 }
 

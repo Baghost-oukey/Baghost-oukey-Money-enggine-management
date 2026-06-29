@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { 
   Loader2, 
   Building2, 
@@ -66,6 +65,7 @@ interface SimulasiNabungVsPaylaterProps {
   targetValue: string;
   remainingBudget: number;
   monthlyBudget: number;
+  hideSavingsTimeline?: boolean;
 }
 
 export function SimulasiNabungVsPaylater({
@@ -73,6 +73,7 @@ export function SimulasiNabungVsPaylater({
   targetValue,
   remainingBudget,
   monthlyBudget,
+  hideSavingsTimeline = false,
 }: SimulasiNabungVsPaylaterProps) {
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<PaylaterPlan[]>([]);
@@ -125,26 +126,32 @@ export function SimulasiNabungVsPaylater({
     : [];
 
   return (
-    <AccordionItem value="paylater-simulation" className="px-4">
-      <AccordionTrigger className="text-sm font-semibold hover:no-underline focus-visible:underline focus-visible:ring-0">
-        <div className="flex items-center">
-          <p>Simulasi Menabung vs Kredit & PayLater</p>
+    <div className="space-y-5">
+      {!hideSavingsTimeline && (
+        <div className="border-b pb-3 mb-4">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            Simulasi Menabung Mandiri vs Kredit & Paylater
+          </h3>
+          <p className="text-[10px] text-muted-foreground font-light mt-0.5 leading-relaxed">
+            Bandingkan cicilan dari penyedia jasa kredit terpopuler di Indonesia dengan menabung mandiri 100% bebas biaya tambahan.
+          </p>
         </div>
-      </AccordionTrigger>
-      <AccordionContent className="space-y-5">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-8 space-y-2">
-            <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
-            <p className="text-xs text-muted-foreground">Lagi menghitung rencana cicilan & strategi nabung...</p>
-          </div>
-        ) : (
-          <>
+      )}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-10 space-y-2">
+          <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
+          <p className="text-xs text-muted-foreground">Lagi menghitung rencana cicilan & strategi nabung...</p>
+        </div>
+      ) : (
+        <>
+          {!hideSavingsTimeline && (
             <p className="text-xs font-light leading-relaxed text-gray-700">
               Bagian ini membantu kamu menentukan strategi menabung terbaik yang paling realistis sesuai kondisi pendapatan harian dan batas waktu menabung, dibandingkan dengan opsi mengajukan cicilan paylater.
             </p>
+          )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* Nabung Mandiri Option */}
+          <div className={cn("grid grid-cols-1 gap-5", !hideSavingsTimeline && "lg:grid-cols-2")}>
+            {!hideSavingsTimeline && (
               <div className="p-3.5 rounded-xl border space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wide text-foreground">
@@ -250,9 +257,10 @@ export function SimulasiNabungVsPaylater({
                   })}
                 </div>
               </div>
+            )}
 
-              {/* Cicilan Paylater Options */}
-              <div className="p-3.5 rounded-xl border space-y-2.5 flex flex-col justify-between">
+            {/* Cicilan Paylater Options */}
+            <div className="p-3.5 rounded-xl border space-y-2.5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wide text-foreground">
@@ -458,7 +466,6 @@ export function SimulasiNabungVsPaylater({
             </div>
           </>
         )}
-      </AccordionContent>
-    </AccordionItem>
+    </div>
   );
 }

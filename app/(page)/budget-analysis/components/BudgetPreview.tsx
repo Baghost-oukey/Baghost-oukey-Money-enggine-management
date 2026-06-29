@@ -20,6 +20,7 @@ interface BudgetSummaryPreviewProps {
   jenisTarget?: string;
   keteranganTambahan?: string;
   expenses: Expense[];
+  budgetPeriod?: "bulanan" | "harian";
 }
 
 export function BudgetSummaryPreview({
@@ -30,6 +31,7 @@ export function BudgetSummaryPreview({
   jenisTarget,
   keteranganTambahan,
   expenses,
+  budgetPeriod = "bulanan",
 }: BudgetSummaryPreviewProps) {
   const budgetNum = Number(budget || 0);
 
@@ -49,7 +51,7 @@ export function BudgetSummaryPreview({
         {/* Financial Card */}
         <div className="p-4 rounded-xl border flex flex-col justify-between shadow-sm">
           <p className="text-[10px] font-light uppercase">
-            <span className="text-violet-600 font-bold">Budget</span> Bulanan
+            <span className="text-violet-600 font-bold">Uang</span> {budgetPeriod === "harian" ? "Harian" : "Bulanan"}
           </p>
           <span className="text-lg font-extrabold text-foreground mt-2">
             Rp {budgetNum.toLocaleString("id-ID")}

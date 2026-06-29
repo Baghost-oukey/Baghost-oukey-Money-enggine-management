@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Expense } from "@/components/inputState";
 
@@ -6,6 +6,7 @@ export function useBudgetAnalysis() {
   const { data: session, status } = useSession();
 
   const [budget, setBudget] = useState("");
+  const [budgetPeriod, setBudgetPeriod] = useState<"bulanan" | "harian">("bulanan");
   const [target, setTarget] = useState("");
   const [targetValue, setTargetValue] = useState("");
   const [targetDate, setTargetDate] = useState("");
@@ -15,27 +16,7 @@ export function useBudgetAnalysis() {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
 
-  useEffect(() => {
-    if (status === "authenticated" && session?.user?.id) {
-      const loadUserBudget = async () => {
-        try {
-          const response = await fetch(`/api/decision?userId=${session.user.id}`);
-          const res = await response.json();
-          if (res.success && res.data) {
-            if (res.data.monthlyBudget) {
-              setBudget(String(res.data.monthlyBudget));
-            }
-            if (Array.isArray(res.data.expenses) && res.data.expenses.length > 0) {
-              setExpenses(res.data.expenses);
-            }
-          }
-        } catch (e) {
-          console.error("Error loading user budget data:", e);
-        }
-      };
-      loadUserBudget();
-    }
-  }, [status, session?.user?.id]);
+
 
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = Number(budget || 0) - totalExpenses;
@@ -51,6 +32,7 @@ export function useBudgetAnalysis() {
 
   const handleReset = () => {
     setBudget("");
+    setBudgetPeriod("bulanan");
     setTarget("");
     setTargetValue("");
     setTargetDate("");
@@ -82,13 +64,15 @@ export function useBudgetAnalysis() {
         },
         body: JSON.stringify({
           userId: session.user.id,
-          monthlyBudget: Number(budget),
+          monthlyBudget: budgetPeriod === "harian" ? Number(budget) * 30 : Number(budget),
           targetName: target,
           targetValue: Number(targetValue || 0),
           targetDate: targetDate || undefined,
           expenses,
           jenisTarget,
           keteranganTambahan,
+          budgetPeriod,
+          dailyBudget: budgetPeriod === "harian" ? Number(budget) : undefined,
         }),
       });
 
@@ -110,6 +94,8 @@ export function useBudgetAnalysis() {
   return {
     budget,
     setBudget,
+    budgetPeriod,
+    setBudgetPeriod,
     target,
     setTarget,
     targetValue,

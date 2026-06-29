@@ -12,6 +12,8 @@ export function BudgetaAnalysis() {
   const {
     budget,
     setBudget,
+    budgetPeriod,
+    setBudgetPeriod,
     target,
     setTarget,
     targetValue,
@@ -86,6 +88,8 @@ export function BudgetaAnalysis() {
                 <BudgetForm
                   budget={budget}
                   setBudget={setBudget}
+                  budgetPeriod={budgetPeriod}
+                  setBudgetPeriod={setBudgetPeriod}
                   target={target}
                   setTarget={setTarget}
                   targetValue={targetValue}
@@ -122,6 +126,7 @@ export function BudgetaAnalysis() {
                 description: e.name,
                 amount: e.amount,
               }))}
+              budgetPeriod={budgetPeriod}
             />
           </div>
         )}

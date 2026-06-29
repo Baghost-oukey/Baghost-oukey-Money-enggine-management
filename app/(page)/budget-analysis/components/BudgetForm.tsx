@@ -9,6 +9,8 @@ import { DatePicker } from "@/components/datepicker";
 interface BudgetFormProps {
   budget: string;
   setBudget: (value: string) => void;
+  budgetPeriod: "bulanan" | "harian";
+  setBudgetPeriod: (value: "bulanan" | "harian") => void;
   target: string;
   setTarget: (value: string) => void;
   targetValue: string;
@@ -47,6 +49,8 @@ const LabelInputContainer = ({
 export function BudgetForm({
   budget,
   setBudget,
+  budgetPeriod,
+  setBudgetPeriod,
   target,
   setTarget,
   targetValue,
@@ -71,19 +75,54 @@ export function BudgetForm({
       </h2>
 
       <form onSubmit={onSubmit} className="space-y-4">
+        {/* Tipe Pendapatan Selector */}
+        <LabelInputContainer>
+          <Label className="text-xs font-semibold uppercase tracking-wider">
+            Tipe Pendapatan / Keuangan
+          </Label>
+          <div className="grid grid-cols-2 gap-2 h-10">
+            <button
+              type="button"
+              onClick={() => setBudgetPeriod("bulanan")}
+              className={cn(
+                "text-[10px] font-bold rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5",
+                budgetPeriod === "bulanan"
+                  ? "border-violet-600 bg-violet-600/[0.04] text-violet-600 ring-2 ring-violet-500/10 font-black"
+                  : "border-muted-foreground/15 bg-card/50 text-muted-foreground hover:border-violet-500/50"
+              )}
+            >
+              <Calendar size={13} />
+              Bulanan
+            </button>
+            <button
+              type="button"
+              onClick={() => setBudgetPeriod("harian")}
+              className={cn(
+                "text-[10px] font-bold rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5",
+                budgetPeriod === "harian"
+                  ? "border-violet-600 bg-violet-600/[0.04] text-violet-600 ring-2 ring-violet-500/10 font-black"
+                  : "border-muted-foreground/15 bg-card/50 text-muted-foreground hover:border-violet-500/50"
+              )}
+            >
+              <Coins size={13} />
+              Harian (Uang Jajan)
+            </button>
+          </div>
+        </LabelInputContainer>
+
         {/* Budget Input */}
         <LabelInputContainer>
-          <Label htmlFor="budgetBulanan" className="text-xs font-semibold uppercase tracking-wider">
-           <span className="text-violet-600 font-bold">Uang</span> Bulanan Anda
+          <Label htmlFor="budgetInput" className="text-xs font-semibold uppercase tracking-wider">
+           <span className="text-violet-600 font-bold">Uang</span> {budgetPeriod === "harian" ? "Harian" : "Bulanan"} Anda
           </Label>
           <div className="relative group">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-light group-focus-within:text-violet-600 transition-colors">
               Rp
             </span>
             <Input
-              id="budgetBulanan"
+              id="budgetInput"
               type="number"
-              placeholder="Contoh: 5000000"
+              placeholder={budgetPeriod === "harian" ? "Contoh: 50000" : "Contoh: 5000000"}
               className="pl-10 h-10 transition-all rounded-xl text-xs"
               value={budget}
               onChange={(e) => setBudget(e.target.value)}

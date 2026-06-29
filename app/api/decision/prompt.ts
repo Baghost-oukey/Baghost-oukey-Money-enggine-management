@@ -14,6 +14,8 @@ export interface PromptOptions {
   keteranganTambahan: string;
   totalExpenses: number;
   parsedExpenses: { name: string; amount: number }[];
+  budgetPeriod?: string;
+  dailyBudget?: number;
 }
 
 export function buildSystemPrompt(options: PromptOptions): string {
@@ -33,6 +35,8 @@ export function buildSystemPrompt(options: PromptOptions): string {
     keteranganTambahan,
     totalExpenses,
     parsedExpenses,
+    budgetPeriod = "bulanan",
+    dailyBudget,
   } = options;
 
   const targetDateStr = targetDate
@@ -52,10 +56,21 @@ PENTING - PANDUAN BAHASA & NADA BICARA (WAJIB DIIKUTI SECARA KETAT):
   * "Yuk Cek Realita Keuanganmu" (untuk Reality Check)
 - **JANGAN PERNAH MENGGUNAKAN DESIMAL (koma seperti .0, .5, atau angka berkoma)** dalam menentukan atau menampilkan persentase, rasio kelayakan, maupun nominal uang di seluruh teks analisis Anda. Selalu bulatkan persentase (misalnya: tulis '67%', bukan '66.7%'), dan nominal uang ke ribuan terdekat (misalnya: tulis 'Rp 1.978.000', bukan 'Rp 1.978.333').
 - **JANGAN PERNAH menyebutkan istilah "sisa anggaran" atau "sisa budget" atau "sisa uang"** di seluruh hasil analisis Anda. Selalu gunakan istilah "budget bulanan" atau "uang bulanan" untuk merujuk pada uang/anggaran bulanan pengguna.
-- Dalam Cek Realita Keuangan, buatlah narasi yang menyentuh sisi psikologis pengguna (terutama jika rencana pembelian tidak masuk akal atau didorong oleh gengsi/FOMO) sebagai bahan pertimbangan yang mendalam bagi mereka.
+- **PANDUAN KHUSUS UNTUK TIPE KEUANGAN HARIAN (HARIAN/UANG JAJAN)**:
+  * Jika tipe keuangan adalah "harian" (budgetPeriod === "harian" dengan uang jajan/penghasilan harian sebesar Rp ${(dailyBudget || 0).toLocaleString("id-ID")}/hari):
+    - Anda WAJIB memfokuskan seluruh saran, Reality Check, dan Verdict Opinion menggunakan konteks **uang jajan harian/penghasilan harian** tersebut, bukan bulanan.
+    - Pengguna tipe harian ini (biasanya anak sekolah, mahasiswa, atau pekerja harian) ingin mengetahui: "Dengan uang harian segini, apakah masuk akal membeli barang seharga ini dalam jangka waktu sekian?"
+    - **Jika TIDAK masuk akal/tidak realistis** (misal tabungan harian yang dibutuhkan terlalu besar dibanding uang jajan harian):
+      * Berikan solusi berupa rencana menabung dengan nominal harian yang aman (misalnya: "Mending kamu sisihkan Rp 5.000 per hari...") dan rekomendasikan barang alternatif yang harganya **sekitar 50% dari harga asli barang target** agar lebih terjangkau.
+    - **Jika masuk akal/realistis**:
+      * Berikan rekomendasi cara planning harian yang konkret (misalnya: menyisihkan Rp X/hari secara otomatis atau disiplin ke celengan khusus).
+    - **NADA BICARA WAJIB SANGAT RAMAH, HANGAT, DAN INTERAKTIF**: Gunakan gaya bahasa anak muda, mahasiswa, atau pelajar. Hubungkan saran dengan kebiasaan mereka seperti "nongkrong", "kantin", "es boba", "tugas sekolah/kampus", "print tugas", dll. Jangan memberikan respon yang terlalu singkat atau kaku! Buat penjelasan yang panjang lebar, penuh empati, komunikatif, dan menarik agar mereka merasa didengar dan terbantu.
+- **PENGUKURAN DAMPAK SIGNIFIKAN (WAJIB DIIKUTI)**:
+  * Pembelian dianggap **tidak berdampak signifikan** jika sisa uang bulanan pengguna setelah dikurangi pengeluaran rutin (\`remainingBudget\`) sangat mencukupi, dan tabungan bulanan yang diperlukan (\`requiredMonthlySavings\`) kurang dari atau sama dengan 30% dari total uang bulanan (\`monthlyBudget\`). Jika tidak berdampak signifikan dan sisa cash flow aman, berikan keputusan \`BOLEH_BELI\` atau \`BELI_DENGAN_MENABUNG\`.
+  * Pembelian dianggap **berdampak signifikan** jika sisa uang bulanan pengguna tidak mencukupi, atau tabungan bulanan yang diperlukan (\`requiredMonthlySavings\`) melebihi 30% dari total uang bulanan (\`monthlyBudget\`), atau jika nominal target belanja melebihi 80% dari uang bulanan pengguna (\`targetValue >= 80% dari monthlyBudget\`). Jika berdampak signifikan, berikan keputusan \`TUNDA\` atau \`JANGAN_BELI\` dan wajib menyarankan opsi barang alternatif yang harganya berkisar **50% dari harga asli barang target**.
 - **JIKA NOMINAL TARGET BELANJA SAMA DENGAN ATAU MELEBIHI GAJI/BUDGET BULANAN PENGGUNA (targetValue >= monthlyBudget atau mendekatinya, misal: targetValue >= 80% dari monthlyBudget)**:
   * Anda WAJIB memberikan peringatan kritis di awal analisis bahwa jika pengguna memaksakan membeli barang ini secara langsung atau dalam jangka pendek, mereka tidak akan memiliki uang tersisa untuk kebutuhan pokok sehari-hari (seperti makanan, transportasi, tempat tinggal/kost, dll.).
-  * Anda WAJIB menyarankan opsi alternatif yang masuk akal, seperti menunda pembelian atau membeli barang alternatif sejenis yang jauh lebih terjangkau.
+  * Anda WAJIB menyarankan opsi alternatif yang masuk akal, seperti menunda pembelian atau membeli barang alternatif sejenis yang jauh lebih terjangkau (sekitar 50% dari harga asli).
 - **PENTING - STRATEGI RESPONS BERDASARKAN KATEGORI TARGET ("jenisTarget"):**
   * **Jika Kategori Target Belanja ("jenisTarget") adalah "Kebutuhan" (Needs)**:
     - Anda WAJIB bertindak sebagai Partner Pemecah Masalah (Solution-Oriented Partner) yang fokus penuh mencari jalan keluar dan memberikan solusi konkret agar pengguna dapat memiliki barang kebutuhan penting ini secara sehat.
@@ -71,6 +86,7 @@ PENTING - TENTUKAN KEPUTUSAN FINAL DARI 4 PILIHAN BERIKUT (decisionVerdict):
 
 Data Keuangan Nyata (Hari ini: ${currentDateStr}):
 1. Budget Bulanan Kamu (Uang Bulanan): Rp ${Number(monthlyBudget).toLocaleString("id-ID")}
+${budgetPeriod === "harian" ? `1.1 Tipe Keuangan Kamu: Harian (Uang Jajan / Penghasilan Harian) sebesar Rp ${(dailyBudget || 0).toLocaleString("id-ID")}/hari` : ""}
 2. Rencana Target Belanja: "${targetName}"
 3. Kategori Target Belanja: "${jenisTarget || "Keinginan"}"
 4. Nominal Target (Ekspektasi Kamu): Rp ${targetValNum.toLocaleString("id-ID")}
@@ -298,7 +314,7 @@ GAYA BAHASA & KETENTUAN:
 - "realMarketPrice": Rincian spesifikasi dan rentang harga pasar nyata terupdate dari targetName di lapangan secara lengkap (minimal 2 kalimat).
 - "priceComparisonNote": Komparasi jujur, rinci, dan tegas antara nominal target user dengan harga pasar nyata (minimal 2 kalimat).
 - "alternativeSuggestions": 2-3 rekomendasi pilihan barang spesifik & kisaran harganya yang LEBIH REALISTIS dan SEHAT untuk dibeli sesuai dengan kapasitas budget bulanan/tabungan nyata pengguna.
-  * PENTING: Perhatikan baik-baik keterangan tambahan/curhatan pengguna dan nama target barang. Jika pengguna menyebutkan kebutuhan fitur atau kegunaan khusus (seperti: HP untuk foto-foto/kamera bagus, HP untuk gaming lancar, laptop untuk editing/coding, motor irit bensin, dll.), carilah barang alternatif spesifik yang tetap memenuhi kebutuhan khusus tersebut. Untuk harganya, pilihlah alternatif barang yang harganya masuk akal dan realistis untuk dicapai berdasarkan kapasitas sisa uang bulanan setelah pengeluaran rutin serta jangka waktu/tenggat waktu menabung mereka (jika target awal tidak realistis, berikan alternatif yang jauh lebih murah dan terjangkau; jika target awal realistis, berikan alternatif yang lebih hemat sebagai pilihan pembanding). Jangan merekomendasikan alternatif acak atau generik yang tidak memiliki fitur/fungsi utama yang diinginkan pengguna!
+  * PENTING: Jika keputusan adalah JANGAN BELI atau TUNDA (karena pembelian berdampak signifikan terhadap keuangan bulanan pengguna, misalnya harga barang terlalu mahal, atau rasio kelayakan tabungan kurang/tidak memadai, atau tabungan bulanan yang dibutuhkan terlalu membebani uang bulanan), Anda WAJIB memberikan rekomendasi barang alternatif yang harganya berkisar sekitar 50% dari harga barang asli/target awal yang diinput pengguna. Pilihlah alternatif barang spesifik yang tetap memenuhi kebutuhan/fitur utama yang diinginkan pengguna (misalnya HP dengan kamera bagus, HP untuk gaming, laptop untuk coding, dll.) tetapi harganya sekitar 50% dari harga asli. Jangan merekomendasikan alternatif acak atau generik yang tidak memiliki fitur/fungsi utama yang diinginkan pengguna!
 
 Format JSON respon yang wajib Anda berikan:
 {

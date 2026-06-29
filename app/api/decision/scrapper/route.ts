@@ -77,9 +77,12 @@ export async function GET(request: Request) {
       });
     }
 
-    const apiUrl = process.env.API_APIFY_TOKPED_SCRAPPER;
-    if (!apiUrl) {
-      return NextResponse.json({ success: false, message: "Scraper API URL is not configured in .env" }, { status: 500 });
+    const cleanQueryLower = cleanQuery.toLowerCase();
+    const isVehicleQuery = cleanQueryLower.includes("motor") || cleanQueryLower.includes("mio") || cleanQueryLower.includes("beat") || cleanQueryLower.includes("vario") || cleanQueryLower.includes("scoopy") || cleanQueryLower.includes("aerox") || cleanQueryLower.includes("nmax") || cleanQueryLower.includes("vespa") || cleanQueryLower.includes("jupiter") || cleanQueryLower.includes("supra") || cleanQueryLower.includes("yamaha") || cleanQueryLower.includes("honda");
+
+    let searchQuery = cleanQuery;
+    if (isVehicleQuery && !cleanQueryLower.includes("bekas") && !cleanQueryLower.includes("second") && !cleanQueryLower.includes("motor")) {
+      searchQuery = `${cleanQuery} motor bekas`;
     }
 
     const payload: any = {
@@ -88,11 +91,23 @@ export async function GET(request: Request) {
     };
 
     if (targetPrice > 0) {
-      const minPrice = Math.round(targetPrice * 0.8);
-      const maxPrice = Math.round(targetPrice * 1.2);
-      payload.startUrl = `https://www.tokopedia.com/search?q=${encodeURIComponent(cleanQuery)}&pmin=${minPrice}&pmax=${maxPrice}`;
+      let minPrice = Math.round(targetPrice * 0.8);
+      let maxPrice = Math.round(targetPrice * 1.2);
+      
+      if (isVehicleQuery && targetPrice < 5000000) {
+        // Vehicles cannot be bought whole under 4M, so expand range to find actual cheap second-hand motorcycles
+        minPrice = 3000000;
+        maxPrice = 10000000;
+      }
+      
+      payload.startUrl = `https://www.tokopedia.com/search?q=${encodeURIComponent(searchQuery)}&pmin=${minPrice}&pmax=${maxPrice}`;
     } else {
-      payload.keyword = cleanQuery;
+      payload.keyword = searchQuery;
+    }
+
+    const apiUrl = process.env.API_APIFY_TOKPED_SCRAPPER;
+    if (!apiUrl) {
+      return NextResponse.json({ success: false, message: "Scraper API URL is not configured in .env" }, { status: 500 });
     }
 
     // Call Apify scraper.
@@ -139,11 +154,55 @@ export async function GET(request: Request) {
 
     let mapped = mapItems(items || []);
 
+    // Filter out parts and accessories to avoid showing rims/shocks instead of actual vehicles/electronics
+    const isPhoneQuery = cleanQueryLower.includes("hp") || cleanQueryLower.includes("phone") || cleanQueryLower.includes("samsung") || cleanQueryLower.includes("iphone") || cleanQueryLower.includes("android") || cleanQueryLower.includes("xiaomi") || cleanQueryLower.includes("oppo") || cleanQueryLower.includes("vivo") || cleanQueryLower.includes("redmi");
+    const isLaptopQuery = cleanQueryLower.includes("laptop") || cleanQueryLower.includes("macbook") || cleanQueryLower.includes("asus") || cleanQueryLower.includes("lenovo") || cleanQueryLower.includes("acer") || cleanQueryLower.includes("notebook");
+
+    let filteredMapped = mapped.filter((item: any) => {
+      const titleLower = item.title.toLowerCase();
+      
+      // Exclude list for vehicles
+      if (isVehicleQuery) {
+        const vehicleExclusions = ["velg", "pelek", "shockbreaker", "shock", "knalpot", "ban ", " ban", "stang", "striping", "stiker", "sticker", "piringan", "disc", "helm", "spion", "rantai", "gir", "gear", "tromol", "master rem", "kaliper", "karburator", "cover", "mika", "reflektor", "suku cadang", "sparepart", "aksesoris", "part", "variasi", "kabel", "piston", "mesin"];
+        if (vehicleExclusions.some(kw => titleLower.includes(kw))) {
+          return false;
+        }
+      }
+      
+      // Exclude list for phones
+      if (isPhoneQuery) {
+        const phoneExclusions = ["casing", "case", "charger", "kabel", "tempered glass", "anti gores", "lcd", "baterai", "battery", "dus", "box", "adaptor", "housing", "gantungan", "dummy"];
+        if (phoneExclusions.some(kw => titleLower.includes(kw))) {
+          return false;
+        }
+      }
+
+      // Exclude list for laptops
+      if (isLaptopQuery) {
+        const laptopExclusions = ["charger", "adaptor", "baterai", "battery", "ram", "ssd", "keyboard", "mouse", "tas", "sleeve", "lcd", "screen", "sparepart", "motherboard", "fan", "cooler"];
+        if (laptopExclusions.some(kw => titleLower.includes(kw))) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (filteredMapped.length > 0) {
+      mapped = filteredMapped;
+    }
+
     // Filter items based on targetPrice if present to exclude accessories (cases, screen protectors, etc.)
     if (targetPrice > 0) {
-      const minPrice = targetPrice * 0.8;
-      const maxPrice = targetPrice * 1.2;
-      const filtered = mapped.filter((item: any) => item.priceNumber >= minPrice && item.priceNumber <= maxPrice);
+      let minFilterPrice = targetPrice * 0.8;
+      let maxFilterPrice = targetPrice * 1.2;
+
+      if (isVehicleQuery && targetPrice < 5000000) {
+        minFilterPrice = 3000000;
+        maxFilterPrice = 10000000;
+      }
+
+      const filtered = mapped.filter((item: any) => item.priceNumber >= minFilterPrice && item.priceNumber <= maxFilterPrice);
       
       // Fallback: If price filtering removes all results, bypass filter so we don't return an empty grid
       if (filtered.length > 0) {

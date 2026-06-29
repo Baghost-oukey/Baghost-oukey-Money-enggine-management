@@ -3,7 +3,6 @@
 import React from "react";
 import { Accordion } from "@/components/ui/accordion";
 import { SimulasiNabungVsPaylater } from "../According/SimulationCard";
-import { SaranStrategiMengelolaUang } from "../According/FeedbackCard";
 import { InsightPsikologis } from "../According/InsightCard";
 import { KabarHargaPasar } from "../According/HargaPasarCard";
 import { TaktikKeuangan } from "../According/TaktikCard";
@@ -55,18 +54,6 @@ export function ResultComments({
         />
       )}
 
-      {/* 5. Saran Strategi Mengelola Uang */}
-      {!isWantAndEnoughMoney && (
-        <SaranStrategiMengelolaUang
-          decisionId={decisionId}
-          targetValue={targetValue}
-          remainingBudget={remainingBudget}
-          totalExpenses={totalExpenses}
-          monthlyBudget={monthlyBudget}
-          jenisTarget={jenisTarget}
-          keteranganTambahan={keteranganTambahan}
-        />
-      )}
 
       {/* 6. Insight Psikologis */}
       <InsightPsikologis decisionId={decisionId} />

@@ -100,6 +100,8 @@ export async function POST(request: Request) {
       jenisTarget,
       keteranganTambahan,
       expenses,
+      budgetPeriod,
+      dailyBudget,
     } = body;
     const rawTargetName = targetName || "";
     const cleanedTargetName = cleanTargetName(rawTargetName);
@@ -181,6 +183,8 @@ export async function POST(request: Request) {
       keteranganTambahan: keteranganTambahan || "",
       totalExpenses,
       parsedExpenses,
+      budgetPeriod,
+      dailyBudget,
     });
 
     let aiAnalysis: any = null;
@@ -244,6 +248,8 @@ export async function POST(request: Request) {
         keteranganTambahan: keteranganTambahan || "",
         totalExpenses,
         parsedExpenses,
+        budgetPeriod,
+        dailyBudget,
       });
     }
 

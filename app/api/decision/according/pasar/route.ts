@@ -94,25 +94,8 @@ export async function GET(request: Request) {
         monthsDiff = Math.max(1, Math.ceil(daysDiff / 30.44));
       }
 
-      // Calculate realistic savings capacity by the target deadline
-      // We assume they can save up to 75% of their monthly surplus (leaving 25% as safety buffer)
-      const safeSavingsPerMonth = Math.max(0, remainingBudget * 0.75);
-      const totalRealisticSavings = safeSavingsPerMonth * monthsDiff;
-
-      let altTargetVal = effectiveTargetVal * 0.5; // default fallback (50%)
-      if (totalRealisticSavings > 0) {
-        if (effectiveTargetVal > totalRealisticSavings) {
-          // If original item is out of reach by deadline, alternative target matches their maximum savings capacity
-          // Cap it between 20% and 80% of original target price to keep it a valid and realistic alternative
-          altTargetVal = Math.max(effectiveTargetVal * 0.2, Math.min(effectiveTargetVal * 0.8, totalRealisticSavings));
-        } else {
-          // If original target is already realistic/affordable, recommend a cheaper alternative at 60% of original target
-          altTargetVal = effectiveTargetVal * 0.6;
-        }
-      } else {
-        // If remaining budget is in deficit or extremely tight, suggest a very budget-friendly alternative at 30% of target or 40% of monthly budget
-        altTargetVal = Math.min(effectiveTargetVal * 0.3, Number(decision.keuanganmu) * 0.4);
-      }
+      // Always recommend a cheaper alternative at approximately 50% of the original target price
+      const altTargetVal = effectiveTargetVal * 0.5;
 
       const isPhone = targetLower.includes("hp") || 
                       targetLower.includes("phone") || 
@@ -245,11 +228,17 @@ export async function GET(request: Request) {
               { name: "Redmi Note 13 Pro 5G", estimatedPrice: 4300000 },
               { name: "Oppo Reno 11 F", estimatedPrice: 4399000 }
             ];
+          } else if (altTargetVal >= 2000000) {
+            fallbackAlts = [
+              { name: "Redmi Note 13 4G", estimatedPrice: 2399000 },
+              { name: "Samsung Galaxy A15 LTE", estimatedPrice: 2699000 },
+              { name: "Oppo A60", estimatedPrice: 2499000 }
+            ];
           } else {
             fallbackAlts = [
-              { name: "Samsung Galaxy A15 5G", estimatedPrice: 3200000 },
-              { name: "Redmi Note 13", estimatedPrice: 2400000 },
-              { name: "Samsung Galaxy A05s", estimatedPrice: 1900000 }
+              { name: "Redmi 13C", estimatedPrice: 1499000 },
+              { name: "Samsung Galaxy A05", estimatedPrice: 1299000 },
+              { name: "Infinix Smart 8", estimatedPrice: 1099000 }
             ];
           }
         }
@@ -315,11 +304,17 @@ export async function GET(request: Request) {
               { name: "ASUS Vivobook 14", estimatedPrice: 7899000 },
               { name: "Huawei MateBook D14", estimatedPrice: 7499000 }
             ];
-          } else {
+          } else if (altTargetVal >= 4000000) {
             fallbackAlts = [
               { name: "Lenovo IdeaPad Slim 1", estimatedPrice: 4900000 },
               { name: "Acer Aspire Lite 14", estimatedPrice: 4500000 },
               { name: "Axioo MyBook Hype 5", estimatedPrice: 4200000 }
+            ];
+          } else {
+            fallbackAlts = [
+              { name: "Axioo MyBook Hype 1", estimatedPrice: 2899000 },
+              { name: "Advan Soulmate", estimatedPrice: 2499000 },
+              { name: "Zyrex Sky 232", estimatedPrice: 1999000 }
             ];
           }
         }

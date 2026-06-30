@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { Store, Scale, TrendingUp, Sparkles, Loader2, Calendar, Coins, Percent } from "lucide-react";
-import { SimulasiNabungVsPaylater } from "../According/SimulationCard";
-import { InsightPsikologis } from "../According/InsightCard";
-import { KabarHargaPasar } from "../According/HargaPasarCard";
-import { TaktikKeuangan } from "../According/TaktikCard";
+import { SimulasiNabungVsPaylater } from "../tab-component/SimulationCard";
+import { InsightPsikologis } from "../tab-component/InsightCard";
+import { KabarHargaPasar } from "../tab-component/HargaPasarCard";
 import { ScraperItem } from "../../types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +20,7 @@ interface ResultCommentsProps {
   keteranganTambahan?: string;
   selectedProduct: ScraperItem | null;
   onSelectProduct: (product: ScraperItem | null) => void;
+  onOpenSusunModal?: () => void;
 }
 
 export function ResultComments({
@@ -34,6 +34,7 @@ export function ResultComments({
   keteranganTambahan,
   selectedProduct,
   onSelectProduct,
+  onOpenSusunModal,
 }: ResultCommentsProps) {
   const targetValNum = Number(targetValue || 0);
 
@@ -82,12 +83,7 @@ export function ResultComments({
       icon: Store,
       visible: true,
     },
-    {
-      id: "taktik",
-      label: "Taktik & Rencana Aksi",
-      icon: TrendingUp,
-      visible: !isWantAndEnoughMoney,
-    },
+   
     {
       id: "insight",
       label: "Saran & Psikologi",
@@ -281,14 +277,7 @@ export function ResultComments({
                         onClick={() => {
                           if (typeof window !== "undefined") {
                             localStorage.setItem("selected_saving_strategy", JSON.stringify(strat));
-                            
-                            // Try calling setup budget dialog from DOM elements
-                            const btnList = document.querySelectorAll("button");
-                            btnList.forEach((b) => {
-                              if (b.textContent?.includes("Susun Anggaran")) {
-                                b.click();
-                              }
-                            });
+                            onOpenSusunModal?.();
                           }
                         }}
                         className="w-full rounded-xl text-[10px] font-black uppercase tracking-wider text-center cursor-pointer shadow-sm transition-all duration-200 select-none bg-violet-700 hover:bg-violet-800 text-white shadow-md shadow-violet-700/10"
@@ -315,9 +304,7 @@ export function ResultComments({
         )}
 
         {/* Tab 3: Taktik Keuangan */}
-        {activeTab === "taktik" && !isWantAndEnoughMoney && (
-          <TaktikKeuangan decisionId={decisionId} />
-        )}
+       
 
         {/* Tab 4: Insight Psikologis */}
         {activeTab === "insight" && (

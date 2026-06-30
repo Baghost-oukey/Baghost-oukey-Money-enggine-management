@@ -675,5 +675,48 @@
       "shopName": "Toyz Corner",
       "location": "Jakarta Selatan"
     }
+  ],
+  "mamu membeli buku_1000000": [],
+  "smartphone_4000001": [
+    {
+      "title": "realme C85 Pro 8GB+16GB RAM 256GB | 128GB | 7000mAh | IP69 Pro Tahan Air 144Hz Display Smartphone Performa Lancar",
+      "price": "Rp3.799.000",
+      "priceNumber": 3799000,
+      "url": "https://www.tokopedia.com/realmeauthorizedstorelampung/realme-c85-pro-8gb-16gb-ram-256gb-128gb-7000mah-ip69-pro-tahan-air-144hz-display-smartphone-performa-lancar-1733380612327638696?extParam=ivf%3Dfalse%26keyword%3Dsmartphone%26search_id%3D2026063008560100EC53C4682D3604AKZP%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/c6118974578e4217b70159bc2ed88425~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782813361&x-signature=a23IPRFO%2BFw%2Bx%2Ba0OXDcYWh20%2Fg%3D&x-signature-webp=8sqTN9T0M%2FFLT6EfK1B8USurIT4%3D",
+      "rating": 5,
+      "shopName": "realmeAuthorizedStoreLampung",
+      "location": "Bandar Lampung"
+    },
+    {
+      "title": "Sharp Aquos V6 Plus SH-C04 Android Smartphone 4/64 Aquos V6+ V6 + Octa Core",
+      "price": "Rp3.992.000",
+      "priceNumber": 3992000,
+      "url": "https://www.tokopedia.com/wind-shop-mall-official/sharp-aquos-v6-plus-sh-c04-android-smartphone-4-64-aquos-v6-v6-octa-core-1730803887182546393?extParam=ivf%3Dfalse%26keyword%3Dsmartphone%26search_id%3D2026063008560100EC53C4682D3604AKZP%26src%3Dsearch",
+      "imageUrl": "https://p19-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/img/VqbcmM/2025/1/20/8d8f2f14-5364-4b57-8d66-046481491bbf.jpg~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782813361&x-signature=DfTBdHnfl6TwIEkfuWI6NpgEdEA%3D&x-signature-webp=8Qg%2Flbvg4PUlol5oh4tPWj3ruYk%3D",
+      "rating": 5,
+      "shopName": "wind' shop mall official",
+      "location": "Tangerang Selatan"
+    },
+    {
+      "title": "Infinix Hot 60 Pro+ 8/256GB Black Smartphone Android X6886-BLK-256/8",
+      "price": "Rp3.829.000",
+      "priceNumber": 3829000,
+      "url": "https://www.tokopedia.com/myhartono/infinix-hot-60-pro-8-256gb-black-smartphone-android-x6886-blk-256-8-1732831026416747885?extParam=ivf%3Dfalse%26keyword%3Dsmartphone%26search_id%3D2026063008560100EC53C4682D3604AKZP%26src%3Dsearch",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/250872134e4d4dc9831cba74204272c8~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782813361&x-signature=i0eyEqgV02NKxjxV%2B2aTTJf%2B0fI%3D&x-signature-webp=VxeuOoHvORC2fXhb%2BDbDICMeci8%3D",
+      "rating": 5,
+      "shopName": "MyHartono",
+      "location": "Malang"
+    },
+    {
+      "title": "Infinix Note Edge 5G 8/256 GB RAM 8GB 256GB 3D Curved Amoled Android Smartphone",
+      "price": "Rp3.743.000",
+      "priceNumber": 3743000,
+      "url": "https://www.tokopedia.com/supergadget-729/infinix-note-edge-5g-8-256-gb-ram-8gb-256gb-3d-curved-amoled-android-smartphone-1731225737933522244-1735047935544689988?extParam=ivf%3Dfalse%26keyword%3Dsmartphone%26search_id%3D2026063008560100EC53C4682D3604AKZP%26src%3Dsearch%26whid%3D21575069",
+      "imageUrl": "https://p16-images-sign-sg.tokopedia-static.net/tos-alisg-i-aphluv4xwc-sg/f62392b3e35c403b9c48c2b77129d029~tplv-aphluv4xwc-white-pad-v1:300:300.jpeg?lk3s=97278606&x-expires=1782813361&x-signature=NngBa2amPRNwd9SFDc2zVQPpV6E%3D&x-signature-webp=UHD12Uan0CcS3MN%2BdAVcqbsw1vM%3D",
+      "rating": 5,
+      "shopName": "SUPERGADGET",
+      "location": "Pematang Siantar"
+    }
   ]
 }

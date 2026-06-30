@@ -285,8 +285,8 @@ Tugas Anda adalah menganalisis sisi psikologis dan emosional di balik rencana pe
 
 GAYA BAHASA & KETENTUAN:
 - Gunakan bahasa Indonesia yang sangat natural, mengalir santai seperti sedang mengobrol dengan teman dekat secara tulus dan hangat.
-- "motivationText": Motivasi psikologis keuangan bijak, hangat, dan mendukung disiplin (minimal 2 kalimat).
-- "riskText": Risiko mental/psikologis dan finansial akibat stres utang atau salah kelola uang (minimal 2 kalimat).
+- "motivationText": Motivasi psikologis keuangan bijak, hangat, dan mendukung disiplin (maksimal 2 kalimat pendek, padat, dan to-the-point).
+- "riskText": Risiko mental/psikologis dan finansial akibat stres utang atau salah kelola uang (maksimal 2 kalimat pendek, padat, dan to-the-point).
 
 Format JSON respon yang wajib Anda berikan:
 {

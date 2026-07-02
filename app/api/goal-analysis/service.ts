@@ -14,6 +14,7 @@ export interface CreateGoalParams {
   monthlyBudget: number;
   expenses: ExpenseInput[];
   targetDate?: string;
+  requiredMonthlySavings?: number;
 }
 
 export async function createGoalAndSyncExpenses(params: CreateGoalParams) {
@@ -36,7 +37,9 @@ export async function createGoalAndSyncExpenses(params: CreateGoalParams) {
     const daysDiff = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
     monthsDiff = Math.max(1, Math.ceil(daysDiff / 30.44));
   }
-  const requiredMonthlySavings = monthsDiff > 0 ? targetValue / monthsDiff : targetValue;
+  const requiredMonthlySavings = params.requiredMonthlySavings !== undefined && params.requiredMonthlySavings > 0
+    ? params.requiredMonthlySavings
+    : (monthsDiff > 0 ? targetValue / monthsDiff : targetValue);
 
   // Ask Gemini to plan the user's monthly budget seefektif mungkin to reach target
   let planDescription = "";

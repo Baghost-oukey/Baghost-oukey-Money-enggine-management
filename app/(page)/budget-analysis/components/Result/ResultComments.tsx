@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Store, Scale, TrendingUp, Sparkles, Loader2, Calendar, Coins, Percent } from "lucide-react";
 import { SimulasiNabungVsPaylater } from "../tab-component/SimulationCard";
 import { InsightPsikologis } from "../tab-component/InsightCard";
@@ -36,6 +38,9 @@ export function ResultComments({
   onSelectProduct,
   onOpenSusunModal,
 }: ResultCommentsProps) {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [processingKey, setProcessingKey] = useState<string | null>(null);
   const targetValNum = Number(targetValue || 0);
 
   const canBuyImmediately = remainingBudget > 0 && targetValNum <= remainingBudget * 0.3;
@@ -74,26 +79,22 @@ export function ResultComments({
     {
       id: "timeline",
       label: "Timeline Nabung",
-      icon: Calendar,
       visible: true,
     },
     {
       id: "harga-pasar",
       label: "Harga Pasaran & Produk",
-      icon: Store,
       visible: true,
     },
    
     {
       id: "insight",
       label: "Saran & Psikologi",
-      icon: Sparkles,
       visible: true,
     },
     {
       id: "paylater",
       label: "Cicilan Kredit & PayLater",
-      icon: Scale,
       visible: !canBuyImmediately && !isWantAndEnoughMoney,
     },
   ].filter((t) => t.visible);
@@ -109,7 +110,6 @@ export function ResultComments({
       {/* Premium Folder-style Tabs Navigation */}
       <div className="flex items-end gap-1 px-3 sm:px-4 overflow-x-auto scrollbar-none border-b relative z-10 shrink-0">
         {tabs.map((tab) => {
-          const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -122,7 +122,6 @@ export function ResultComments({
                   : "border-transparent text-muted-foreground hover:bg-muted/30 hover:text-foreground"
               )}
             >
-              <Icon size={13} className={isActive ? "animate-pulse text-violet-500" : ""} />
               {tab.label}
             </button>
           );
@@ -269,20 +268,46 @@ export function ResultComments({
                         </p>
                       </div>
 
-                      {/* Action Button at bottom */}
-                      <Button
+                       <Button
                         type="button"
                         variant="default"
-                        size="default"
-                        onClick={() => {
-                          if (typeof window !== "undefined") {
-                            localStorage.setItem("selected_saving_strategy", JSON.stringify(strat));
-                            onOpenSusunModal?.();
+                        size="icon-lg"
+                        disabled={processingKey !== null}
+                        onClick={async () => {
+                          if (!session?.user?.id) {
+                            alert("Kamu harus login terlebih dahulu!");
+                            return;
+                          }
+                          setProcessingKey(strat.key);
+                          try {
+                            const postRes = await fetch("/api/goal-analysis", {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                              },
+                              body: JSON.stringify({
+                                userId: session.user.id,
+                                decisionId,
+                                requiredMonthlySavings: strat.monthlySaving,
+                              }),
+                            });
+
+                            const postJson = await postRes.json();
+                            if (postJson.success && postJson.data) {
+                              router.push(`/goal-analysis?activeId=${postJson.data.id}`);
+                            } else {
+                              alert("Gagal menyusun rencana anggaran: " + postJson.message);
+                            }
+                          } catch (err) {
+                            console.error("Error processing saving strategy", err);
+                            alert("Terjadi kesalahan saat menyimpan rencana anggaran.");
+                          } finally {
+                            setProcessingKey(null);
                           }
                         }}
-                        className="w-full rounded-xl text-[10px] font-black uppercase tracking-wider text-center cursor-pointer shadow-sm transition-all duration-200 select-none bg-violet-700 hover:bg-violet-800 text-white shadow-md shadow-violet-700/10"
+                        className="w-full rounded-xl text-sm font-semibold uppercase text-center cursor-pointer shadow-sm transition-all duration-200 select-none bg-violet-700 hover:bg-violet-800 disabled:bg-violet-700/50 text-white shadow-md shadow-violet-700/10"
                       >
-                        Buat Rencana Menabung
+                        {processingKey === strat.key ? "Memproses..." : "Buat Rencana Menabung"}
                       </Button>
                     </div>
                   );
@@ -322,6 +347,21 @@ export function ResultComments({
           />
         )}
       </div>
+
+      {/* Loading Modal Overlay during AI compilation */}
+      {processingKey !== null && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-md">
+          <div className="p-6 max-w-sm w-full mx-4 rounded-3xl border border-muted-foreground/15 bg-background/95 shadow-2xl flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <Loader2 className="h-10 w-10 animate-spin text-violet-600" />
+            <div className="space-y-1.5">
+              <h3 className="text-sm font-bold text-foreground">Menyusun Rencana Anggaran...</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Asisten AI sedang memformulasikan alokasi bulanan berdasarkan keputusan belanja dan strategi menabung pilihanmu. Mohon tunggu sebentar ya.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
